@@ -1,27 +1,64 @@
-export default function DashboardPage(){
+import {
+  Briefcase,
+  Building2,
+  CalendarDays,
+  DollarSign,
+  Users,
+} from "lucide-react";
 
-return(
+import { StatCard } from "@/components/ui/stat-card";
+import WelcomeBanner from "@/modules/dashboard/components/WelcomeBanner";
+import BusinessStatus from "@/modules/dashboard/components/BusinessStatus";
+import QuickActions from "@/modules/dashboard/components/QuickActions";
 
-<div className="min-h-screen bg-[#F8FAFC]">
+export default function DashboardPage() {
+  return (
+    <>
+      <WelcomeBanner />
 
-<div className="mx-auto max-w-7xl p-8">
+      <div className="mb-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard
+          title="Businesses"
+          value={5}
+          icon={Building2}
+          trend="+1 this month"
+          trendDirection="up"
+        />
 
-<h1 className="text-4xl font-bold text-[#03162F]">
+        <StatCard
+          title="Employees"
+          value={32}
+          icon={Users}
+          trend="+4 this week"
+          trendDirection="up"
+        />
 
-Alessandro Enterprise Platform
+        <StatCard
+          title="Customers"
+          value={150}
+          icon={Briefcase}
+          trend="+18 today"
+          trendDirection="up"
+        />
 
-</h1>
+        <StatCard
+          title="Bookings"
+          value={18}
+          icon={CalendarDays}
+        />
 
-<p className="mt-3 text-slate-600">
+        <StatCard
+          title="Revenue"
+          value="ZMW 0.00"
+          icon={DollarSign}
+          color="gold"
+        />
+      </div>
 
-Enterprise Dashboard
-
-</p>
-
-</div>
-
-</div>
-
-);
-
+      <div className="grid gap-6 lg:grid-cols-2">
+        <BusinessStatus />
+        <QuickActions />
+      </div>
+    </>
+  );
 }
