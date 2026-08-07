@@ -1,6 +1,38 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Lock, Mail } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 
 export default function LoginForm() {
+  const router = useRouter();
+
+  const { signIn, loading } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState("");
+
+  async function handleSubmit(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
+    e.preventDefault();
+
+    setError("");
+
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  }
+
   return (
     <div className="w-full max-w-md rounded-3xl bg-white p-10 shadow-xl">
 
@@ -20,9 +52,13 @@ export default function LoginForm() {
         Welcome Back
       </h2>
 
-      <form className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6"
+      >
 
         <div>
+
           <label className="mb-2 block font-medium">
             Email Address
           </label>
@@ -33,11 +69,17 @@ export default function LoginForm() {
 
             <input
               type="email"
+              required
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
               placeholder="name@example.com"
               className="w-full rounded-xl border border-slate-200 py-3 pl-12 pr-4 outline-none transition focus:border-[#D4AF37]"
             />
 
           </div>
+
         </div>
 
         <div>
@@ -52,6 +94,11 @@ export default function LoginForm() {
 
             <input
               type="password"
+              required
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
               placeholder="••••••••"
               className="w-full rounded-xl border border-slate-200 py-3 pl-12 pr-4 outline-none transition focus:border-[#D4AF37]"
             />
@@ -60,30 +107,18 @@ export default function LoginForm() {
 
         </div>
 
-        <div className="flex items-center justify-between">
-
-          <label className="flex items-center gap-2 text-sm">
-
-            <input type="checkbox" />
-
-            Remember Me
-
-          </label>
-
-          <button
-            type="button"
-            className="text-sm font-medium text-[#03162F]"
-          >
-            Forgot Password?
-          </button>
-
-        </div>
+        {error && (
+          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-[#03162F] py-3 font-semibold text-white transition hover:bg-[#0A2852]"
+          disabled={loading}
+          className="w-full rounded-xl bg-[#03162F] py-3 font-semibold text-white transition hover:bg-[#0A2852] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Sign In
+          {loading ? "Signing In..." : "Sign In"}
         </button>
 
       </form>

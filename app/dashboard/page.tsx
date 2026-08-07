@@ -10,11 +10,13 @@ import { StatCard } from "@/components/ui/stat-card";
 import WelcomeBanner from "@/modules/dashboard/components/WelcomeBanner";
 import BusinessStatus from "@/modules/dashboard/components/BusinessStatus";
 import QuickActions from "@/modules/dashboard/components/QuickActions";
+import { getCurrentProfile } from "@/modules/enterprise/services/profile.service";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const profile = await getCurrentProfile();
   return (
     <>
-      <WelcomeBanner />
+      <WelcomeBanner profile={profile} />
 
       <div className="mb-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
         <StatCard
