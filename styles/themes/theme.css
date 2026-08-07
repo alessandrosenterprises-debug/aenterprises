@@ -1,0 +1,45 @@
+.enterprise-card{
+
+background:var(--card);
+
+border:1px solid var(--border);
+
+border-radius:var(--radius);
+
+box-shadow:var(--shadow-sm);
+
+transition:all var(--transition);
+
+}
+
+.enterprise-card:hover{
+
+transform:translateY(-3px);
+
+box-shadow:var(--shadow-md);
+
+}
+
+.enterprise-button{
+
+background:var(--primary);
+
+color:white;
+
+border-radius:12px;
+
+transition:all var(--transition);
+
+}
+
+.enterprise-button:hover{
+
+background:#08264f;
+
+}
+
+.enterprise-gold{
+
+color:var(--secondary);
+
+}
