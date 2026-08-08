@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { createCustomer } from "@/modules/customers/services/customer.client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 
 interface Business {
@@ -45,6 +47,8 @@ export default function CustomerForm({
     },
   });
 
+  const router = useRouter();
+
  async function onSubmit(data: CustomerFormValues) {
   try {
     await createCustomer({
@@ -59,21 +63,19 @@ export default function CustomerForm({
       is_active: data.is_active,
     });
 
-    alert("Customer created successfully.");
+    toast.success("Customer created successfully.");
 
     onSuccess?.();
 
-    window.location.reload();
+    router.refresh();
   } catch (error: any) {
-    console.error("Create Customer Error:", error);
+    console.error(error);
 
-    alert(
-      error?.message ||
-      JSON.stringify(error) ||
-      "Failed to create customer."
+    toast.error(
+      error?.message || "Failed to create customer."
     );
   }
-} 
+}
   const businessOptions = businesses.map((business) => ({
   label: business.name,
   value: business.id,
