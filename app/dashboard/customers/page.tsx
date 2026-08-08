@@ -4,6 +4,7 @@ import { getCustomers } from "@/modules/customers/services/customer.service";
 
 export default async function CustomersPage() {
   const customers = await getCustomers();
+  console.log("PAGE CUSTOMERS:", customers);
   const businesses = await getBusinesses();
 
   return (

@@ -1,30 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { supabase } from "@/lib/supabase/client";
 
-export async function getCustomers() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-  .from("customers")
-  .select(`
-    *,
-    businesses (
-      id,
-      name
-    )
-  `)
-  .order("created_at", { ascending: false });
-
-  console.log("Customers:", data);
-  console.log("Customer Error:", error);
-
-  if (error) {
-    console.error(error);
-    return [];
-  }
-
-  return data;
-}
-export async function createCustomer(customer: {
+export interface CreateCustomerInput {
   business_id: string;
   full_name: string;
   phone: string;
@@ -34,9 +10,11 @@ export async function createCustomer(customer: {
   date_of_birth?: string;
   notes?: string;
   is_active?: boolean;
-}) {
-  const supabase = await createClient();
+}
 
+export async function createCustomer(
+  customer: CreateCustomerInput
+) {
   const { error } = await supabase
     .from("customers")
     .insert({
@@ -53,7 +31,6 @@ export async function createCustomer(customer: {
     });
 
   if (error) {
-    console.error(error);
     throw error;
   }
 }

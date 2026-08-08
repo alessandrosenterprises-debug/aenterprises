@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { createCustomer } from "@/modules/customers/services/customer.client";
+
 
 interface Business {
   id: string;
@@ -43,15 +45,35 @@ export default function CustomerForm({
     },
   });
 
-  async function onSubmit(data: CustomerFormValues) {
-    console.log(data);
+ async function onSubmit(data: CustomerFormValues) {
+  try {
+    await createCustomer({
+      business_id: data.business_id,
+      full_name: data.full_name,
+      phone: data.phone,
+      email: data.email,
+      address: data.address,
+      gender: data.gender,
+      date_of_birth: data.date_of_birth,
+      notes: data.notes,
+      is_active: data.is_active,
+    });
 
-    // Next Sprint:
-    // await createCustomer(data);
+    alert("Customer created successfully.");
 
     onSuccess?.();
-  }
 
+    window.location.reload();
+  } catch (error: any) {
+    console.error("Create Customer Error:", error);
+
+    alert(
+      error?.message ||
+      JSON.stringify(error) ||
+      "Failed to create customer."
+    );
+  }
+} 
   const businessOptions = businesses.map((business) => ({
   label: business.name,
   value: business.id,
