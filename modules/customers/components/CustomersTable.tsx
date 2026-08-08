@@ -5,6 +5,7 @@ import {
   AEDataTableToolbar,
 } from "@/components/enterprise/data-table";
 import CustomerModal from "./CustomerModal";
+import { AEStatusBadge } from "@/components/enterprise/badge";
 
 interface Customer {
   id: string;
@@ -105,8 +106,10 @@ export default function CustomersTable({
               </td>
 
               <td className="px-6 py-4">
-                {customer.status}
-              </td>
+                <AEStatusBadge
+                 status={customer.status}
+              />
+</td>
             </tr>
           ))
         )}
