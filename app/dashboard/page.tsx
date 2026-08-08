@@ -6,6 +6,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { getDashboardStats } from "@/modules/dashboard/services/dashboard.service";
 import { StatCard } from "@/components/ui/stat-card";
 import WelcomeBanner from "@/modules/dashboard/components/WelcomeBanner";
 import BusinessStatus from "@/modules/dashboard/components/BusinessStatus";
@@ -14,6 +15,7 @@ import { getCurrentProfile } from "@/modules/enterprise/services/profile.service
 
 export default async function DashboardPage() {
   const profile = await getCurrentProfile();
+  const stats = await getDashboardStats();
   return (
     <>
       <WelcomeBanner profile={profile} />
@@ -21,7 +23,7 @@ export default async function DashboardPage() {
       <div className="mb-8 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
         <StatCard
           title="Businesses"
-          value={5}
+          value={stats.businesses}
           icon={Building2}
           trend="+1 this month"
           trendDirection="up"
@@ -29,7 +31,7 @@ export default async function DashboardPage() {
 
         <StatCard
           title="Employees"
-          value={32}
+          value={stats.employees}
           icon={Users}
           trend="+4 this week"
           trendDirection="up"
@@ -37,7 +39,7 @@ export default async function DashboardPage() {
 
         <StatCard
           title="Customers"
-          value={150}
+          value={stats.customers}
           icon={Briefcase}
           trend="+18 today"
           trendDirection="up"
@@ -45,13 +47,13 @@ export default async function DashboardPage() {
 
         <StatCard
           title="Bookings"
-          value={18}
+          value={stats.bookings}
           icon={CalendarDays}
         />
 
         <StatCard
           title="Revenue"
-          value="ZMW 0.00"
+          value={`ZMW ${stats.revenue.toFixed(2)}`}
           icon={DollarSign}
           color="gold"
         />
