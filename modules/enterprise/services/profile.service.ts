@@ -7,28 +7,28 @@ export async function getCurrentProfile() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  const { data, error } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
-    .select(
-      `
-      display_name,
-      email,
-      roles (
-        name
-      )
-    `
-    )
+    .select("display_name, email, role_id")
     .eq("auth_user_id", user.id)
     .single();
 
-  if (error) {
+  if (error || !profile) {
     console.error(error);
     return null;
   }
 
-  return data;
+  const { data: role } = await supabase
+    .from("roles")
+    .select("name")
+    .eq("id", profile.role_id)
+    .single();
+
+  return {
+    display_name: profile.display_name,
+    email: profile.email,
+    role: role?.name ?? "Enterprise Overview",
+  };
 }

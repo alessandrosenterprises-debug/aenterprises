@@ -2,9 +2,7 @@ interface WelcomeBannerProps {
   profile: {
     display_name: string;
     email: string;
-    roles?: {
-      name: string;
-    }[];
+    role: string;
   } | null;
 }
 
@@ -37,7 +35,7 @@ export default function WelcomeBanner({
         </h1>
 
         <p className="mt-3 text-lg text-slate-300">
-          {profile?.roles?.[0]?.name ?? "Enterprise Overview"}
+         {profile?.role ?? "Enterprise Overview"}
         </p>
       </div>
 

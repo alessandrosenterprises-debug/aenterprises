@@ -1,10 +1,23 @@
 import { ReactNode } from "react";
-import AppLayout from "@/components/layout/AppLayout";
+import { redirect } from "next/navigation";
 
-export default function DashboardLayout({
+import AppLayout from "@/components/layout/AppLayout";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function DashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   return <AppLayout>{children}</AppLayout>;
 }
