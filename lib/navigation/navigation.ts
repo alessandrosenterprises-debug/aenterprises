@@ -61,9 +61,9 @@ export const navigation: NavigationItem[] = [
   },
   {
     title: "Customers",
-    href: "/customers",
+    href: "/dashboard/customers",
     icon: Users,
-  },
+},
   {
     title: "Products",
     href: "/products",
