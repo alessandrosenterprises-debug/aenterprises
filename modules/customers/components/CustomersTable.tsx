@@ -15,6 +15,8 @@ import { AEDetailsModal } from "@/components/enterprise/details";
 import { deleteCustomer } from "@/modules/customers/services/customer.client";
 import { useRouter } from "next/navigation";
 import { exportToExcel } from "@/lib/export/excel";
+import { exportToPDF } from "@/lib/export/pdf";
+
 interface Customer {
   id: string;
   full_name: string;
@@ -94,6 +96,17 @@ function handleExportExcel() {
 
   exportToExcel("customers", rows);
 }
+
+function handleExportPDF() {
+  const rows = customers.map((customer) => ({
+    Customer: customer.full_name,
+    Phone: customer.phone,
+    Business: customer.businesses?.name ?? "",
+    Status: customer.status,
+  }));
+
+  exportToPDF("Customer Report", rows);
+}
     const filteredCustomers = useMemo(() => {
   if (!search.trim()) return customers;
 
@@ -113,11 +126,12 @@ return (
   <AEDataTable
     toolbar={
       <AEDataTableToolbar
-        search={search}
-        setSearch={setSearch}
-        onCSV={handleExportCSV}
-        onExcel={handleExportExcel}
-      >
+  search={search}
+  setSearch={setSearch}
+  onCSV={handleExportCSV}
+  onExcel={handleExportExcel}
+  onPDF={handleExportPDF}
+>
         <CustomerModal businesses={businesses} />
       </AEDataTableToolbar>
     }
