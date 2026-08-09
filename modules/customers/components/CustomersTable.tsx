@@ -44,6 +44,8 @@ const [selectedCustomer, setSelectedCustomer] =
 
 const [detailsOpen, setDetailsOpen] =
   useState(false);
+  const [editOpen, setEditOpen] =
+  useState(false);
     const filteredCustomers = useMemo(() => {
   if (!search.trim()) return customers;
 
@@ -137,9 +139,10 @@ return (
                       setSelectedCustomer(customer);
                       setDetailsOpen(true);
                     }}
-                    onEdit={() =>
-                      alert(`Edit ${customer.full_name}`)
-                    }
+                    onEdit={() => {
+  setSelectedCustomer(customer);
+  setEditOpen(true);
+}}
                     onDelete={() =>
                       alert(`Delete ${customer.full_name}`)
                     }
@@ -198,6 +201,15 @@ return (
         </div>
       )}
     </AEDetailsModal>
+    <CustomerModal
+  businesses={businesses}
+  mode="edit"
+  customer={selectedCustomer ?? undefined}
+  open={editOpen}
+  onClose={() => setEditOpen(false)}
+/>
   </>
+  
+  
 );  
 }

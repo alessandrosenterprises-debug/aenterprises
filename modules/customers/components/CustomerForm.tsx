@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { createCustomer } from "@/modules/customers/services/customer.client";
+import {
+  createCustomer,
+  updateCustomer,
+} from "@/modules/customers/services/customer.client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -34,7 +37,9 @@ interface CustomerFormProps {
 
   mode?: "create" | "edit";
 
-  customer?: Partial<CustomerFormValues>;
+  customer?: Partial<CustomerFormValues> & {
+  id?: string;
+};
 }
 export default function CustomerForm({
   businesses,
@@ -62,21 +67,46 @@ export default function CustomerForm({
 
   const router = useRouter();
 
- async function onSubmit(data: CustomerFormValues) {
-  try {
-    await createCustomer({
-      business_id: data.business_id,
-      full_name: data.full_name,
-      phone: data.phone,
-      email: data.email,
-      address: data.address,
-      gender: data.gender,
-      date_of_birth: data.date_of_birth,
-      notes: data.notes,
-      is_active: data.is_active,
-    });
+   const businessOptions = businesses.map((business) => ({
+  label: business.name,
+  value: business.id,
+}));
 
-    toast.success("Customer created successfully.");
+async function onSubmit(data: CustomerFormValues) {
+   try {
+    if (mode === "edit" && customer?.id) {
+      console.log(">>> UPDATE PATH <<<");
+
+      await updateCustomer(customer.id, {
+        business_id: data.business_id,
+        full_name: data.full_name,
+        phone: data.phone,
+        email: data.email,
+        address: data.address,
+        gender: data.gender,
+        date_of_birth: data.date_of_birth,
+        notes: data.notes,
+        is_active: data.is_active,
+      });
+
+      toast.success("Customer updated successfully.");
+    } else {
+      console.log(">>> CREATE PATH <<<");
+
+      await createCustomer({
+        business_id: data.business_id,
+        full_name: data.full_name,
+        phone: data.phone,
+        email: data.email,
+        address: data.address,
+        gender: data.gender,
+        date_of_birth: data.date_of_birth,
+        notes: data.notes,
+        is_active: data.is_active,
+      });
+
+      toast.success("Customer created successfully.");
+    }
 
     onSuccess?.();
 
@@ -85,15 +115,10 @@ export default function CustomerForm({
     console.error(error);
 
     toast.error(
-      error?.message || "Failed to create customer."
+      error?.message || "Failed to save customer."
     );
   }
 }
-  const businessOptions = businesses.map((business) => ({
-  label: business.name,
-  value: business.id,
-}));
-
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}

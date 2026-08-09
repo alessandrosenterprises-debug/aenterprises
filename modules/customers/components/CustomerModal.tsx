@@ -16,38 +16,58 @@ interface CustomerModalProps {
   mode?: "create" | "edit";
 
   customer?: any;
+  open?: boolean;
+onClose?: () => void;
 }
 
 export default function CustomerModal({
   businesses,
   mode = "create",
   customer,
+  open,
+  onClose,
 }: CustomerModalProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+const isOpen = open ?? internalOpen;
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
-      >
-        + Add Customer
-      </button>
+      {mode === "create" && (
+  <button
+    onClick={() => setInternalOpen(true)}
+    className="rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
+  >
+    + Add Customer
+  </button>
+)}
 
       <Modal
-        open={open}
+        open={isOpen}
         title={
   mode === "create"
     ? "New Customer"
     : "Edit Customer"
 }
-        onClose={() => setOpen(false)}
+        onClose={() => {
+  if (onClose) {
+    onClose();
+  } else {
+    setInternalOpen(false);
+  }
+}}
       >
         <CustomerForm
   businesses={businesses}
   mode={mode}
   customer={customer}
-  onSuccess={() => setOpen(false)}
+  onSuccess={() => {
+  if (onClose) {
+    onClose();
+  } else {
+    setInternalOpen(false);
+  }
+}}
 />
       </Modal>
     </>

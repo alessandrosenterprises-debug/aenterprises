@@ -34,3 +34,35 @@ export async function createCustomer(
     throw error;
   }
 }
+
+export async function updateCustomer(
+  id: string,
+  customer: CreateCustomerInput
+) {
+  const { data, error } = await supabase
+    .from("customers")
+    .update({
+      business_id: customer.business_id,
+      full_name: customer.full_name,
+      phone: customer.phone,
+      email: customer.email || null,
+      address: customer.address || null,
+      gender: customer.gender || null,
+      date_of_birth: customer.date_of_birth || null,
+      notes: customer.notes || null,
+      is_active: customer.is_active ?? true,
+    })
+    .eq("id", id)
+    .select();
+
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error(
+      "No customer was updated. This usually means the UPDATE policy blocked the request."
+    );
+  }
+}
