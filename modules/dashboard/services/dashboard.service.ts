@@ -5,8 +5,9 @@ export async function getDashboardStats() {
 
   const [
     businesses,
-    profiles,
+    employees,
     customers,
+    bookings,
   ] = await Promise.all([
     supabase
       .from("businesses")
@@ -16,7 +17,7 @@ export async function getDashboardStats() {
       }),
 
     supabase
-      .from("profiles")
+      .from("employees")
       .select("*", {
         count: "exact",
         head: true,
@@ -28,13 +29,20 @@ export async function getDashboardStats() {
         count: "exact",
         head: true,
       }),
+
+    supabase
+      .from("bookings")
+      .select("*", {
+        count: "exact",
+        head: true,
+      }),
   ]);
 
   return {
     businesses: businesses.count ?? 0,
-    employees: profiles.count ?? 0,
+    employees: employees.count ?? 0,
     customers: customers.count ?? 0,
-    bookings: 0,
+    bookings: bookings.count ?? 0,
     revenue: 0,
   };
 }

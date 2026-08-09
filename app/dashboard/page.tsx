@@ -5,7 +5,7 @@ import {
   DollarSign,
   Users,
 } from "lucide-react";
-
+import RecentActivity from "@/modules/dashboard/components/RecentActivity";
 import { getDashboardStats } from "@/modules/dashboard/services/dashboard.service";
 import { StatCard } from "@/components/ui/stat-card";
 import WelcomeBanner from "@/modules/dashboard/components/WelcomeBanner";
@@ -59,10 +59,11 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BusinessStatus />
-        <QuickActions />
-      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+  <BusinessStatus />
+  <QuickActions />
+  <RecentActivity />
+</div>
     </>
   );
 }

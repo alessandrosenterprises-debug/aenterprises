@@ -9,8 +9,8 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[280px] bg-[#03162F] text-white">
-      <div className="border-b border-white/10 p-6">
+    <aside className="sticky top-0 h-screen w-[280px] overflow-y-auto bg-[#03162F] text-white shadow-xl">
+      <div className="sticky top-0 z-10 border-b border-white/10 bg-[#03162F] p-6">
         <h1 className="text-2xl font-bold text-[#D4AF37]">
           ALESSANDRO
         </h1>
@@ -20,7 +20,7 @@ export default function Sidebar() {
         </p>
       </div>
 
-      <nav className="space-y-2 p-4">
+      <nav className="flex flex-col gap-2 p-4">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
 

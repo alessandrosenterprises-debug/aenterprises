@@ -3,6 +3,7 @@ import {
   Building2,
   Briefcase,
   Users,
+  UserCog,
   Package,
   CalendarDays,
   BarChart3,
@@ -63,6 +64,11 @@ export const navigation: NavigationItem[] = [
     title: "Customers",
     href: "/dashboard/customers",
     icon: Users,
+},
+{
+  title: "Employees",
+  href: "/dashboard/employees",
+  icon: UserCog,
 },
   {
     title: "Products",
