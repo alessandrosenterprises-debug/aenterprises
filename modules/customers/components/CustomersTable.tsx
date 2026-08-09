@@ -1,11 +1,17 @@
 "use client";
+
 import { useMemo, useState } from "react";
+
 import {
   AEDataTable,
   AEDataTableToolbar,
 } from "@/components/enterprise/data-table";
-import CustomerModal from "./CustomerModal";
+
 import { AEStatusBadge } from "@/components/enterprise/badge";
+import { AERowActions } from "@/components/enterprise/actions";
+
+import CustomerModal from "./CustomerModal";
+import { AEDetailsModal } from "@/components/enterprise/details";
 
 interface Customer {
   id: string;
@@ -32,6 +38,12 @@ export default function CustomersTable({
   businesses,
 }: CustomersTableProps) {
     const [search, setSearch] = useState("");
+
+const [selectedCustomer, setSelectedCustomer] =
+  useState<Customer | null>(null);
+
+const [detailsOpen, setDetailsOpen] =
+  useState(false);
     const filteredCustomers = useMemo(() => {
   if (!search.trim()) return customers;
 
@@ -46,17 +58,18 @@ export default function CustomersTable({
     );
   });
 }, [customers, search]);
-  return (
+return (
+  <>
     <AEDataTable
-  toolbar={
-    <AEDataTableToolbar
-      search={search}
-      setSearch={setSearch}
+      toolbar={
+        <AEDataTableToolbar
+          search={search}
+          setSearch={setSearch}
+        >
+          <CustomerModal businesses={businesses} />
+        </AEDataTableToolbar>
+      }
     >
-      <CustomerModal businesses={businesses} />
-    </AEDataTableToolbar>
-  }
->
       <thead>
         <tr className="border-b">
           <th className="px-6 py-4 text-left font-semibold">
@@ -74,6 +87,10 @@ export default function CustomersTable({
           <th className="px-6 py-4 text-left font-semibold">
             Status
           </th>
+
+          <th className="px-6 py-4 text-center font-semibold">
+            Actions
+          </th>
         </tr>
       </thead>
 
@@ -81,10 +98,12 @@ export default function CustomersTable({
         {filteredCustomers.length === 0 ? (
           <tr>
             <td
-              colSpan={4}
+              colSpan={5}
               className="py-12 text-center text-slate-500"
             >
-              No customers yet.
+              {search
+                ? "No matching customers found."
+                : "No customers yet."}
             </td>
           </tr>
         ) : (
@@ -107,13 +126,78 @@ export default function CustomersTable({
 
               <td className="px-6 py-4">
                 <AEStatusBadge
-                 status={customer.status}
-              />
-</td>
+                  status={customer.status}
+                />
+              </td>
+
+              <td className="px-6 py-4">
+                <div className="flex justify-center">
+                  <AERowActions
+                    onView={() => {
+                      setSelectedCustomer(customer);
+                      setDetailsOpen(true);
+                    }}
+                    onEdit={() =>
+                      alert(`Edit ${customer.full_name}`)
+                    }
+                    onDelete={() =>
+                      alert(`Delete ${customer.full_name}`)
+                    }
+                  />
+                </div>
+              </td>
             </tr>
           ))
         )}
       </tbody>
     </AEDataTable>
-  );
+
+    <AEDetailsModal
+      open={detailsOpen}
+      title="Customer Details"
+      onClose={() => setDetailsOpen(false)}
+    >
+      {selectedCustomer && (
+        <div className="grid gap-4">
+          <div>
+            <p className="text-sm text-slate-500">
+              Full Name
+            </p>
+            <p className="font-semibold">
+              {selectedCustomer.full_name}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-slate-500">
+              Phone
+            </p>
+            <p className="font-semibold">
+              {selectedCustomer.phone}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-slate-500">
+              Business
+            </p>
+            <p className="font-semibold">
+              {selectedCustomer.businesses?.name}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-slate-500">
+              Status
+            </p>
+
+            <AEStatusBadge
+              status={selectedCustomer.status}
+            />
+          </div>
+        </div>
+      )}
+    </AEDetailsModal>
+  </>
+);  
 }
