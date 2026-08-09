@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
+import { exportToCSV } from "@/lib/export/csv";
 import {
   AEDataTable,
   AEDataTableToolbar,
@@ -14,7 +14,7 @@ import CustomerModal from "./CustomerModal";
 import { AEDetailsModal } from "@/components/enterprise/details";
 import { deleteCustomer } from "@/modules/customers/services/customer.client";
 import { useRouter } from "next/navigation";
-
+import { exportToExcel } from "@/lib/export/excel";
 interface Customer {
   id: string;
   full_name: string;
@@ -73,7 +73,27 @@ toast.success("Customer deleted successfully.");
     setDeleting(false);
   }
 }
+function handleExportCSV() {
+  const rows = customers.map((customer) => ({
+    Customer: customer.full_name,
+    Phone: customer.phone,
+    Business: customer.businesses?.name ?? "",
+    Status: customer.status,
+  }));
 
+  exportToCSV("customers", rows);
+}
+
+function handleExportExcel() {
+  const rows = customers.map((customer) => ({
+    Customer: customer.full_name,
+    Phone: customer.phone,
+    Business: customer.businesses?.name ?? "",
+    Status: customer.status,
+  }));
+
+  exportToExcel("customers", rows);
+}
     const filteredCustomers = useMemo(() => {
   if (!search.trim()) return customers;
 
@@ -90,16 +110,18 @@ toast.success("Customer deleted successfully.");
 }, [customers, search]);
 return (
   <>
-    <AEDataTable
-      toolbar={
-        <AEDataTableToolbar
-          search={search}
-          setSearch={setSearch}
-        >
-          <CustomerModal businesses={businesses} />
-        </AEDataTableToolbar>
-      }
-    >
+  <AEDataTable
+    toolbar={
+      <AEDataTableToolbar
+        search={search}
+        setSearch={setSearch}
+        onCSV={handleExportCSV}
+        onExcel={handleExportExcel}
+      >
+        <CustomerModal businesses={businesses} />
+      </AEDataTableToolbar>
+    }
+  >
       <thead>
         <tr className="border-b">
           <th className="px-6 py-4 text-left font-semibold">
