@@ -66,3 +66,24 @@ export async function updateCustomer(
     );
   }
 }
+
+export async function deleteCustomer(id: string) {
+  const { data, error } = await supabase
+    .from("customers")
+    .delete()
+    .eq("id", id)
+    .select();
+
+  console.log("DELETE DATA:", data);
+  console.log("DELETE ERROR:", error);
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error(
+      "No customer was deleted. Check the DELETE policy or matching row."
+    );
+  }
+}

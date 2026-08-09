@@ -6,12 +6,14 @@ import {
   AEDataTable,
   AEDataTableToolbar,
 } from "@/components/enterprise/data-table";
-
+import { toast } from "sonner";
 import { AEStatusBadge } from "@/components/enterprise/badge";
 import { AERowActions } from "@/components/enterprise/actions";
-
+import { AEConfirmDialog } from "@/components/enterprise";
 import CustomerModal from "./CustomerModal";
 import { AEDetailsModal } from "@/components/enterprise/details";
+import { deleteCustomer } from "@/modules/customers/services/customer.client";
+import { useRouter } from "next/navigation";
 
 interface Customer {
   id: string;
@@ -37,15 +39,41 @@ export default function CustomersTable({
   customers,
   businesses,
 }: CustomersTableProps) {
+  
     const [search, setSearch] = useState("");
-
+   const router = useRouter();
 const [selectedCustomer, setSelectedCustomer] =
   useState<Customer | null>(null);
+const [customerToDelete, setCustomerToDelete] =
+  useState<Customer | null>(null);
+ const [detailsOpen, setDetailsOpen] =
+  useState(false);  
+const [editOpen, setEditOpen] =
+  useState(false);
+const [deleteOpen, setDeleteOpen] =
+  useState(false);
+const [deleting, setDeleting] =
+  useState(false); 
 
-const [detailsOpen, setDetailsOpen] =
-  useState(false);
-  const [editOpen, setEditOpen] =
-  useState(false);
+  async function handleDelete() {
+  if (!customerToDelete) return;
+
+  try {
+    setDeleting(true);
+
+    await deleteCustomer(customerToDelete.id);
+toast.success("Customer deleted successfully.");
+    setDeleteOpen(false);
+    setCustomerToDelete(null);
+
+    router.refresh();
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setDeleting(false);
+  }
+}
+
     const filteredCustomers = useMemo(() => {
   if (!search.trim()) return customers;
 
@@ -143,9 +171,10 @@ return (
   setSelectedCustomer(customer);
   setEditOpen(true);
 }}
-                    onDelete={() =>
-                      alert(`Delete ${customer.full_name}`)
-                    }
+                    onDelete={() => {
+  setCustomerToDelete(customer);
+  setDeleteOpen(true);
+}}
                   />
                 </div>
               </td>
@@ -207,8 +236,19 @@ return (
   customer={selectedCustomer ?? undefined}
   open={editOpen}
   onClose={() => setEditOpen(false)}
+/><AEConfirmDialog
+  open={deleteOpen}
+  title="Delete Customer"
+  message={`Are you sure you want to delete "${customerToDelete?.full_name}"? This action cannot be undone.`}
+  loading={deleting}
+  onCancel={() => {
+    setDeleteOpen(false);
+    setCustomerToDelete(null);
+  }}
+  onConfirm={handleDelete}
 />
   </>
+  
   
   
 );  
