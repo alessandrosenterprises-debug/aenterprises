@@ -12,10 +12,16 @@ interface Business {
 
 interface CustomerModalProps {
   businesses: Business[];
+
+  mode?: "create" | "edit";
+
+  customer?: any;
 }
 
 export default function CustomerModal({
   businesses,
+  mode = "create",
+  customer,
 }: CustomerModalProps) {
   const [open, setOpen] = useState(false);
 
@@ -30,13 +36,19 @@ export default function CustomerModal({
 
       <Modal
         open={open}
-        title="New Customer"
+        title={
+  mode === "create"
+    ? "New Customer"
+    : "Edit Customer"
+}
         onClose={() => setOpen(false)}
       >
         <CustomerForm
-          businesses={businesses}
-          onSuccess={() => setOpen(false)}
-        />
+  businesses={businesses}
+  mode={mode}
+  customer={customer}
+  onSuccess={() => setOpen(false)}
+/>
       </Modal>
     </>
   );

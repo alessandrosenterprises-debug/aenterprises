@@ -31,21 +31,34 @@ interface CustomerFormValues {
 interface CustomerFormProps {
   businesses: Business[];
   onSuccess?: () => void;
-}
 
+  mode?: "create" | "edit";
+
+  customer?: Partial<CustomerFormValues>;
+}
 export default function CustomerForm({
   businesses,
   onSuccess,
+  mode = "create",
+  customer,
 }: CustomerFormProps) {
   const {
     register,
     handleSubmit,
     formState: { isSubmitting },
   } = useForm<CustomerFormValues>({
-    defaultValues: {
-      is_active: true,
-    },
-  });
+  defaultValues: {
+    business_id: customer?.business_id ?? "",
+    full_name: customer?.full_name ?? "",
+    phone: customer?.phone ?? "",
+    email: customer?.email ?? "",
+    address: customer?.address ?? "",
+    gender: customer?.gender ?? "",
+    date_of_birth: customer?.date_of_birth ?? "",
+    notes: customer?.notes ?? "",
+    is_active: customer?.is_active ?? true,
+  },
+});
 
   const router = useRouter();
 
@@ -196,8 +209,10 @@ export default function CustomerForm({
           </button>
 
           <SubmitButton loading={isSubmitting}>
-            Save Customer
-          </SubmitButton>
+  {mode === "create"
+    ? "Create Customer"
+    : "Update Customer"}
+</SubmitButton>
 
         </div>
 
