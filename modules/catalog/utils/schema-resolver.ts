@@ -1,14 +1,14 @@
 import { getCatalogSchema } from "../schemas";
 import { BusinessCatalogSchema } from "../types/catalog";
 
-export function resolveBusinessSchema(
+export function resolveCatalogSchema(
   businessName: string
 ): BusinessCatalogSchema | null {
-  const key = businessName
+  const normalized = businessName
     .toLowerCase()
     .replace("alessandro", "")
     .trim()
     .replace(/\s+/g, "-");
 
-  return getCatalogSchema(key);
+  return getCatalogSchema(normalized);
 }

@@ -71,8 +71,8 @@ export const navigation: NavigationItem[] = [
   icon: UserCog,
 },
   {
-  title: "Products",
-  href: "/dashboard/products",
+  title: "Catalog",
+  href: "/dashboard/catalog",
   icon: Package,
 },
   {
