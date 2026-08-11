@@ -71,10 +71,10 @@ export const navigation: NavigationItem[] = [
   icon: UserCog,
 },
   {
-    title: "Products",
-    href: "/products",
-    icon: Package,
-  },
+  title: "Products",
+  href: "/dashboard/products",
+  icon: Package,
+},
   {
     title: "Bookings",
     href: "/bookings",

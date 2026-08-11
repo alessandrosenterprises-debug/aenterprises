@@ -1,5 +1,6 @@
 export interface Product {
   id: string;
+
   business_id: string;
 
   name: string;
