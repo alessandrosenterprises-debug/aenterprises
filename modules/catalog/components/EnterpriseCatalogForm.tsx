@@ -3,7 +3,7 @@ import {
   createEnterpriseCatalogItem,
   updateEnterpriseCatalogItem,
 } from "../services/enterprise-catalog.client";
-
+import ImageUpload from "@/components/ui/image-upload/ImageUpload";
 import { buildCatalogPayload } from "../utils/build-catalog-payload";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -76,6 +76,7 @@ export default function EnterpriseCatalogForm({
   });
 
   const businessId = watch("business_id");
+  const imageUrl = watch("image_url");
 
   useEffect(() => {
     const business =
@@ -196,11 +197,21 @@ export default function EnterpriseCatalogForm({
           {...register("status")}
         />
 
-        <Input
-          label="Image URL"
-          placeholder="https://..."
-          {...register("image_url")}
-        />
+        <div className="md:col-span-2">
+  <label className="mb-2 block text-sm font-semibold text-slate-700">
+    Product Image
+  </label>
+
+  <ImageUpload
+    value={imageUrl}
+    onChange={(url) =>
+      setValue("image_url", url, {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
+    }
+  />
+</div>
       </div>
 
       <Textarea
