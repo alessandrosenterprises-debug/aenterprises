@@ -1,5 +1,5 @@
 import { LucideIcon, TrendingDown, TrendingUp, Minus } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/card/index";
 import clsx from "clsx";
 
 export interface StatCardProps {
