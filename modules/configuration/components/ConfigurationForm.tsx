@@ -87,6 +87,7 @@ export default function ConfigurationForm({
               );
 
             case "checkbox":
+case "boolean":
               return (
                 <label
                   key={field.key}
@@ -94,7 +95,9 @@ export default function ConfigurationForm({
                 >
                   <input
                     type="checkbox"
-                    {...register(field.key)}
+                    {...register(field.key, {
+  valueAsNumber: true,
+})}
                   />
 
                   {field.label}

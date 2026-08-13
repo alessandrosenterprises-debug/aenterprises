@@ -1,38 +1,28 @@
+import { EnterpriseCatalogPayload } from "../services/enterprise-catalog.client";
 import { BusinessCatalogSchema } from "../types/catalog";
 
-const COMMON_FIELDS = [
-  "business_id",
-  "item_type",
-  "category",
-  "name",
-  "description",
-  "base_price",
-  "quantity",
-  "status",
-  "image_url",
-];
-
 export function buildCatalogPayload(
-  formData: Record<string, any>,
+  values: Record<string, any>,
   schema: BusinessCatalogSchema | null
-) {
-  const payload: Record<string, any> = {};
-
-  // Copy common fields
-  COMMON_FIELDS.forEach((field) => {
-    payload[field] = formData[field];
-  });
-
-  // Build dynamic attributes
+): EnterpriseCatalogPayload {
   const attributes: Record<string, any> = {};
 
   if (schema) {
     schema.fields.forEach((field) => {
-      attributes[field.key] = formData[field.key] ?? null;
+      attributes[field.key] = values[field.key];
     });
   }
 
-  payload.attributes = attributes;
-
-  return payload;
+  return {
+    business_id: values.business_id,
+    item_type: values.item_type,
+    category: values.category,
+    name: values.name,
+    description: values.description,
+    base_price: Number(values.base_price),
+    quantity: Number(values.quantity),
+    status: values.status,
+    image_url: values.image_url,
+    attributes,
+  };
 }

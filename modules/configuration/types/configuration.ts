@@ -3,22 +3,20 @@ export type ConfigurationFieldType =
   | "textarea"
   | "number"
   | "currency"
-  | "select"
+  | "boolean"
   | "checkbox"
+  | "select"
   | "date"
+  | "email"
+  | "phone"
   | "image";
 
 export interface ConfigurationField {
   key: string;
-
   label: string;
-
   type: ConfigurationFieldType;
-
   required?: boolean;
-
   placeholder?: string;
-
   options?: {
     label: string;
     value: string;
@@ -27,10 +25,7 @@ export interface ConfigurationField {
 
 export interface ConfigurationSchema {
   key: string;
-
   title: string;
-
-  description?: string;
-
+  description: string;
   fields: ConfigurationField[];
 }

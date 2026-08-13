@@ -19,23 +19,18 @@ export default async function ConfigurationPage({
     getConfigurationSchema(type as any);
 
   const rows =
-    await getConfiguration(type);
+    await getConfiguration(schema.key);
 
-  const columns = schema.fields
-    .filter(
-      (field) =>
-        field.type !== "image"
-    )
-    .map((field) => ({
+  const columns = schema.fields.map(
+    (field) => ({
       key: field.key,
       label: field.label,
-    }));
+    })
+  );
 
   return (
     <div className="space-y-6">
-
       <div>
-
         <h1 className="text-3xl font-bold text-[#03162F]">
           {schema.title}
         </h1>
@@ -43,7 +38,6 @@ export default async function ConfigurationPage({
         <p className="text-slate-500">
           {schema.description}
         </p>
-
       </div>
 
       <ConfigurationTable
@@ -51,7 +45,6 @@ export default async function ConfigurationPage({
         rows={rows}
         columns={columns}
       />
-
     </div>
   );
 }

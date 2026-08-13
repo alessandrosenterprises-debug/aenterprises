@@ -1,10 +1,22 @@
 import {
   configurationSchemas,
-  ConfigurationType,
+  type ConfigurationType,
 } from "../schemas";
 
 export function getConfigurationSchema(
-  type: ConfigurationType
+  type: string
 ) {
-  return configurationSchemas[type];
+  const configurationType =
+    type as ConfigurationType;
+
+  const schema =
+    configurationSchemas[configurationType];
+
+  if (!schema) {
+    throw new Error(
+      `Unknown configuration type: ${type}`
+    );
+  }
+
+  return schema;
 }
