@@ -65,7 +65,7 @@ export interface Booking {
   } | null;
 }
 
-export async function getBookings() {
+export async function getBookings(): Promise<Booking[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -103,11 +103,7 @@ export async function getBookings() {
     });
 
   if (error) {
-    console.error(
-      "Bookings error:",
-      error
-    );
-
+    console.error("Bookings error:", error);
     return [];
   }
 
@@ -180,13 +176,25 @@ export async function getBookingStats() {
   };
 }
 
+/**
+ * Get bookings for a report.
+ *
+ * Reports support:
+ * - From date
+ * - To date
+ * - Optional business
+ *
+ * Date filtering is performed directly by Supabase.
+ */
 export async function getBookingsForReport({
-  date,
+  fromDate,
+  toDate,
   businessId,
 }: {
-  date?: string;
+  fromDate?: string;
+  toDate?: string;
   businessId?: string;
-}) {
+}): Promise<Booking[]> {
   const supabase = await createClient();
 
   let query = supabase
@@ -196,19 +204,32 @@ export async function getBookingsForReport({
       business_id,
       customer_id,
       employee_id,
+      branch_id,
       catalog_item_id,
       booking_date,
       booking_time,
       status,
       payment_status,
       amount,
+      notes,
+      created_at,
+      updated_at,
       businesses (
         id,
         name
       ),
       customers (
         id,
+        full_name,
+        phone
+      ),
+      employees (
+        id,
         full_name
+      ),
+      branches (
+        id,
+        name
       ),
       enterprise_catalog (
         id,
@@ -217,10 +238,17 @@ export async function getBookingsForReport({
       )
     `);
 
-  if (date) {
-    query = query.eq(
+  if (fromDate) {
+    query = query.gte(
       "booking_date",
-      date
+      fromDate
+    );
+  }
+
+  if (toDate) {
+    query = query.lte(
+      "booking_date",
+      toDate
     );
   }
 
@@ -248,5 +276,14 @@ export async function getBookingsForReport({
     return [];
   }
 
-  return data ?? [];
+  const rows = (data ?? []) as unknown[];
+
+return rows.map((item) => {
+  const row = item as Record<string, any>;
+
+  return {
+    ...row,
+    amount: Number(row.amount ?? 0),
+  } as Booking;
+});
 }
