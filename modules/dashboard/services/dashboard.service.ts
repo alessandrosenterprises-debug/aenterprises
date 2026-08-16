@@ -4,10 +4,11 @@ export async function getDashboardStats() {
   const supabase = await createClient();
 
   const [
-    businesses,
-    employees,
-    customers,
-    bookings,
+    businessesResult,
+    employeesResult,
+    customersResult,
+    bookingsResult,
+    revenueResult,
   ] = await Promise.all([
     supabase
       .from("businesses")
@@ -36,13 +37,60 @@ export async function getDashboardStats() {
         count: "exact",
         head: true,
       }),
+
+    supabase
+      .from("bookings")
+      .select("amount")
+      .eq("status", "Completed")
+      .eq("payment_status", "Paid"),
   ]);
 
+  if (businessesResult.error) {
+    console.error(
+      "Dashboard businesses error:",
+      businessesResult.error
+    );
+  }
+
+  if (employeesResult.error) {
+    console.error(
+      "Dashboard employees error:",
+      employeesResult.error
+    );
+  }
+
+  if (customersResult.error) {
+    console.error(
+      "Dashboard customers error:",
+      customersResult.error
+    );
+  }
+
+  if (bookingsResult.error) {
+    console.error(
+      "Dashboard bookings error:",
+      bookingsResult.error
+    );
+  }
+
+  if (revenueResult.error) {
+    console.error(
+      "Dashboard revenue error:",
+      revenueResult.error
+    );
+  }
+
+  const revenue = (revenueResult.data ?? []).reduce(
+    (total, booking) =>
+      total + Number(booking.amount ?? 0),
+    0
+  );
+
   return {
-    businesses: businesses.count ?? 0,
-    employees: employees.count ?? 0,
-    customers: customers.count ?? 0,
-    bookings: bookings.count ?? 0,
-    revenue: 0,
+    businesses: businessesResult.count ?? 0,
+    employees: employeesResult.count ?? 0,
+    customers: customersResult.count ?? 0,
+    bookings: bookingsResult.count ?? 0,
+    revenue,
   };
 }

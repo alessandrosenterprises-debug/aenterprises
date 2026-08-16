@@ -10,29 +10,76 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 
-const reportStats = [
-  {
-    title: "Customers Attended",
-    value: "0",
-    icon: Users,
-  },
-  {
-    title: "Services Completed",
-    value: "0",
-    icon: Briefcase,
-  },
-  {
-    title: "Total Revenue",
-    value: "ZMW 0.00",
-    icon: DollarSign,
-  },
-];
+interface ReportStats {
+  customersAttended: number;
+  servicesCompleted: number;
+  totalRevenue: number;
+}
+
+interface ReportActivity {
+  id: string;
+  type: "booking";
+  title: string;
+  created_at: string;
+  customerName?: string;
+  businessName?: string;
+  serviceName?: string;
+}
+
+function formatDate(date: string) {
+  if (!date) {
+    return "";
+  }
+
+  const [year, month, day] = date
+    .split("-")
+    .map(Number);
+
+  const formattedDate = new Date(
+    year,
+    month - 1,
+    day
+  );
+
+  return formattedDate.toLocaleDateString(
+    "en-ZM",
+    {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }
+  );
+}
+
+function formatCurrency(value: number) {
+  return `ZMW ${value.toLocaleString("en-ZM", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 export default function ReportsPage() {
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef =
+    useRef<HTMLInputElement>(null);
 
   const [selectedDate, setSelectedDate] =
     useState("");
+
+  /*
+   * These values are intentionally kept as local
+   * presentation state for now.
+   *
+   * The actual report data connection will be
+   * implemented separately once the report queries
+   * and business relationships are finalized.
+   */
+  const reportStats: ReportStats = {
+    customersAttended: 0,
+    servicesCompleted: 0,
+    totalRevenue: 0,
+  };
+
+  const reportActivity: ReportActivity[] = [];
 
   function openDatePicker() {
     const input = dateInputRef.current;
@@ -45,10 +92,11 @@ export default function ReportsPage() {
       typeof input.showPicker === "function"
     ) {
       input.showPicker();
-    } else {
-      input.focus();
-      input.click();
+      return;
     }
+
+    input.focus();
+    input.click();
   }
 
   function handleDateChange(
@@ -65,32 +113,6 @@ export default function ReportsPage() {
     }
   }
 
-  function formatSelectedDate(
-    date: string
-  ) {
-    if (!date) {
-      return "";
-    }
-
-    const [year, month, day] =
-      date.split("-").map(Number);
-
-    const formattedDate = new Date(
-      year,
-      month - 1,
-      day
-    );
-
-    return formattedDate.toLocaleDateString(
-      "en-ZM",
-      {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* PAGE HEADER */}
@@ -101,13 +123,13 @@ export default function ReportsPage() {
           </h1>
 
           <p className="mt-1 text-slate-500">
-            View business performance, customers, services
-            and revenue.
+            View business performance, customers,
+            services and revenue.
           </p>
         </div>
 
         <div className="relative">
-          {/* Hidden native date input */}
+          {/* Native date picker */}
           <input
             ref={dateInputRef}
             type="date"
@@ -127,9 +149,7 @@ export default function ReportsPage() {
               <CalendarDays className="h-5 w-5" />
 
               {selectedDate
-                ? formatSelectedDate(
-                    selectedDate
-                  )
+                ? formatDate(selectedDate)
                 : "Choose Date"}
             </button>
 
@@ -161,9 +181,7 @@ export default function ReportsPage() {
               </p>
 
               <p className="font-semibold text-[#03162F]">
-                {formatSelectedDate(
-                  selectedDate
-                )}
+                {formatDate(selectedDate)}
               </p>
             </div>
           </div>
@@ -180,52 +198,128 @@ export default function ReportsPage() {
 
       {/* REPORT STATISTICS */}
       <div className="grid gap-5 md:grid-cols-3">
-        {reportStats.map((stat) => {
-          const Icon = stat.icon;
+        <ReportStatCard
+          title="Customers Attended"
+          value={reportStats.customersAttended.toString()}
+          icon={Users}
+        />
 
-          return (
-            <div
-              key={stat.title}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-500">
-                    {stat.title}
-                  </p>
+        <ReportStatCard
+          title="Services Completed"
+          value={reportStats.servicesCompleted.toString()}
+          icon={Briefcase}
+        />
 
-                  <p className="mt-3 text-3xl font-bold text-[#03162F]">
-                    {stat.value}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-[#03162F] p-3 text-white">
-                  <Icon className="h-6 w-6" />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        <ReportStatCard
+          title="Total Revenue"
+          value={formatCurrency(
+            reportStats.totalRevenue
+          )}
+          icon={DollarSign}
+        />
       </div>
 
       {/* REPORT CONTENT */}
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="py-10 text-center">
-          <BarChart3 className="mx-auto h-12 w-12 text-slate-300" />
+        {reportActivity.length === 0 ? (
+          <div className="py-10 text-center">
+            <BarChart3 className="mx-auto h-12 w-12 text-slate-300" />
 
-          <h2 className="mt-4 text-xl font-bold text-[#03162F]">
-            {selectedDate
-              ? `Report for ${formatSelectedDate(
-                  selectedDate
-                )}`
-              : "Reports are ready for data"}
-          </h2>
+            <h2 className="mt-4 text-xl font-bold text-[#03162F]">
+              {selectedDate
+                ? `Report for ${formatDate(
+                    selectedDate
+                  )}`
+                : "Reports are ready for data"}
+            </h2>
 
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-            {selectedDate
-              ? "The report date has been selected. Once your report data is connected to Supabase, the statistics and activity for this date will appear here."
-              : "Once transactions, bookings and services are recorded, detailed reports will be displayed here. Reports will support date and business filtering."}
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
+              {selectedDate
+                ? "The selected report date is ready. Once transactions, bookings and completed services are connected to the reporting system, the statistics and activity for this date will appear here."
+                : "Once transactions, bookings and services are recorded, detailed reports will be displayed here. Reports will support date and business filtering."}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-[#03162F]">
+                {selectedDate
+                  ? `Report for ${formatDate(
+                      selectedDate
+                    )}`
+                  : "Recent Report Activity"}
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Activity recorded for the selected
+                reporting period.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {reportActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="rounded-xl border border-slate-200 p-4"
+                >
+                  <p className="font-semibold text-[#03162F]">
+                    {activity.title}
+                  </p>
+
+                  {activity.customerName && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      Customer:{" "}
+                      {activity.customerName}
+                    </p>
+                  )}
+
+                  {activity.businessName && (
+                    <p className="text-sm text-slate-500">
+                      Business:{" "}
+                      {activity.businessName}
+                    </p>
+                  )}
+
+                  {activity.serviceName && (
+                    <p className="text-sm text-slate-500">
+                      Service:{" "}
+                      {activity.serviceName}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReportStatCard({
+  title,
+  value,
+  icon: Icon,
+}: {
+  title: string;
+  value: string;
+  icon: typeof Users;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">
+            {title}
           </p>
+
+          <p className="mt-3 text-3xl font-bold text-[#03162F]">
+            {value}
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-[#03162F] p-3 text-white">
+          <Icon className="h-6 w-6" />
         </div>
       </div>
     </div>

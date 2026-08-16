@@ -1,6 +1,7 @@
 import {
   UserPlus,
   UserCog,
+  CalendarDays,
 } from "lucide-react";
 
 import { getRecentActivity } from "@/modules/dashboard/services/recent-activity.service";
@@ -20,30 +21,37 @@ export default async function RecentActivity() {
         </div>
       ) : (
         <div className="space-y-4">
-          {activity.map((item) => (
-            <div
-              key={`${item.type}-${item.id}`}
-              className="flex items-start gap-4 rounded-xl border border-slate-100 p-4"
-            >
-              <div className="rounded-full bg-slate-100 p-2">
-                {item.type === "employee" ? (
-                  <UserCog className="h-5 w-5 text-[#03162F]" />
-                ) : (
-                  <UserPlus className="h-5 w-5 text-[#03162F]" />
-                )}
-              </div>
+          {activity.map((item) => {
+            const Icon =
+              item.type === "employee"
+                ? UserCog
+                : item.type === "booking"
+                  ? CalendarDays
+                  : UserPlus;
 
-              <div className="flex-1">
-                <p className="font-medium">
-                  {item.title}
-                </p>
+            return (
+              <div
+                key={`${item.type}-${item.id}`}
+                className="flex items-start gap-4 rounded-xl border border-slate-100 p-4 transition hover:bg-slate-50"
+              >
+                <div className="rounded-full bg-slate-100 p-2">
+                  <Icon className="h-5 w-5 text-[#03162F]" />
+                </div>
 
-                <p className="text-sm text-slate-500">
-                  {new Date(item.created_at).toLocaleString()}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-[#03162F]">
+                    {item.title}
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    {new Date(
+                      item.created_at
+                    ).toLocaleString("en-ZM")}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
