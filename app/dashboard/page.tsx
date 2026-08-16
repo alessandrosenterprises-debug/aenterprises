@@ -1,10 +1,3 @@
-import {
-  Briefcase,
-  Building2,
-  CalendarDays,
-  DollarSign,
-  Users,
-} from "lucide-react";
 import RecentActivity from "@/modules/dashboard/components/RecentActivity";
 import { getDashboardStats } from "@/modules/dashboard/services/dashboard.service";
 import { StatCard } from "@/components/ui/stat-card";
@@ -16,6 +9,7 @@ import { getCurrentProfile } from "@/modules/enterprise/services/profile.service
 export default async function DashboardPage() {
   const profile = await getCurrentProfile();
   const stats = await getDashboardStats();
+
   return (
     <>
       <WelcomeBanner profile={profile} />
@@ -24,7 +18,7 @@ export default async function DashboardPage() {
         <StatCard
           title="Businesses"
           value={stats.businesses}
-          icon={Building2}
+          icon="building"
           trend="+1 this month"
           trendDirection="up"
         />
@@ -32,7 +26,7 @@ export default async function DashboardPage() {
         <StatCard
           title="Employees"
           value={stats.employees}
-          icon={Users}
+          icon="users"
           trend="+4 this week"
           trendDirection="up"
         />
@@ -40,7 +34,7 @@ export default async function DashboardPage() {
         <StatCard
           title="Customers"
           value={stats.customers}
-          icon={Briefcase}
+          icon="briefcase"
           trend="+18 today"
           trendDirection="up"
         />
@@ -48,22 +42,22 @@ export default async function DashboardPage() {
         <StatCard
           title="Bookings"
           value={stats.bookings}
-          icon={CalendarDays}
+          icon="calendar"
         />
 
         <StatCard
           title="Revenue"
           value={`ZMW ${stats.revenue.toFixed(2)}`}
-          icon={DollarSign}
+          icon="money"
           color="gold"
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-  <BusinessStatus />
-  <QuickActions />
-  <RecentActivity />
-</div>
+        <BusinessStatus />
+        <QuickActions />
+        <RecentActivity />
+      </div>
     </>
   );
 }

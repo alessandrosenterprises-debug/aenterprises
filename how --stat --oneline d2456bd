@@ -1,0 +1,15 @@
+[33m460fb18[m Build configuration engine and generic administration framework
+ app/dashboard/configuration/[type]/page.tsx        |  32 [32m+++++[m
+ app/dashboard/configuration/layout.tsx             |  21 [32m++++[m
+ .../catalog/services/enterprise-catalog.client.ts  |  66 [32m++++++++[m[31m--[m
+ .../configuration/components/ConfigurationForm.tsx | 137 [32m+++++++++++++++++++++[m
+ .../components/ConfigurationModal.tsx              |  79 [32m++++++++++++[m
+ .../components/ConfigurationSidebar.tsx            |  93 [32m++++++++++++++[m
+ .../components/ConfigurationTable.tsx              | 117 [32m++++++++++++++++++[m
+ modules/configuration/pages/ConfigurationPage.tsx  |  57 [32m+++++++++[m
+ modules/configuration/schemas/index.ts             |  26 [32m++++[m
+ modules/configuration/schemas/operators.ts         |  49 [32m++++++++[m
+ .../services/configuration.service.ts              |  60 [32m+++++++++[m
+ modules/configuration/types/configuration.ts       |  36 [32m++++++[m
+ modules/configuration/utils/get-schema.ts          |  10 [32m++[m
+ 13 files changed, 776 insertions(+), 7 deletions(-)

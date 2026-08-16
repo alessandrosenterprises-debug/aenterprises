@@ -46,14 +46,14 @@ export default function ConfigurationModal({
 
   return (
     <>
-      {mode === "create" && (
-        <button
-          onClick={() => setInternalOpen(true)}
-          className="rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
-        >
-          + New {schema.title}
-        </button>
-      )}
+      {mode === "create" && open === undefined && (
+  <button
+    onClick={() => setInternalOpen(true)}
+    className="rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
+  >
+    + New {schema.title}
+  </button>
+)}
 
       <Modal
         open={isOpen}

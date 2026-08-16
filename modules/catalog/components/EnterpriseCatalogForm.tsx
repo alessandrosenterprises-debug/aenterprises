@@ -2,6 +2,7 @@
 import {
   createEnterpriseCatalogItem,
   updateEnterpriseCatalogItem,
+  EnterpriseCatalogPayload,
 } from "../services/enterprise-catalog.client";
 import ImageUpload from "@/components/ui/image-upload/ImageUpload";
 import { buildCatalogPayload } from "../utils/build-catalog-payload";
@@ -108,10 +109,11 @@ export default function EnterpriseCatalogForm({
 
   async function onSubmit(data: CatalogFormData) {
   try {
-    const payload = buildCatalogPayload(
-      data as Record<string, any>,
-      schema
-    );
+    const payload: EnterpriseCatalogPayload =
+  buildCatalogPayload(
+    data as Record<string, any>,
+    schema
+  );
 
     if (mode === "create") {
       await createEnterpriseCatalogItem(payload);

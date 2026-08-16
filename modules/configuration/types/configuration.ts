@@ -5,7 +5,10 @@ export type ConfigurationFieldType =
   | "currency"
   | "select"
   | "checkbox"
+  | "boolean"
   | "date"
+  | "email"
+  | "phone"
   | "image";
 
 export interface ConfigurationField {
@@ -26,7 +29,7 @@ export interface ConfigurationField {
 }
 
 export interface ConfigurationSchema {
-  key: string;
+  table: string;
 
   title: string;
 

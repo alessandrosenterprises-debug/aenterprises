@@ -8,14 +8,12 @@ export default function ConfigurationLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="flex gap-6">
-
+    <div className="flex min-w-0 items-start gap-6">
       <ConfigurationSidebar />
 
       <main className="min-w-0 flex-1">
         {children}
       </main>
-
     </div>
   );
 }

@@ -1,6 +1,25 @@
-import { LucideIcon, TrendingDown, TrendingUp, Minus } from "lucide-react";
-import { Card } from "@/components/ui/card/index";
+"use client";
+
+import {
+  Building2,
+  Users,
+  Briefcase,
+  CalendarDays,
+  DollarSign,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+} from "lucide-react";
 import clsx from "clsx";
+
+import { Card } from "@/components/ui/card/index";
+
+export type StatIcon =
+  | "building"
+  | "users"
+  | "briefcase"
+  | "calendar"
+  | "money";
 
 export interface StatCardProps {
   title: string;
@@ -8,7 +27,7 @@ export interface StatCardProps {
 
   subtitle?: string;
 
-  icon: LucideIcon;
+  icon: StatIcon;
 
   trend?: string;
 
@@ -31,11 +50,19 @@ const colors = {
   danger: "bg-red-500 text-white",
 };
 
+const iconMap = {
+  building: Building2,
+  users: Users,
+  briefcase: Briefcase,
+  calendar: CalendarDays,
+  money: DollarSign,
+};
+
 export default function StatCard({
   title,
   value,
   subtitle,
-  icon: Icon,
+  icon,
   trend,
   trendDirection = "neutral",
   color = "primary",
@@ -43,9 +70,16 @@ export default function StatCard({
   onClick,
   className,
 }: StatCardProps) {
+  const Icon = iconMap[icon];
+
   if (loading) {
     return (
-      <Card className="animate-pulse p-6 h-44 rounded-2xl">
+      <Card
+        className={clsx(
+          "h-44 animate-pulse rounded-2xl p-6",
+          className
+        )}
+      >
         <div className="h-full rounded-xl bg-slate-100" />
       </Card>
     );
@@ -55,19 +89,19 @@ export default function StatCard({
     <Card
       onClick={onClick}
       className={clsx(
-        "cursor-pointer rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg",
+        "rounded-2xl p-6 transition-all duration-200",
+        onClick &&
+          "cursor-pointer hover:-translate-y-1 hover:shadow-lg",
         className
       )}
     >
       <div className="flex items-start justify-between">
-
         <div>
-
           <p className="text-sm font-medium text-slate-500">
             {title}
           </p>
 
-          <h2 className="mt-3 text-4xl font-bold">
+          <h2 className="mt-3 text-4xl font-bold text-[#03162F]">
             {value}
           </h2>
 
@@ -76,7 +110,6 @@ export default function StatCard({
               {subtitle}
             </p>
           )}
-
         </div>
 
         <div
@@ -87,12 +120,10 @@ export default function StatCard({
         >
           <Icon size={26} />
         </div>
-
       </div>
 
       {trend && (
         <div className="mt-6 flex items-center gap-2 text-sm">
-
           {trendDirection === "up" && (
             <TrendingUp
               size={16}
@@ -114,11 +145,11 @@ export default function StatCard({
             />
           )}
 
-          <span>{trend}</span>
-
+          <span className="text-slate-600">
+            {trend}
+          </span>
         </div>
       )}
-
     </Card>
   );
 }

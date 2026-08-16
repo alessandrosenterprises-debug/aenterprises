@@ -1,12 +1,12 @@
 import { ConfigurationSchema } from "../types/configuration";
 
 export const operatorsSchema: ConfigurationSchema = {
-  key: "operators",
+  table: "operators",
 
   title: "Operators",
 
   description:
-    "Mobile Money and Banking Operators",
+    "Mobile Money and Banking Operators.",
 
   fields: [
     {

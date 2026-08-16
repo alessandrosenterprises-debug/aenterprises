@@ -1,20 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
 
-export async function getConfiguration(
-  table: string
-) {
-  const { data, error } = await supabase
-    .from(table)
-    .select("*")
-    .order("created_at", {
-      ascending: false,
-    });
-
-  if (error) throw error;
-
-  return data ?? [];
-}
-
 export async function createConfiguration(
   table: string,
   values: Record<string, any>
@@ -25,7 +10,9 @@ export async function createConfiguration(
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   return data;
 }
@@ -42,7 +29,9 @@ export async function updateConfiguration(
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   return data;
 }
@@ -56,5 +45,9 @@ export async function deleteConfiguration(
     .delete()
     .eq("id", id);
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
+
+  return true;
 }

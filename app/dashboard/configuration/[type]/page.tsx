@@ -13,20 +13,53 @@ interface PageProps {
   }>;
 }
 
+const routeToConfigurationType: Record<
+  string,
+  ConfigurationType
+> = {
+  businesses: "businesses",
+  branches: "branches",
+  operators: "operators",
+  "mobile-money-services":
+    "mobileMoneyServices",
+  "loan-products": "loanProducts",
+  categories: "categories",
+  roles: "roles",
+  permissions: "permissions",
+  "company-settings":
+    "companySettings",
+
+  // Backward-compatible aliases.
+  mobileMoneyServices:
+    "mobileMoneyServices",
+  loanProducts:
+    "loanProducts",
+  companySettings:
+    "companySettings",
+
+  departments: "departments",
+};
+
 export default async function Page({
   params,
 }: PageProps) {
   const { type } = await params;
 
+  const configurationType =
+    routeToConfigurationType[type];
+
   if (
-    !(type in configurationSchemas)
+    !configurationType ||
+    !configurationSchemas[
+      configurationType
+    ]
   ) {
     notFound();
   }
 
   return (
     <ConfigurationPage
-      type={type as ConfigurationType}
+      type={configurationType}
     />
   );
 }

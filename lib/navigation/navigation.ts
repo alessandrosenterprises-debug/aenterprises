@@ -11,6 +11,7 @@ import {
   Bell,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,22 +30,24 @@ export const navigation: NavigationItem[] = [
     href: "/dashboard",
     icon: LayoutDashboard,
   },
+
   {
     title: "Enterprise",
-    href: "/enterprise",
+    href: "/dashboard/enterprise",
     icon: Building2,
   },
+
   {
     title: "Businesses",
     icon: Briefcase,
     children: [
       {
         title: "Alessandro Elite Fashion",
-        href: "/businesses/fashion",
+        href: "/businesses/elite-fashion",
       },
       {
         title: "Alessandro Classic Barbershop",
-        href: "/businesses/barbershop",
+        href: "/businesses/classic-barbershop",
       },
       {
         title: "Alessandro Mobile Money",
@@ -60,49 +63,105 @@ export const navigation: NavigationItem[] = [
       },
     ],
   },
+
   {
     title: "Customers",
     href: "/dashboard/customers",
     icon: Users,
-},
-{
-  title: "Employees",
-  href: "/dashboard/employees",
-  icon: UserCog,
-},
+  },
+
   {
-  title: "Catalog",
-  href: "/dashboard/catalog",
-  icon: Package,
-},
+    title: "Employees",
+    href: "/dashboard/employees",
+    icon: UserCog,
+  },
+
+  {
+    title: "Products",
+    href: "/dashboard/products",
+    icon: Package,
+  },
+
   {
     title: "Bookings",
-    href: "/bookings",
+    href: "/dashboard/bookings",
     icon: CalendarDays,
   },
+
   {
     title: "Reports",
-    href: "/reports",
+    href: "/dashboard/reports",
     icon: BarChart3,
   },
+
+  {
+    title: "Configuration",
+    icon: SlidersHorizontal,
+    children: [
+      {
+        title: "Departments",
+        href: "/dashboard/configuration/departments",
+      },
+      {
+        title: "Roles",
+        href: "/dashboard/configuration/roles",
+      },
+      {
+        title: "Permissions",
+        href: "/dashboard/configuration/permissions",
+      },
+      {
+        title: "Businesses",
+        href: "/dashboard/configuration/businesses",
+      },
+      {
+        title: "Branches",
+        href: "/dashboard/configuration/branches",
+      },
+      {
+        title: "Operators",
+        href: "/dashboard/configuration/operators",
+      },
+      {
+        title: "Mobile Money Services",
+        href: "/dashboard/configuration/mobile-money-services",
+      },
+      {
+        title: "Loan Products",
+        href: "/dashboard/configuration/loan-products",
+      },
+      {
+        title: "Categories",
+        href: "/dashboard/configuration/categories",
+      },
+      {
+        title: "Company Settings",
+        href: "/dashboard/configuration/company-settings",
+      },
+    ],
+  },
+
   {
     title: "Website CMS",
-    href: "/website",
+    href: "/dashboard/website",
     icon: Globe,
   },
+
   {
     title: "Notifications",
-    href: "/notifications",
+    href: "/dashboard/notifications",
     icon: Bell,
   },
+
   {
     title: "Administration",
-    href: "/administration",
+    href: "/dashboard/administration",
     icon: ShieldCheck,
   },
+
   {
     title: "Settings",
-    href: "/settings",
+    href: "/dashboard/settings",
     icon: Settings,
   },
 ];
