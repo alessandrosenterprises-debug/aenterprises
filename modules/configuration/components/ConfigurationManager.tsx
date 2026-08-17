@@ -50,6 +50,23 @@ export default function ConfigurationManager({
   const [viewingRow, setViewingRow] =
     useState<Record<string, any> | null>(null);
 
+  /*
+   * Businesses stores `active` in Supabase,
+   * while the UI uses `status`.
+   *
+   * Keep the original `active` value and add
+   * a display-only `status` property.
+   */
+  const displayRows =
+    schema.table === "businesses"
+      ? initialRows.map((row) => ({
+          ...row,
+          status: row.active
+            ? "Active"
+            : "Inactive",
+        }))
+      : initialRows;
+
   function handleCreate() {
     setViewingRow(null);
     setEditingRow(null);
@@ -61,14 +78,43 @@ export default function ConfigurationManager({
   ) {
     setShowForm(false);
     setEditingRow(null);
-    setViewingRow(row);
+
+    /*
+     * Make sure Businesses has a UI status
+     * when opened in the View modal.
+     */
+    if (schema.table === "businesses") {
+      setViewingRow({
+        ...row,
+        status: row.active
+          ? "Active"
+          : "Inactive",
+      });
+    } else {
+      setViewingRow(row);
+    }
   }
 
   function handleEdit(
     row: Record<string, any>
   ) {
     setViewingRow(null);
-    setEditingRow(row);
+
+    /*
+     * Convert database `active` boolean
+     * into the UI `status` select value.
+     */
+    if (schema.table === "businesses") {
+      setEditingRow({
+        ...row,
+        status: row.active
+          ? "Active"
+          : "Inactive",
+      });
+    } else {
+      setEditingRow(row);
+    }
+
     setShowForm(true);
   }
 
@@ -115,20 +161,57 @@ export default function ConfigurationManager({
     values: Record<string, any>
   ) {
     try {
+      /*
+       * Never mutate the original form object.
+       */
+      const payload = {
+        ...values,
+      };
+
+      /*
+       * ======================================================
+       * BUSINESSES
+       * ======================================================
+       *
+       * UI:
+       *   status = "Active" | "Inactive"
+       *
+       * Database:
+       *   active = true | false
+       *
+       * Do NOT send `status` to Supabase.
+       */
+      if (schema.table === "businesses") {
+        payload.active =
+          payload.status === "Active";
+
+        delete payload.status;
+      }
+
+      /*
+       * ======================================================
+       * UPDATE
+       * ======================================================
+       */
       if (editingRow?.id) {
         await updateConfiguration(
           schema.table,
           editingRow.id,
-          values
+          payload
         );
 
         toast.success(
           `${schema.title} updated successfully.`
         );
       } else {
+        /*
+         * ====================================================
+         * CREATE
+         * ====================================================
+         */
         await createConfiguration(
           schema.table,
-          values
+          payload
         );
 
         toast.success(
@@ -222,6 +305,9 @@ export default function ConfigurationManager({
     }
   }
 
+  /*
+   * Add business options to the Branch form.
+   */
   const formSchema = {
     ...schema,
 
@@ -251,15 +337,23 @@ export default function ConfigurationManager({
 
   return (
     <>
+      {/* ======================================================
+          CONFIGURATION TABLE
+          ====================================================== */}
+
       <ConfigurationTable
         title={schema.title}
-        rows={initialRows}
+        rows={displayRows}
         columns={columns}
         onCreate={handleCreate}
         onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
+      {/* ======================================================
+          VIEW MODAL
+          ====================================================== */}
 
       {viewingRow && (
         <div
@@ -350,6 +444,10 @@ export default function ConfigurationManager({
           </div>
         </div>
       )}
+
+      {/* ======================================================
+          CREATE / EDIT MODAL
+          ====================================================== */}
 
       {showForm && (
         <div

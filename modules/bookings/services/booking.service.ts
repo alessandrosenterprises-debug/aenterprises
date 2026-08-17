@@ -65,34 +65,36 @@ export interface Booking {
   } | null;
 }
 
+/**
+ * Get all bookings for the Bookings page.
+ *
+ * The business relationship is included here.
+ * Other relationships are intentionally kept out of this
+ * query while we isolate the Supabase relationship issue.
+ */
 export async function getBookings(): Promise<Booking[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("bookings")
     .select(`
-      *,
+      id,
+      business_id,
+      customer_id,
+      employee_id,
+      branch_id,
+      catalog_item_id,
+      booking_date,
+      booking_time,
+      status,
+      payment_status,
+      amount,
+      notes,
+      created_at,
+      updated_at,
       businesses (
         id,
         name
-      ),
-      customers (
-        id,
-        full_name,
-        phone
-      ),
-      employees (
-        id,
-        full_name
-      ),
-      branches (
-        id,
-        name
-      ),
-      enterprise_catalog (
-        id,
-        name,
-        item_type
       )
     `)
     .order("booking_date", {
@@ -103,13 +105,29 @@ export async function getBookings(): Promise<Booking[]> {
     });
 
   if (error) {
-    console.error("Bookings error:", error);
+    console.error(
+      "Bookings/business relationship error:",
+      JSON.stringify(error, null, 2)
+    );
+
     return [];
   }
 
-  return (data ?? []) as Booking[];
+  const rows = (data ?? []) as unknown[];
+
+  return rows.map((item) => {
+    const row = item as Record<string, any>;
+
+    return {
+      ...row,
+      amount: Number(row.amount ?? 0),
+    } as Booking;
+  });
 }
 
+/**
+ * Get overall booking statistics.
+ */
 export async function getBookingStats() {
   const supabase = await createClient();
 
@@ -122,7 +140,7 @@ export async function getBookingStats() {
   if (error) {
     console.error(
       "Booking statistics error:",
-      error
+      JSON.stringify(error, null, 2)
     );
 
     return {
@@ -270,7 +288,7 @@ export async function getBookingsForReport({
   if (error) {
     console.error(
       "Report bookings error:",
-      error
+      JSON.stringify(error, null, 2)
     );
 
     return [];
@@ -278,12 +296,12 @@ export async function getBookingsForReport({
 
   const rows = (data ?? []) as unknown[];
 
-return rows.map((item) => {
-  const row = item as Record<string, any>;
+  return rows.map((item) => {
+    const row = item as Record<string, any>;
 
-  return {
-    ...row,
-    amount: Number(row.amount ?? 0),
-  } as Booking;
-});
+    return {
+      ...row,
+      amount: Number(row.amount ?? 0),
+    } as Booking;
+  });
 }
