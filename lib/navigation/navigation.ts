@@ -83,6 +83,12 @@ export const navigation: NavigationItem[] = [
   },
 
   {
+  title: "Catalog",
+  href: "/dashboard/catalog",
+  icon: Package,
+},
+
+  {
     title: "Bookings",
     href: "/dashboard/bookings",
     icon: CalendarDays,
