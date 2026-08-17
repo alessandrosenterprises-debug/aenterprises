@@ -2,19 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export interface Booking {
   id: string;
-
   business_id: string;
-
   customer_id: string | null;
-
   employee_id: string | null;
-
   branch_id: string | null;
-
   catalog_item_id: string | null;
 
   booking_date: string;
-
   booking_time: string | null;
 
   status:
@@ -30,11 +24,8 @@ export interface Booking {
     | "Refunded";
 
   amount: number;
-
   notes: string | null;
-
   created_at: string;
-
   updated_at: string;
 
   businesses?: {
@@ -65,13 +56,41 @@ export interface Booking {
   } | null;
 }
 
-/**
- * Get all bookings for the Bookings page.
- *
- * The business relationship is included here.
- * Other relationships are intentionally kept out of this
- * query while we isolate the Supabase relationship issue.
- */
+export interface BookingFormData {
+  businesses: {
+    id: string;
+    name: string;
+  }[];
+
+  customers: {
+    id: string;
+    full_name: string;
+    phone: string;
+    business_id: string;
+  }[];
+
+  employees: {
+    id: string;
+    full_name: string;
+    business_id: string;
+    branch_id: string | null;
+  }[];
+
+  branches: {
+    id: string;
+    name: string;
+    business_id: string;
+  }[];
+
+  catalogItems: {
+    id: string;
+    name: string;
+    item_type: string;
+    business_id: string;
+    base_price: number;
+  }[];
+}
+
 export async function getBookings(): Promise<Booking[]> {
   const supabase = await createClient();
 
@@ -95,6 +114,24 @@ export async function getBookings(): Promise<Booking[]> {
       businesses (
         id,
         name
+      ),
+      customers (
+        id,
+        full_name,
+        phone
+      ),
+      employees (
+        id,
+        full_name
+      ),
+      branches (
+        id,
+        name
+      ),
+      enterprise_catalog (
+        id,
+        name,
+        item_type
       )
     `)
     .order("booking_date", {
@@ -106,7 +143,7 @@ export async function getBookings(): Promise<Booking[]> {
 
   if (error) {
     console.error(
-      "Bookings/business relationship error:",
+      "Bookings query error:",
       JSON.stringify(error, null, 2)
     );
 
@@ -125,9 +162,80 @@ export async function getBookings(): Promise<Booking[]> {
   });
 }
 
-/**
- * Get overall booking statistics.
- */
+export async function getBookingFormData(): Promise<BookingFormData> {
+  const supabase = await createClient();
+
+  const [
+    businessesResult,
+    customersResult,
+    employeesResult,
+    branchesResult,
+    catalogResult,
+  ] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select("id, name")
+      .order("name"),
+
+    supabase
+      .from("customers")
+      .select("id, full_name, phone, business_id")
+      .order("full_name"),
+
+    supabase
+      .from("employees")
+      .select("id, full_name, business_id, branch_id")
+      .eq("is_active", true)
+      .order("full_name"),
+
+    supabase
+      .from("branches")
+      .select("id, name, business_id")
+      .order("name"),
+
+    supabase
+      .from("enterprise_catalog")
+      .select(
+        "id, name, item_type, business_id, base_price"
+      )
+      .eq("status", "Active")
+      .order("name"),
+  ]);
+
+  if (businessesResult.error) {
+    throw businessesResult.error;
+  }
+
+  if (customersResult.error) {
+    throw customersResult.error;
+  }
+
+  if (employeesResult.error) {
+    throw employeesResult.error;
+  }
+
+  if (branchesResult.error) {
+    throw branchesResult.error;
+  }
+
+  if (catalogResult.error) {
+    throw catalogResult.error;
+  }
+
+  return {
+    businesses: businessesResult.data ?? [],
+    customers: customersResult.data ?? [],
+    employees: employeesResult.data ?? [],
+    branches: branchesResult.data ?? [],
+    catalogItems: (catalogResult.data ?? []).map(
+      (item) => ({
+        ...item,
+        base_price: Number(item.base_price ?? 0),
+      })
+    ),
+  };
+}
+
 export async function getBookingStats() {
   const supabase = await createClient();
 
@@ -171,39 +279,25 @@ export async function getBookingStats() {
     total: bookings.length,
 
     pending: bookings.filter(
-      (booking) =>
-        booking.status === "Pending"
+      (booking) => booking.status === "Pending"
     ).length,
 
     confirmed: bookings.filter(
-      (booking) =>
-        booking.status === "Confirmed"
+      (booking) => booking.status === "Confirmed"
     ).length,
 
     completed: bookings.filter(
-      (booking) =>
-        booking.status === "Completed"
+      (booking) => booking.status === "Completed"
     ).length,
 
     cancelled: bookings.filter(
-      (booking) =>
-        booking.status === "Cancelled"
+      (booking) => booking.status === "Cancelled"
     ).length,
 
     revenue,
   };
 }
 
-/**
- * Get bookings for a report.
- *
- * Reports support:
- * - From date
- * - To date
- * - Optional business
- *
- * Date filtering is performed directly by Supabase.
- */
 export async function getBookingsForReport({
   fromDate,
   toDate,

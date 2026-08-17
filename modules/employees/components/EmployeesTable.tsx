@@ -26,13 +26,14 @@ interface Employee {
   id: string;
   full_name: string;
   phone: string;
-  email?: string;
+  email?: string | null;
   position: string;
-  employment_type?: string;
+  employment_type?: string | null;
   status: string;
   businesses?: {
-    name: string;
-  };
+  id: string;
+  name: string;
+} | null;
 }
 
 interface Business {

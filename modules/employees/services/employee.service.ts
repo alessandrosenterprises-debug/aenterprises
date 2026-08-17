@@ -1,59 +1,78 @@
 import { createClient } from "@/lib/supabase/server";
 
-export async function getEmployees() {
+export interface Employee {
+  id: string;
+
+  business_id: string | null;
+
+  full_name: string;
+
+  phone: string;
+
+  email: string | null;
+
+  gender: string | null;
+
+  date_of_birth: string | null;
+
+  national_id: string | null;
+
+  address: string | null;
+
+  position: string;
+
+  employment_type: string | null;
+
+  salary: number | null;
+
+  date_joined: string | null;
+
+  notes: string | null;
+
+  is_active: boolean;
+
+  status: string;
+
+  created_at: string;
+
+  updated_at: string;
+
+  branch_id: string | null;
+
+  user_id: string | null;
+
+  department_id: string | null;
+
+  businesses?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export async function getEmployees(): Promise<Employee[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
-  .from("employees")
-  .select(`
-    *,
-    businesses (
-      id,
-      name
-    )
-  `)
-  .order("created_at", { ascending: false });
-
-  console.log("employees:", data);
-  console.log("Customer Error:", error);
-
-  if (error) {
-    console.error(error);
-    return [];
-  }
-
-  return data;
-}
-export async function createCustomer(customer: {
-  business_id: string;
-  full_name: string;
-  phone: string;
-  email?: string;
-  address?: string;
-  gender?: string;
-  date_of_birth?: string;
-  notes?: string;
-  is_active?: boolean;
-}) {
-  const supabase = await createClient();
-
-  const { error } = await supabase
     .from("employees")
-    .insert({
-      business_id: customer.business_id,
-      full_name: customer.full_name,
-      phone: customer.phone,
-      email: customer.email || null,
-      address: customer.address || null,
-      gender: customer.gender || null,
-      date_of_birth: customer.date_of_birth || null,
-      notes: customer.notes || null,
-      is_active: customer.is_active ?? true,
-      status: "Active",
+    .select(`
+      *,
+      businesses (
+        id,
+        name
+      )
+    `)
+    .order("created_at", {
+      ascending: false,
     });
 
   if (error) {
-    console.error(error);
-    throw error;
+    console.error(
+      "Employees loading error:",
+      JSON.stringify(error, null, 2)
+    );
+
+    return [];
   }
+
+  return (data ?? []) as unknown as Employee[];
 }

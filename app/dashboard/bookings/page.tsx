@@ -9,7 +9,10 @@ import {
 import {
   getBookings,
   getBookingStats,
+  getBookingFormData,
 } from "@/modules/bookings/services/booking.service";
+
+import BookingManager from "@/modules/bookings/components/BookingManager";
 
 function formatDate(date: string) {
   return new Date(
@@ -58,10 +61,11 @@ function paymentClass(status: string) {
 }
 
 export default async function BookingsPage() {
-  const [bookings, stats] =
+  const [bookings, stats, formData] =
     await Promise.all([
       getBookings(),
       getBookingStats(),
+      getBookingFormData(),
     ]);
 
   const bookingStats = [
@@ -89,6 +93,7 @@ export default async function BookingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-[#03162F]">
           Bookings
@@ -100,6 +105,13 @@ export default async function BookingsPage() {
         </p>
       </div>
 
+      {/* New Booking */}
+      <BookingManager
+        bookings={bookings}
+        formData={formData}
+      />
+
+      {/* Statistics */}
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
         {bookingStats.map((stat) => {
           const Icon = stat.icon;
@@ -128,6 +140,7 @@ export default async function BookingsPage() {
           );
         })}
 
+        {/* Revenue */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
           <div className="flex items-center justify-between">
             <div>
@@ -147,6 +160,7 @@ export default async function BookingsPage() {
         </div>
       </div>
 
+      {/* Booking Records */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
           <h2 className="text-xl font-bold text-[#03162F]">

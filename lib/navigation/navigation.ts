@@ -12,6 +12,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -77,16 +78,22 @@ export const navigation: NavigationItem[] = [
   },
 
   {
+    title: "Messages",
+    href: "/dashboard/messages",
+    icon: MessageCircle,
+  },
+
+  {
     title: "Products",
     href: "/dashboard/products",
     icon: Package,
   },
 
   {
-  title: "Catalog",
-  href: "/dashboard/catalog",
-  icon: Package,
-},
+    title: "Catalog",
+    href: "/dashboard/catalog",
+    icon: Package,
+  },
 
   {
     title: "Bookings",
