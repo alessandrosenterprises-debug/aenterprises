@@ -16,6 +16,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { Mail } from "lucide-react";
+
 export interface NavigationItem {
   title: string;
   href?: string;
@@ -76,6 +78,12 @@ export const navigation: NavigationItem[] = [
     href: "/dashboard/employees",
     icon: UserCog,
   },
+
+  {
+  title: "Emails",
+  href: "/dashboard/emails",
+  icon: Mail,
+},
 
   {
     title: "Messages",
