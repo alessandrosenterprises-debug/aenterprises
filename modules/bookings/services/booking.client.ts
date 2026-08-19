@@ -1,26 +1,41 @@
 import { supabase } from "@/lib/supabase/client";
 
+export type BookingStatus =
+  | "Pending"
+  | "Confirmed"
+  | "Completed"
+  | "Cancelled";
+
+export type BookingPaymentStatus =
+  | "Pending"
+  | "Partial"
+  | "Paid"
+  | "Refunded";
+
 export interface BookingPayload {
   business_id: string;
   customer_id?: string | null;
   employee_id?: string | null;
   branch_id?: string | null;
   catalog_item_id?: string | null;
+
   booking_date: string;
   booking_time?: string | null;
-  status:
-    | "Pending"
-    | "Confirmed"
-    | "Completed"
-    | "Cancelled";
-  payment_status:
-    | "Pending"
-    | "Partial"
-    | "Paid"
-    | "Refunded";
+
+  status: BookingStatus;
+
+  payment_status: BookingPaymentStatus;
+
   amount: number;
+
   notes?: string | null;
 }
+
+/*
+ * ---------------------------------------------------------
+ * CREATE
+ * ---------------------------------------------------------
+ */
 
 export async function createBooking(
   booking: BookingPayload
@@ -44,6 +59,12 @@ export async function createBooking(
 
   return data;
 }
+
+/*
+ * ---------------------------------------------------------
+ * UPDATE
+ * ---------------------------------------------------------
+ */
 
 export async function updateBooking(
   id: string,
@@ -69,6 +90,57 @@ export async function updateBooking(
 
   return data;
 }
+
+/*
+ * ---------------------------------------------------------
+ * STATUS ACTIONS
+ * ---------------------------------------------------------
+ */
+
+export async function confirmBooking(
+  id: string
+) {
+  return updateBooking(id, {
+    status: "Confirmed",
+  });
+}
+
+export async function completeBooking(
+  id: string
+) {
+  return updateBooking(id, {
+    status: "Completed",
+  });
+}
+
+export async function cancelBooking(
+  id: string
+) {
+  return updateBooking(id, {
+    status: "Cancelled",
+  });
+}
+
+/*
+ * ---------------------------------------------------------
+ * PAYMENT
+ * ---------------------------------------------------------
+ */
+
+export async function updateBookingPayment(
+  id: string,
+  paymentStatus: BookingPaymentStatus
+) {
+  return updateBooking(id, {
+    payment_status: paymentStatus,
+  });
+}
+
+/*
+ * ---------------------------------------------------------
+ * DELETE
+ * ---------------------------------------------------------
+ */
 
 export async function deleteBooking(
   id: string

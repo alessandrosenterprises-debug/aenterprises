@@ -264,34 +264,36 @@ export async function getBookingStats() {
   const bookings = data ?? [];
 
   const revenue = bookings
-    .filter(
-      (booking) =>
-        booking.status === "Completed" &&
-        booking.payment_status === "Paid"
-    )
-    .reduce(
-      (total, booking) =>
-        total + Number(booking.amount ?? 0),
-      0
-    );
-
-  return {
+  .filter(
+    (booking) =>
+      booking.payment_status === "Paid"
+  )
+  .reduce(
+    (total, booking) =>
+      total + Number(booking.amount ?? 0),
+    0
+  );
+    return {
     total: bookings.length,
 
     pending: bookings.filter(
-      (booking) => booking.status === "Pending"
+      (booking) =>
+        booking.status === "Pending"
     ).length,
 
     confirmed: bookings.filter(
-      (booking) => booking.status === "Confirmed"
+      (booking) =>
+        booking.status === "Confirmed"
     ).length,
 
     completed: bookings.filter(
-      (booking) => booking.status === "Completed"
+      (booking) =>
+        booking.status === "Completed"
     ).length,
 
     cancelled: bookings.filter(
-      (booking) => booking.status === "Cancelled"
+      (booking) =>
+        booking.status === "Cancelled"
     ).length,
 
     revenue,
