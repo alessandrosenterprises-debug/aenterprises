@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 
 import {
-  emailFrom,
-  resend,
+  emailAddress,
+  sendServerEmail,
 } from "@/modules/emails/services/email.server";
 
 import { createClient } from "@/lib/supabase/server";
 
+type EmailAction =
+  | "compose"
+  | "reply"
+  | "forward"
+  | "resend";
+
 interface SendEmailRequest {
   emailId?: string;
+
+  action?: EmailAction;
 
   businessId?: string | null;
   customerId?: string | null;
@@ -26,6 +34,45 @@ interface SendEmailRequest {
   recipientName?: string;
 }
 
+function parseRecipients(
+  value?: string
+) {
+  if (!value) {
+    return undefined;
+  }
+
+  const recipients = value
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+
+  return recipients.length > 0
+    ? recipients
+    : undefined;
+}
+
+function getAction(
+  payload: SendEmailRequest
+): EmailAction {
+  if (payload.action) {
+    return payload.action;
+  }
+
+  /*
+   * Backwards compatibility:
+   *
+   * Existing replies already send parentEmailId,
+   * so treat those as replies.
+   *
+   * Normal compose messages remain compose.
+   */
+  if (payload.parentEmailId) {
+    return "reply";
+  }
+
+  return "compose";
+}
+
 export async function POST(
   request: Request
 ) {
@@ -33,9 +80,16 @@ export async function POST(
     const supabase =
       await createClient();
 
+    /*
+     * ---------------------------------------------------------
+     * AUTHENTICATION
+     * ---------------------------------------------------------
+     */
+
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } =
+      await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json(
@@ -48,8 +102,23 @@ export async function POST(
       );
     }
 
+    /*
+     * ---------------------------------------------------------
+     * REQUEST
+     * ---------------------------------------------------------
+     */
+
     const payload =
       (await request.json()) as SendEmailRequest;
+
+    const action =
+      getAction(payload);
+
+    /*
+     * ---------------------------------------------------------
+     * VALIDATION
+     * ---------------------------------------------------------
+     */
 
     if (!payload.to?.trim()) {
       return NextResponse.json(
@@ -75,107 +144,156 @@ export async function POST(
       );
     }
 
+    /*
+     * ---------------------------------------------------------
+     * EMAIL DATA
+     * ---------------------------------------------------------
+     */
+
     const subject =
       payload.subject?.trim() ||
       "Message from Alessandro Enterprises";
 
+    const cc =
+      parseRecipients(
+        payload.cc
+      );
+
+    const bcc =
+      parseRecipients(
+        payload.bcc
+      );
+
     /*
-     * Send through Resend.
+     * ---------------------------------------------------------
+     * SEND THROUGH GMAIL
+     * ---------------------------------------------------------
      */
+
     const result =
-      await resend.emails.send({
-        from: emailFrom,
+      await sendServerEmail({
         to: payload.to.trim(),
-        cc: payload.cc
-          ? payload.cc
-              .split(",")
-              .map((email) => email.trim())
-              .filter(Boolean)
-          : undefined,
-        bcc: payload.bcc
-          ? payload.bcc
-              .split(",")
-              .map((email) => email.trim())
-              .filter(Boolean)
-          : undefined,
+
+        cc,
+
+        bcc,
+
         subject,
-        text: payload.body.trim(),
+
+        text:
+          payload.body.trim(),
       });
 
-    if (result.error) {
-      console.error(
-        "Resend email error:",
-        result.error
+    /*
+     * ---------------------------------------------------------
+     * DETERMINE DATABASE STATUS
+     * ---------------------------------------------------------
+     *
+     * Compose  -> Sent
+     * Reply    -> Replied
+     * Forward  -> Sent
+     * Resend   -> Sent
+     */
+
+    const isReply =
+      action === "reply" &&
+      Boolean(
+        payload.parentEmailId
       );
 
-      return NextResponse.json(
-        {
-          error:
-            result.error.message ||
-            "Unable to send email.",
-        },
-        {
-          status: 500,
-        }
-      );
-    }
+    const status =
+      isReply
+        ? "Replied"
+        : "Sent";
 
     /*
-     * Only save the outbound email AFTER
-     * Resend successfully accepts it.
+     * ---------------------------------------------------------
+     * SAVE OUTGOING EMAIL
+     * ---------------------------------------------------------
      */
-    const { data: savedEmail, error } =
-      await supabase
-        .from("emails")
-        .insert({
-          business_id:
-            payload.businessId ?? null,
 
-          customer_id:
-            payload.customerId ?? null,
+    const {
+      data: savedEmail,
+      error,
+    } = await supabase
+      .from("emails")
+      .insert({
+        business_id:
+          payload.businessId ??
+          null,
 
-          assigned_to:
-            payload.assignedTo ?? null,
+        customer_id:
+          payload.customerId ??
+          null,
 
-          parent_email_id:
-            payload.parentEmailId ?? null,
+        assigned_to:
+          payload.assignedTo ??
+          null,
 
-          sender_name:
-            "Alessandro Enterprises",
+        /*
+         * Only replies belong directly to
+         * the selected parent email.
+         *
+         * Forward and resend are standalone
+         * outgoing messages unless the client
+         * explicitly provides a parent.
+         */
+        parent_email_id:
+          payload.parentEmailId ??
+          null,
 
-          sender_email:
-            emailFrom
-              .replace(
-                /^.*<(.+)>$/,
-                "$1"
-              )
-              .trim(),
+        sender_name:
+          "Alessandro Enterprises",
 
-          recipient_email:
-            payload.to.trim(),
+        sender_email:
+          emailAddress,
 
-          cc:
-            payload.cc?.trim() || null,
+        recipient_email:
+          payload.to.trim(),
 
-          bcc:
-            payload.bcc?.trim() || null,
+        cc:
+          payload.cc?.trim() ||
+          null,
 
-          subject,
+        bcc:
+          payload.bcc?.trim() ||
+          null,
 
-          body:
-            payload.body.trim(),
+        subject,
 
-          source: "Outgoing",
+        body:
+          payload.body.trim(),
 
-          status: "Replied",
+        source:
+          "Outgoing",
 
-          priority: "Normal",
+        status,
 
-          replied_at:
-            new Date().toISOString(),
-        })
-        .select()
-        .single();
+        priority:
+          "Normal",
+
+        /*
+         * Only replies should receive
+         * replied_at.
+         *
+         * Compose, forward and resend
+         * are simply Sent.
+         */
+        replied_at:
+          isReply
+            ? new Date().toISOString()
+            : null,
+      })
+      .select()
+      .single();
+
+    /*
+     * ---------------------------------------------------------
+     * DATABASE SAVE FAILURE
+     * ---------------------------------------------------------
+     *
+     * Gmail already accepted the message.
+     */
 
     if (error) {
       console.error(
@@ -183,41 +301,45 @@ export async function POST(
         error
       );
 
-      /*
-       * The email WAS sent successfully,
-       * so don't report it as an email-send
-       * failure to the user.
-       */
-      return NextResponse.json(
-        {
-          success: true,
-          warning:
-            "Email was sent, but the conversation record could not be saved.",
-          resendId: result.data?.id ?? null,
-        },
-        {
-          status: 200,
-        }
-      );
+      return NextResponse.json({
+        success: true,
+
+        warning:
+          "Email was sent, but the conversation record could not be saved.",
+
+        messageId:
+          result.messageId ??
+          null,
+
+        action,
+
+        status,
+      });
     }
 
     /*
-     * If this was a reply, mark the original
-     * conversation as replied.
+     * ---------------------------------------------------------
+     * UPDATE ORIGINAL EMAIL FOR REPLIES
+     * ---------------------------------------------------------
      */
-    if (payload.parentEmailId) {
-      const { error: updateError } =
-        await supabase
-          .from("emails")
-          .update({
-            status: "Replied",
-            replied_at:
-              new Date().toISOString(),
-          })
-          .eq(
-            "id",
-            payload.parentEmailId
-          );
+
+    if (isReply) {
+      const {
+        error:
+          updateError,
+      } = await supabase
+        .from("emails")
+        .update({
+          status:
+            "Replied",
+
+          replied_at:
+            new Date().toISOString(),
+        })
+        .eq(
+          "id",
+          payload.parentEmailId!
+        );
 
       if (updateError) {
         console.error(
@@ -227,15 +349,29 @@ export async function POST(
       }
     }
 
+    /*
+     * ---------------------------------------------------------
+     * RESPONSE
+     * ---------------------------------------------------------
+     */
+
     return NextResponse.json({
       success: true,
-      email: savedEmail,
-      resendId:
-        result.data?.id ?? null,
+
+      email:
+        savedEmail,
+
+      messageId:
+        result.messageId ??
+        null,
+
+      action,
+
+      status,
     });
   } catch (error) {
     console.error(
-      "Email send route error:",
+      "Gmail email send error:",
       error
     );
 

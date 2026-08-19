@@ -3,9 +3,24 @@ import {
   getEmailStats,
 } from "@/modules/emails/services/email.service";
 
+import {
+  syncInboxEmails,
+} from "@/modules/emails/services/gmail-sync.server";
+
 import EmailManager from "@/modules/emails/components/EmailManager";
 
+export const dynamic = "force-dynamic";
+
 export default async function EmailsPage() {
+  try {
+    await syncInboxEmails();
+  } catch (error) {
+    console.error(
+      "Automatic Gmail sync failed:",
+      error
+    );
+  }
+
   const [emails, stats] = await Promise.all([
     getEmails(),
     getEmailStats(),

@@ -4,6 +4,7 @@ export type EmailStatus =
   | "Unread"
   | "Read"
   | "Replied"
+  | "Sent"
   | "Archived";
 
 export type EmailPriority =
@@ -19,6 +20,10 @@ export interface EmailRecord {
   customer_id: string | null;
   assigned_to: string | null;
   parent_email_id: string | null;
+
+  gmail_message_id: string | null;
+  gmail_thread_id: string | null;
+  gmail_message_date: string | null;
 
   sender_name: string;
   sender_email: string;
@@ -83,6 +88,9 @@ export async function getEmails(): Promise<EmailRecord[]> {
       replied_at,
       archived_at,
       updated_at,
+      gmail_message_id,
+      gmail_thread_id,
+      gmail_message_date,
       businesses (
         id,
         name
@@ -128,6 +136,7 @@ export async function getEmailStats() {
       unread: 0,
       read: 0,
       replied: 0,
+      sent: 0,
       archived: 0,
     };
   }
@@ -147,6 +156,10 @@ export async function getEmailStats() {
 
     replied: emails.filter(
       (email) => email.status === "Replied"
+    ).length,
+
+    sent: emails.filter(
+      (email) => email.status === "Sent"
     ).length,
 
     archived: emails.filter(

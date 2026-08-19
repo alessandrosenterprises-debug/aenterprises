@@ -9,10 +9,12 @@ import {
   Archive,
   Check,
   ChevronDown,
+  Forward,
   Mail,
   MailOpen,
   Plus,
   Reply,
+  RotateCcw,
   Search,
   Send,
   Trash2,
@@ -31,11 +33,18 @@ import type {
   EmailStatus,
 } from "@/modules/emails/services/email.service";
 
+/*
+ * =========================================================
+ * TYPES
+ * =========================================================
+ */
+
 interface EmailStats {
   total: number;
   unread: number;
   read: number;
   replied: number;
+  sent: number;
   archived: number;
 }
 
@@ -46,11 +55,35 @@ interface EmailManagerProps {
 
 type Filter = "All" | EmailStatus;
 
+type ComposerMode =
+  | "compose"
+  | "reply"
+  | "forward"
+  | "resend";
+
+/*
+ * =========================================================
+ * STYLES
+ * =========================================================
+ */
+
 const inputClass =
   "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20";
 
+/*
+ * =========================================================
+ * HELPERS
+ * =========================================================
+ */
+
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("en-ZM", {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("en-ZM", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -69,6 +102,9 @@ function statusClass(status: EmailStatus) {
 
     case "Replied":
       return "bg-green-100 text-green-700";
+
+    case "Sent":
+      return "bg-indigo-100 text-indigo-700";
 
     case "Archived":
       return "bg-slate-200 text-slate-600";
@@ -91,15 +127,28 @@ function priorityClass(
     case "Normal":
       return "bg-blue-100 text-blue-700";
 
+    case "Low":
     default:
       return "bg-slate-100 text-slate-600";
   }
 }
 
+/*
+ * =========================================================
+ * COMPONENT
+ * =========================================================
+ */
+
 export default function EmailManager({
   initialEmails,
   stats,
 }: EmailManagerProps) {
+  /*
+   * ---------------------------------------------------------
+   * STATE
+   * ---------------------------------------------------------
+   */
+
   const [emails, setEmails] =
     useState<EmailRecord[]>(initialEmails);
 
@@ -118,6 +167,9 @@ export default function EmailManager({
   const [replyOpen, setReplyOpen] =
     useState(false);
 
+  const [composerMode, setComposerMode] =
+    useState<ComposerMode>("compose");
+
   const [loadingId, setLoadingId] =
     useState<string | null>(null);
 
@@ -130,21 +182,71 @@ export default function EmailManager({
   const [to, setTo] =
     useState("");
 
-  const [subject, setSubject] =
-    useState("");
-
-  const [body, setBody] =
-    useState("");
-
   const [cc, setCc] =
     useState("");
 
   const [bcc, setBcc] =
     useState("");
 
+  const [subject, setSubject] =
+    useState("");
+
+  const [body, setBody] =
+    useState("");
+
   /*
    * ---------------------------------------------------------
-   * EMAIL THREAD
+   * LIVE STATISTICS
+   * ---------------------------------------------------------
+   *
+   * We calculate these from the current client state so the
+   * numbers immediately reflect sent/read/replied/archived
+   * actions without requiring a page refresh.
+   * ---------------------------------------------------------
+   */
+
+  const liveStats = useMemo<EmailStats>(() => {
+    return {
+      total: emails.length,
+
+      unread: emails.filter(
+        (email) =>
+          email.status === "Unread"
+      ).length,
+
+      read: emails.filter(
+        (email) =>
+          email.status === "Read"
+      ).length,
+
+      replied: emails.filter(
+        (email) =>
+          email.status === "Replied"
+      ).length,
+
+      sent: emails.filter(
+        (email) =>
+          email.status === "Sent" ||
+          email.source === "Outgoing"
+      ).length,
+
+      archived: emails.filter(
+        (email) =>
+          email.status === "Archived"
+      ).length,
+    };
+  }, [emails]);
+
+  /*
+   * Keep the server stats referenced so the component remains
+   * compatible with the page contract even when the local
+   * state has not changed.
+   */
+  void stats;
+
+  /*
+   * ---------------------------------------------------------
+   * THREAD BUILDER
    * ---------------------------------------------------------
    */
 
@@ -157,7 +259,7 @@ export default function EmailManager({
     thread.set(email.id, email);
 
     /*
-     * Find all parents.
+     * Walk backwards through parents.
      */
     let current = email;
 
@@ -172,13 +274,20 @@ export default function EmailManager({
         break;
       }
 
-      thread.set(parent.id, parent);
+      if (thread.has(parent.id)) {
+        break;
+      }
+
+      thread.set(
+        parent.id,
+        parent
+      );
 
       current = parent;
     }
 
     /*
-     * Find all replies.
+     * Walk forward through children/replies.
      */
     let changed = true;
 
@@ -193,7 +302,11 @@ export default function EmailManager({
           ) &&
           !thread.has(item.id)
         ) {
-          thread.set(item.id, item);
+          thread.set(
+            item.id,
+            item
+          );
+
           changed = true;
         }
       }
@@ -221,7 +334,9 @@ export default function EmailManager({
   const filteredEmails =
     useMemo(() => {
       const query =
-        search.trim().toLowerCase();
+        search
+          .trim()
+          .toLowerCase();
 
       return emails.filter(
         (email) => {
@@ -244,10 +359,18 @@ export default function EmailManager({
             email.sender_email
               .toLowerCase()
               .includes(query) ||
-            email.subject
-              ?.toLowerCase()
+            (
+              email.subject ?? ""
+            )
+              .toLowerCase()
               .includes(query) ||
             email.body
+              .toLowerCase()
+              .includes(query) ||
+            (
+              email.recipient_email ??
+              ""
+            )
               .toLowerCase()
               .includes(query)
           );
@@ -280,24 +403,37 @@ export default function EmailManager({
     ]);
 
   /*
-   * ---------------------------------------------------------
-   * COMPOSER
-   * ---------------------------------------------------------
+   * =========================================================
+   * COMPOSER HELPERS
+   * =========================================================
    */
 
   function resetComposer() {
     setTo("");
-    setSubject("");
-    setBody("");
     setCc("");
     setBcc("");
+    setSubject("");
+    setBody("");
     setError("");
-    setSuccess("");
   }
+
+  function closeComposer() {
+    setComposeOpen(false);
+    setReplyOpen(false);
+    setComposerMode("compose");
+    resetComposer();
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * COMPOSE
+   * ---------------------------------------------------------
+   */
 
   function openCompose() {
     resetComposer();
 
+    setComposerMode("compose");
     setSelectedEmail(null);
     setReplyOpen(false);
     setComposeOpen(true);
@@ -315,6 +451,7 @@ export default function EmailManager({
     setSelectedEmail(email);
     setComposeOpen(false);
     setReplyOpen(false);
+    setComposerMode("compose");
     setError("");
     setSuccess("");
 
@@ -322,6 +459,12 @@ export default function EmailManager({
       void handleRead(email);
     }
   }
+
+  /*
+   * =========================================================
+   * EMAIL ACTIONS
+   * =========================================================
+   */
 
   /*
    * ---------------------------------------------------------
@@ -334,11 +477,16 @@ export default function EmailManager({
   ) {
     try {
       setLoadingId(email.id);
+      setError("");
 
       const updated =
         await markEmailAsRead(
           email.id
         );
+
+      const readAt =
+        updated.read_at ??
+        new Date().toISOString();
 
       setEmails((current) =>
         current.map((item) =>
@@ -346,8 +494,9 @@ export default function EmailManager({
             ? {
                 ...item,
                 status: "Read",
-                read_at:
-                  updated.read_at,
+                read_at: readAt,
+                updated_at:
+                  new Date().toISOString(),
               }
             : item
         )
@@ -358,8 +507,9 @@ export default function EmailManager({
           ? {
               ...current,
               status: "Read",
-              read_at:
-                updated.read_at,
+              read_at: readAt,
+              updated_at:
+                new Date().toISOString(),
             }
           : current
       );
@@ -386,11 +536,16 @@ export default function EmailManager({
     try {
       setLoadingId(email.id);
       setError("");
+      setSuccess("");
 
       const updated =
         await archiveEmail(
           email.id
         );
+
+      const archivedAt =
+        updated.archived_at ??
+        new Date().toISOString();
 
       setEmails((current) =>
         current.map((item) =>
@@ -399,7 +554,9 @@ export default function EmailManager({
                 ...item,
                 status: "Archived",
                 archived_at:
-                  updated.archived_at,
+                  archivedAt,
+                updated_at:
+                  new Date().toISOString(),
               }
             : item
         )
@@ -442,8 +599,11 @@ export default function EmailManager({
     try {
       setLoadingId(email.id);
       setError("");
+      setSuccess("");
 
-      await deleteEmail(email.id);
+      await deleteEmail(
+        email.id
+      );
 
       setEmails((current) =>
         current.filter(
@@ -469,21 +629,40 @@ export default function EmailManager({
   }
 
   /*
-   * ---------------------------------------------------------
-   * PREPARE REPLY
-   * ---------------------------------------------------------
+   * =========================================================
+   * REPLY
+   * =========================================================
    */
 
   function prepareReply(
     email: EmailRecord
   ) {
-    setTo(email.sender_email);
+    /*
+     * Reply to an outgoing email should go to the original
+     * recipient rather than the sender.
+     */
+    const recipient =
+      email.source === "Outgoing"
+        ? email.recipient_email
+        : email.sender_email;
+
+    if (!recipient) {
+      setError(
+        "This email does not have a valid reply recipient."
+      );
+
+      return;
+    }
+
+    setComposerMode("reply");
+
+    setTo(recipient);
 
     setSubject(
       email.subject
-        ? email.subject.startsWith(
-            "Re:"
-          )
+        ? email.subject
+            .toLowerCase()
+            .startsWith("re:")
           ? email.subject
           : `Re: ${email.subject}`
         : "Re: Message"
@@ -500,9 +679,109 @@ export default function EmailManager({
   }
 
   /*
-   * ---------------------------------------------------------
-   * SEND EMAIL / REPLY
-   * ---------------------------------------------------------
+   * =========================================================
+   * FORWARD
+   * =========================================================
+   */
+
+  function prepareForward(
+    email: EmailRecord
+  ) {
+    setComposerMode("forward");
+
+    setTo("");
+    setCc("");
+    setBcc("");
+
+    setSubject(
+      email.subject
+        ? email.subject
+            .toLowerCase()
+            .startsWith("fwd:")
+          ? email.subject
+          : `Fwd: ${email.subject}`
+        : "Fwd: Message"
+    );
+
+    const forwardedMessage = [
+      "",
+      "",
+      "---------- Forwarded message ----------",
+      `From: ${email.sender_name} <${email.sender_email}>`,
+      `Date: ${formatDate(
+        email.created_at
+      )}`,
+      `Subject: ${
+        email.subject ||
+        "(No subject)"
+      }`,
+      `To: ${
+        email.recipient_email ||
+        ""
+      }`,
+      "",
+      email.body,
+    ].join("\n");
+
+    setBody(
+      forwardedMessage
+    );
+
+    setError("");
+    setSuccess("");
+
+    setReplyOpen(false);
+    setComposeOpen(true);
+  }
+
+  /*
+   * =========================================================
+   * RESEND
+   * =========================================================
+   */
+
+  function prepareResend(
+    email: EmailRecord
+  ) {
+    if (!email.recipient_email) {
+      setError(
+        "This sent email does not have a recipient."
+      );
+
+      return;
+    }
+
+    setComposerMode("resend");
+
+    setTo(
+      email.recipient_email
+    );
+
+    setCc(
+      email.cc ?? ""
+    );
+
+    setBcc(
+      email.bcc ?? ""
+    );
+
+    setSubject(
+      email.subject ?? ""
+    );
+
+    setBody(email.body);
+
+    setError("");
+    setSuccess("");
+
+    setReplyOpen(false);
+    setComposeOpen(true);
+  }
+
+  /*
+   * =========================================================
+   * SEND
+   * =========================================================
    */
 
   async function handleSend(
@@ -510,19 +789,36 @@ export default function EmailManager({
   ) {
     event.preventDefault();
 
-    if (!to.trim()) {
+    const recipient =
+      to.trim();
+
+    const messageBody =
+      body.trim();
+
+    if (!recipient) {
       setError(
         "Recipient email is required."
       );
+
       return;
     }
 
-    if (!body.trim()) {
+    if (!messageBody) {
       setError(
         "Email message cannot be empty."
       );
+
       return;
     }
+
+    const isReply =
+      composerMode === "reply";
+
+    const isForward =
+      composerMode === "forward";
+
+    const isResend =
+      composerMode === "resend";
 
     try {
       setLoadingId(
@@ -535,7 +831,7 @@ export default function EmailManager({
 
       const result =
         await sendEmail({
-          to: to.trim(),
+          to: recipient,
 
           cc:
             cc.trim() ||
@@ -549,7 +845,7 @@ export default function EmailManager({
             subject.trim() ||
             "Message from Alessandro Enterprises",
 
-          body: body.trim(),
+          body: messageBody,
 
           businessId:
             selectedEmail?.business_id ??
@@ -563,29 +859,63 @@ export default function EmailManager({
             selectedEmail?.assigned_to ??
             null,
 
+          /*
+           * ONLY replies get a parent.
+           *
+           * Compose:
+           * null
+           *
+           * Forward:
+           * null
+           *
+           * Resend:
+           * null
+           *
+           * Reply:
+           * selected email ID
+           */
           parentEmailId:
-            replyOpen
+            isReply
               ? selectedEmail?.id ??
                 null
               : null,
         });
 
       /*
-       * Add the newly sent email
-       * immediately to the UI.
+       * -------------------------------------------------------
+       * ADD NEW OUTGOING EMAIL
+       * -------------------------------------------------------
        */
+
       if (result.email) {
-        setEmails((current) => [
-          result.email as EmailRecord,
-          ...current,
-        ]);
+        const sentEmail =
+          result.email as EmailRecord;
+
+        setEmails((current) => {
+          const withoutDuplicate =
+            current.filter(
+              (item) =>
+                item.id !==
+                sentEmail.id
+            );
+
+          return [
+            sentEmail,
+            ...withoutDuplicate,
+          ];
+        });
       }
 
       /*
-       * Update the original email
-       * when this was a reply.
+       * -------------------------------------------------------
+       * UPDATE ORIGINAL EMAIL ONLY FOR REPLIES
+       * -------------------------------------------------------
        */
-      if (selectedEmail) {
+
+      if (
+        isReply &&
+        selectedEmail
+      ) {
         const repliedAt =
           new Date().toISOString();
 
@@ -598,6 +928,8 @@ export default function EmailManager({
                   status:
                     "Replied",
                   replied_at:
+                    repliedAt,
+                  updated_at:
                     repliedAt,
                 }
               : item
@@ -613,21 +945,52 @@ export default function EmailManager({
                     "Replied",
                   replied_at:
                     repliedAt,
+                  updated_at:
+                    repliedAt,
                 }
               : current
         );
       }
 
+      /*
+       * -------------------------------------------------------
+       * SUCCESS MESSAGE
+       * -------------------------------------------------------
+       */
+
+      let successMessage =
+        "Email sent successfully.";
+
+      if (isReply) {
+        successMessage =
+          "Reply sent successfully.";
+      } else if (isForward) {
+        successMessage =
+          "Email forwarded successfully.";
+      } else if (isResend) {
+        successMessage =
+          "Email resent successfully.";
+      }
+
       setSuccess(
-        replyOpen
-          ? "Reply sent successfully."
-          : "Email sent successfully."
+        successMessage
       );
 
-      resetComposer();
-
+      /*
+       * Close composer.
+       */
       setComposeOpen(false);
       setReplyOpen(false);
+
+      setComposerMode(
+        "compose"
+      );
+
+      setTo("");
+      setCc("");
+      setBcc("");
+      setSubject("");
+      setBody("");
     } catch (err) {
       setError(
         err instanceof Error
@@ -640,9 +1003,9 @@ export default function EmailManager({
   }
 
   /*
-   * ---------------------------------------------------------
+   * =========================================================
    * RENDER
-   * ---------------------------------------------------------
+   * =========================================================
    */
 
   return (
@@ -651,35 +1014,41 @@ export default function EmailManager({
           STATISTICS
       ====================================================== */}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         {[
           {
             label: "Total",
-            value: stats.total,
+            value: liveStats.total,
             icon: Mail,
           },
           {
             label: "Unread",
-            value: stats.unread,
+            value: liveStats.unread,
             icon: Mail,
           },
           {
             label: "Read",
-            value: stats.read,
+            value: liveStats.read,
             icon: MailOpen,
           },
           {
             label: "Replied",
-            value: stats.replied,
+            value: liveStats.replied,
             icon: Reply,
           },
           {
+            label: "Sent",
+            value: liveStats.sent,
+            icon: Send,
+          },
+          {
             label: "Archived",
-            value: stats.archived,
+            value: liveStats.archived,
             icon: Archive,
           },
         ].map((item) => {
-          const Icon = item.icon;
+          const Icon =
+            item.icon;
 
           return (
             <div
@@ -730,7 +1099,9 @@ export default function EmailManager({
 
             <button
               type="button"
-              onClick={openCompose}
+              onClick={
+                openCompose
+              }
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
             >
               <Plus className="h-5 w-5" />
@@ -744,6 +1115,7 @@ export default function EmailManager({
               "Unread",
               "Read",
               "Replied",
+              "Sent",
               "Archived",
             ].map((item) => (
               <button
@@ -778,7 +1150,8 @@ export default function EmailManager({
           </div>
         )}
 
-        {filteredEmails.length === 0 ? (
+        {filteredEmails.length ===
+        0 ? (
           <div className="py-16 text-center">
             <Mail className="mx-auto h-12 w-12 text-slate-300" />
 
@@ -799,7 +1172,9 @@ export default function EmailManager({
                   key={email.id}
                   type="button"
                   onClick={() =>
-                    openEmail(email)
+                    openEmail(
+                      email
+                    )
                   }
                   className={`flex w-full items-start gap-4 px-5 py-5 text-left transition hover:bg-slate-50 ${
                     email.status ===
@@ -809,7 +1184,12 @@ export default function EmailManager({
                   }`}
                 >
                   <div className="mt-1 rounded-xl bg-[#03162F] p-3 text-white">
-                    <Mail className="h-5 w-5" />
+                    {email.source ===
+                    "Outgoing" ? (
+                      <Send className="h-5 w-5" />
+                    ) : (
+                      <Mail className="h-5 w-5" />
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -823,14 +1203,18 @@ export default function EmailManager({
                               : "font-semibold text-slate-700"
                           }`}
                         >
-                          {email.sender_name}
+                          {email.source ===
+                          "Outgoing"
+                            ? "Alessandro Enterprises"
+                            : email.sender_name}
                         </p>
 
                         <span className="hidden text-xs text-slate-400 sm:inline">
                           &lt;
-                          {
-                            email.sender_email
-                          }
+                          {email.source ===
+                          "Outgoing"
+                            ? email.recipient_email
+                            : email.sender_email}
                           &gt;
                         </span>
                       </div>
@@ -870,8 +1254,14 @@ export default function EmailManager({
 
                       {email.source ===
                         "Outgoing" && (
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                          Sent
+                        <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
+                          Outgoing
+                        </span>
+                      )}
+
+                      {email.parent_email_id && (
+                        <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                          Conversation
                         </span>
                       )}
 
@@ -927,7 +1317,9 @@ export default function EmailManager({
                   {selectedThread.length >
                     1 && (
                     <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                      {selectedThread.length}{" "}
+                      {
+                        selectedThread.length
+                      }{" "}
                       messages
                     </span>
                   )}
@@ -942,7 +1334,9 @@ export default function EmailManager({
               <button
                 type="button"
                 onClick={() =>
-                  setSelectedEmail(null)
+                  setSelectedEmail(
+                    null
+                  )
                 }
                 className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
               >
@@ -955,7 +1349,10 @@ export default function EmailManager({
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
                 {selectedThread.map(
-                  (email, index) => {
+                  (
+                    email,
+                    index
+                  ) => {
                     const isOutgoing =
                       email.source ===
                       "Outgoing";
@@ -981,13 +1378,21 @@ export default function EmailManager({
                               <span
                                 className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                                   isOutgoing
-                                    ? "bg-blue-100 text-blue-700"
+                                    ? "bg-indigo-100 text-indigo-700"
                                     : "bg-slate-200 text-slate-600"
                                 }`}
                               >
                                 {isOutgoing
                                   ? "Sent"
                                   : "Received"}
+                              </span>
+
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(
+                                  email.status
+                                )}`}
+                              >
+                                {email.status}
                               </span>
                             </div>
 
@@ -1037,7 +1442,7 @@ export default function EmailManager({
                           selectedThread.length -
                             1 && (
                           <div className="mt-5 border-t border-slate-200 pt-3 text-xs font-medium text-slate-400">
-                            Reply
+                            Conversation continues
                           </div>
                         )}
                       </div>
@@ -1052,8 +1457,10 @@ export default function EmailManager({
 
               {replyOpen && (
                 <form
-                  onSubmit={handleSend}
-                  className="mt-6 space-y-4 rounded-2xl border border-slate-200 p-5"
+                  onSubmit={
+                    handleSend
+                  }
+                  className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -1063,9 +1470,7 @@ export default function EmailManager({
 
                       <p className="mt-1 text-sm text-slate-500">
                         Reply to{" "}
-                        {
-                          selectedEmail.sender_email
-                        }
+                        {to}
                       </p>
                     </div>
 
@@ -1082,11 +1487,18 @@ export default function EmailManager({
                     </button>
                   </div>
 
+                  {error && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
+
                   <input
                     value={to}
                     onChange={(event) =>
                       setTo(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                     placeholder="Recipient"
@@ -1099,7 +1511,8 @@ export default function EmailManager({
                     value={cc}
                     onChange={(event) =>
                       setCc(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                     placeholder="CC (optional)"
@@ -1110,7 +1523,8 @@ export default function EmailManager({
                     value={bcc}
                     onChange={(event) =>
                       setBcc(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                     placeholder="BCC (optional)"
@@ -1121,7 +1535,8 @@ export default function EmailManager({
                     value={subject}
                     onChange={(event) =>
                       setSubject(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                     placeholder="Subject"
@@ -1132,7 +1547,8 @@ export default function EmailManager({
                     value={body}
                     onChange={(event) =>
                       setBody(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                     placeholder="Write your reply..."
@@ -1140,53 +1556,76 @@ export default function EmailManager({
                     required
                   />
 
-                  <button
-                    type="submit"
-                    disabled={
-                      loadingId !== null
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white hover:bg-[#0A2852] disabled:opacity-50"
-                  >
-                    <Send className="h-4 w-4" />
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setReplyOpen(
+                          false
+                        )
+                      }
+                      className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
 
-                    {loadingId
-                      ? "Sending..."
-                      : "Send Reply"}
-                  </button>
+                    <button
+                      type="submit"
+                      disabled={
+                        loadingId !==
+                        null
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white hover:bg-[#0A2852] disabled:opacity-50"
+                    >
+                      <Send className="h-4 w-4" />
+
+                      {loadingId
+                        ? "Sending..."
+                        : "Send Reply"}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
 
-            {/* FOOTER ACTIONS */}
+            {/* =================================================
+                FOOTER ACTIONS
+            ================================================== */}
 
             {!replyOpen && (
               <div className="flex flex-wrap justify-between gap-3 border-t border-slate-200 p-5">
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void handleRead(
-                        selectedEmail
-                      )
-                    }
-                    disabled={
-                      loadingId ===
-                      selectedEmail.id
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    {selectedEmail.status ===
-                    "Unread" ? (
+                  {selectedEmail.status ===
+                    "Unread" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleRead(
+                          selectedEmail
+                        )
+                      }
+                      disabled={
+                        loadingId ===
+                        selectedEmail.id
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
                       <MailOpen className="h-4 w-4" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
+                      Mark Read
+                    </button>
+                  )}
 
-                    {selectedEmail.status ===
-                    "Unread"
-                      ? "Mark Read"
-                      : "Read"}
-                  </button>
+                  {selectedEmail.status !==
+                    "Unread" && (
+                    <button
+                      type="button"
+                      disabled
+                      className="inline-flex cursor-default items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-400"
+                    >
+                      <Check className="h-4 w-4" />
+                      Read
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -1204,19 +1643,51 @@ export default function EmailManager({
                   <button
                     type="button"
                     onClick={() =>
-                      void handleArchive(
+                      prepareForward(
                         selectedEmail
                       )
                     }
-                    disabled={
-                      loadingId ===
-                      selectedEmail.id
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                   >
-                    <Archive className="h-4 w-4" />
-                    Archive
+                    <Forward className="h-4 w-4" />
+                    Forward
                   </button>
+
+                  {selectedEmail.source ===
+                    "Outgoing" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        prepareResend(
+                          selectedEmail
+                        )
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Resend
+                    </button>
+                  )}
+
+                  {selectedEmail.status !==
+                    "Archived" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleArchive(
+                          selectedEmail
+                        )
+                      }
+                      disabled={
+                        loadingId ===
+                        selectedEmail.id
+                      }
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <Archive className="h-4 w-4" />
+                      Archive
+                    </button>
+                  )}
                 </div>
 
                 <button
@@ -1242,30 +1713,47 @@ export default function EmailManager({
       )}
 
       {/* =====================================================
-          COMPOSE EMAIL
+          COMPOSE / FORWARD / RESEND MODAL
       ====================================================== */}
 
       {composeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03162F]/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            {/* HEADER */}
+
             <div className="flex items-center justify-between border-b border-slate-200 p-6">
               <div>
                 <h2 className="text-xl font-bold text-[#03162F]">
-                  Compose Email
+                  {composerMode ===
+                  "reply"
+                    ? "Reply"
+                    : composerMode ===
+                      "forward"
+                    ? "Forward Email"
+                    : composerMode ===
+                      "resend"
+                    ? "Resend Email"
+                    : "Compose Email"}
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Send an email from Alessandro
-                  Enterprises.
+                  {composerMode ===
+                  "reply"
+                    ? `Reply to ${to}`
+                    : composerMode ===
+                      "forward"
+                    ? "Forward this email to another recipient."
+                    : composerMode ===
+                      "resend"
+                    ? "Resend this message to the original recipient."
+                    : "Send an email from Alessandro Enterprises."}
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  setComposeOpen(
-                    false
-                  )
+                onClick={
+                  closeComposer
                 }
                 className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
               >
@@ -1273,9 +1761,13 @@ export default function EmailManager({
               </button>
             </div>
 
+            {/* FORM */}
+
             <form
-              onSubmit={handleSend}
-              className="space-y-4 p-6"
+              onSubmit={
+                handleSend
+              }
+              className="flex-1 space-y-4 overflow-y-auto p-6"
             >
               {error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -1283,71 +1775,131 @@ export default function EmailManager({
                 </div>
               )}
 
-              <input
-                value={to}
-                onChange={(event) =>
-                  setTo(
-                    event.target.value
-                  )
-                }
-                placeholder="To"
-                type="email"
-                className={inputClass}
-                required
-              />
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  To
+                </label>
 
-              <input
-                value={cc}
-                onChange={(event) =>
-                  setCc(
-                    event.target.value
-                  )
-                }
-                placeholder="CC (optional)"
-                className={inputClass}
-              />
+                <input
+                  value={to}
+                  onChange={(
+                    event
+                  ) =>
+                    setTo(
+                      event.target
+                        .value
+                    )
+                  }
+                  placeholder="recipient@example.com"
+                  type="email"
+                  className={
+                    inputClass
+                  }
+                  required
+                />
+              </div>
 
-              <input
-                value={bcc}
-                onChange={(event) =>
-                  setBcc(
-                    event.target.value
-                  )
-                }
-                placeholder="BCC (optional)"
-                className={inputClass}
-              />
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  CC
+                </label>
 
-              <input
-                value={subject}
-                onChange={(event) =>
-                  setSubject(
-                    event.target.value
-                  )
-                }
-                placeholder="Subject"
-                className={inputClass}
-              />
+                <input
+                  value={cc}
+                  onChange={(
+                    event
+                  ) =>
+                    setCc(
+                      event.target
+                        .value
+                    )
+                  }
+                  placeholder="CC (optional)"
+                  className={
+                    inputClass
+                  }
+                />
+              </div>
 
-              <textarea
-                value={body}
-                onChange={(event) =>
-                  setBody(
-                    event.target.value
-                  )
-                }
-                placeholder="Write your email..."
-                className={`${inputClass} min-h-[220px] resize-y`}
-                required
-              />
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  BCC
+                </label>
+
+                <input
+                  value={bcc}
+                  onChange={(
+                    event
+                  ) =>
+                    setBcc(
+                      event.target
+                        .value
+                    )
+                  }
+                  placeholder="BCC (optional)"
+                  className={
+                    inputClass
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Subject
+                </label>
+
+                <input
+                  value={
+                    subject
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setSubject(
+                      event.target
+                        .value
+                    )
+                  }
+                  placeholder="Subject"
+                  className={
+                    inputClass
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Message
+                </label>
+
+                <textarea
+                  value={body}
+                  onChange={(
+                    event
+                  ) =>
+                    setBody(
+                      event.target
+                        .value
+                    )
+                  }
+                  placeholder={
+                    composerMode ===
+                    "reply"
+                      ? "Write your reply..."
+                      : "Write your email..."
+                  }
+                  className={`${inputClass} min-h-[240px] resize-y`}
+                  required
+                />
+              </div>
+
+              {/* FOOTER */}
 
               <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
                 <button
                   type="button"
-                  onClick={() =>
-                    setComposeOpen(
-                      false
-                    )
+                  onClick={
+                    closeComposer
                   }
                   className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50"
                 >
@@ -1357,14 +1909,35 @@ export default function EmailManager({
                 <button
                   type="submit"
                   disabled={
-                    loadingId !== null
+                    loadingId !==
+                    null
                   }
                   className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-6 py-3 font-semibold text-white hover:bg-[#0A2852] disabled:opacity-50"
                 >
-                  <Send className="h-4 w-4" />
+                  {composerMode ===
+                  "forward" ? (
+                    <Forward className="h-4 w-4" />
+                  ) : composerMode ===
+                    "resend" ? (
+                    <RotateCcw className="h-4 w-4" />
+                  ) : composerMode ===
+                    "reply" ? (
+                    <Reply className="h-4 w-4" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
 
                   {loadingId
                     ? "Sending..."
+                    : composerMode ===
+                      "forward"
+                    ? "Forward Email"
+                    : composerMode ===
+                      "resend"
+                    ? "Resend Email"
+                    : composerMode ===
+                      "reply"
+                    ? "Send Reply"
                     : "Send Email"}
                 </button>
               </div>
