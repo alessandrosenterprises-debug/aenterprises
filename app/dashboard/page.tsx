@@ -2,6 +2,7 @@ import RecentActivity from "@/modules/dashboard/components/RecentActivity";
 import OperationsCenter from "@/modules/dashboard/components/OperationsCenter";
 import QuickActions from "@/modules/dashboard/components/QuickActions";
 import BusinessStatus from "@/modules/dashboard/components/BusinessStatus";
+import Reminders from "@/modules/dashboard/components/Reminders";
 
 import {
   getDashboardStats,
@@ -81,10 +82,15 @@ export default async function DashboardPage() {
       <div className="space-y-6">
         <OperationsCenter bookings={bookings} />
 
-        {/* LOWER DASHBOARD */}
+        {/* REMINDERS + RECENT ACTIVITY */}
         <div className="grid gap-6 lg:grid-cols-2">
           <RecentActivity />
 
+          <Reminders bookings={bookings} />
+        </div>
+
+        {/* QUICK ACTIONS / BUSINESS STATUS */}
+        <div className="grid gap-6 lg:grid-cols-2">
           {isManagementUser ? (
             <QuickActions />
           ) : (

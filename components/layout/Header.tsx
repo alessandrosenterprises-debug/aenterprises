@@ -1,48 +1,37 @@
-import { Bell, Mail, Settings } from "lucide-react";
+"use client";
+
+import { Settings } from "lucide-react";
 
 import SearchInput from "@/components/ui/search/SearchInput";
+import NotificationCenter from "@/components/layout/NotificationCenter";
 import UserProfile from "./UserProfile";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-200 bg-white px-8">
-
-      <div>
+    <header className="sticky top-0 z-[100] flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6 lg:px-8">
+      <div className="hidden md:block">
         <h1 className="text-2xl font-bold text-[#03162F]">
           Dashboard
         </h1>
       </div>
 
-      <div className="hidden xl:block">
+      <div className="mx-4 hidden min-w-0 flex-1 justify-center lg:flex">
         <SearchInput />
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="ml-auto flex items-center gap-2 sm:gap-3 lg:gap-4">
+        <NotificationCenter />
 
-        <button className="relative transition hover:scale-110">
-          <Bell className="h-6 w-6 text-slate-600" />
-
-          <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            4
-          </span>
-        </button>
-
-        <button className="relative transition hover:scale-110">
-          <Mail className="h-6 w-6 text-slate-600" />
-
-          <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-            2
-          </span>
-        </button>
-
-        <button className="transition hover:rotate-90">
-          <Settings className="h-6 w-6 text-slate-600" />
-        </button>
+        <a
+          href="/dashboard/settings"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-[#03162F]"
+          aria-label="Settings"
+        >
+          <Settings className="h-6 w-6" />
+        </a>
 
         <UserProfile />
-
       </div>
-
     </header>
   );
 }

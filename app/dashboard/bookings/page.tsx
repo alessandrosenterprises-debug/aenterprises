@@ -14,6 +14,8 @@ import {
 
 import BookingManager from "@/modules/bookings/components/BookingManager";
 
+import Reminders from "@/modules/dashboard/components/Reminders";
+
 function formatMoney(amount: number) {
   return `ZMW ${amount.toFixed(2)}`;
 }
