@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 
+import { supabase } from "@/lib/supabase/client";
+
 import {
   Activity,
   CalendarDays,
@@ -21,9 +23,12 @@ import {
 
 interface WelcomeBannerProps {
   profile: {
+    id?: string;
+    auth_user_id?: string;
     display_name: string;
     email: string;
     role: string;
+    avatar_url?: string;
   } | null;
 
   forecast?: {
@@ -42,22 +47,21 @@ interface WeatherData {
   sunset: string;
 }
 
+interface CompanySettings {
+  company_name: string;
+  tagline: string;
+  logo_url: string;
+}
+
 function getWeatherDescription(code: number) {
   if (code === 0) return "Clear sky";
-  if ([1, 2, 3].includes(code))
-    return "Partly cloudy";
-  if ([45, 48].includes(code))
-    return "Foggy";
-  if ([51, 53, 55].includes(code))
-    return "Drizzle";
-  if ([61, 63, 65].includes(code))
-    return "Rain";
-  if ([71, 73, 75].includes(code))
-    return "Snow";
-  if ([80, 81, 82].includes(code))
-    return "Rain showers";
-  if ([95, 96, 99].includes(code))
-    return "Thunderstorm";
+  if ([1, 2, 3].includes(code)) return "Partly cloudy";
+  if ([45, 48].includes(code)) return "Foggy";
+  if ([51, 53, 55].includes(code)) return "Drizzle";
+  if ([61, 63, 65].includes(code)) return "Rain";
+  if ([71, 73, 75].includes(code)) return "Snow";
+  if ([80, 81, 82].includes(code)) return "Rain showers";
+  if ([95, 96, 99].includes(code)) return "Thunderstorm";
 
   return "Mostly cloudy";
 }
@@ -69,14 +73,11 @@ function formatMoney(amount: number) {
 function formatTime(value: string) {
   if (!value) return "—";
 
-  return new Date(value).toLocaleTimeString(
-    "en-ZM",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }
-  );
+  return new Date(value).toLocaleTimeString("en-ZM", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 export default function WelcomeBanner({
@@ -87,23 +88,7 @@ export default function WelcomeBanner({
     newCustomers: 0,
   },
 }: WelcomeBannerProps) {
-  /*
-   * ---------------------------------------------------------
-   * HYDRATION-SAFE CLOCK
-   * ---------------------------------------------------------
-   *
-   * IMPORTANT:
-   * Do NOT initialize this with new Date().
-   *
-   * The server and browser can render at different seconds,
-   * which causes a React hydration mismatch.
-   *
-   * We start with null and initialize the clock after
-   * hydration inside useEffect().
-   */
-
-  const [now, setNow] =
-    useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   const [weather, setWeather] =
     useState<WeatherData | null>(null);
@@ -114,9 +99,67 @@ export default function WelcomeBanner({
   const [refreshing, setRefreshing] =
     useState(false);
 
+  const [company, setCompany] =
+    useState<CompanySettings>({
+      company_name: "Alessandro Enterprises",
+      tagline: "",
+      logo_url: "",
+    });
+
+  const [companyLoading, setCompanyLoading] =
+    useState(true);
+
   /*
    * ---------------------------------------------------------
-   * LIVE CLOCK
+   * LOAD COMPANY SETTINGS
+   * ---------------------------------------------------------
+   */
+
+  async function loadCompanySettings() {
+    try {
+      setCompanyLoading(true);
+
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("company_name, tagline, logo_url")
+        .eq("singleton_key", "default")
+        .maybeSingle();
+
+      if (error) {
+        console.error(
+          "Company settings loading error:",
+          error
+        );
+
+        return;
+      }
+
+      if (data) {
+        setCompany({
+          company_name:
+            data.company_name ||
+            "Alessandro Enterprises",
+
+          tagline:
+            data.tagline || "",
+
+          logo_url:
+            data.logo_url || "",
+        });
+      }
+    } catch (error) {
+      console.error(
+        "Company settings error:",
+        error
+      );
+    } finally {
+      setCompanyLoading(false);
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * CLOCK
    * ---------------------------------------------------------
    */
 
@@ -125,7 +168,6 @@ export default function WelcomeBanner({
       setNow(new Date());
     }
 
-    // Initialize AFTER hydration.
     updateClock();
 
     const interval = setInterval(
@@ -136,6 +178,16 @@ export default function WelcomeBanner({
     return () => {
       clearInterval(interval);
     };
+  }, []);
+
+  /*
+   * ---------------------------------------------------------
+   * COMPANY SETTINGS
+   * ---------------------------------------------------------
+   */
+
+  useEffect(() => {
+    loadCompanySettings();
   }, []);
 
   /*
@@ -169,8 +221,7 @@ export default function WelcomeBanner({
         ),
 
         humidity: Number(
-          data.current
-            ?.relative_humidity_2m ?? 0
+          data.current?.relative_humidity_2m ?? 0
         ),
 
         windSpeed: Number(
@@ -236,15 +287,12 @@ export default function WelcomeBanner({
       return "Loading date...";
     }
 
-    return now.toLocaleDateString(
-      "en-GB",
-      {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }
-    );
+    return now.toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   }, [now]);
 
   /*
@@ -258,20 +306,17 @@ export default function WelcomeBanner({
       return "--:--:--";
     }
 
-    return now.toLocaleTimeString(
-      "en-ZM",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }
-    );
+    return now.toLocaleTimeString("en-ZM", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
   }, [now]);
 
   /*
    * ---------------------------------------------------------
-   * REFRESH
+   * REFRESH EVERYTHING
    * ---------------------------------------------------------
    */
 
@@ -279,7 +324,11 @@ export default function WelcomeBanner({
     setRefreshing(true);
 
     try {
-      await loadWeather();
+      await Promise.all([
+        loadWeather(),
+        loadCompanySettings(),
+      ]);
+
       setNow(new Date());
     } finally {
       setTimeout(() => {
@@ -287,6 +336,11 @@ export default function WelcomeBanner({
       }, 500);
     }
   }
+
+  const companyInitial =
+    company.company_name
+      ?.charAt(0)
+      ?.toUpperCase() || "A";
 
   return (
     <div className="sticky top-0 z-40 mb-8">
@@ -299,36 +353,80 @@ export default function WelcomeBanner({
         <div className="p-5 sm:p-6 lg:p-7">
           <div className="grid gap-4 xl:grid-cols-[1.15fr_0.9fr_0.9fr_1.6fr_0.95fr]">
 
-            {/* PROFILE */}
+            {/* =================================================
+                COMPANY / PROFILE
+            ================================================= */}
 
-            <div className="flex items-center gap-4 border-b border-white/10 pb-5 xl:border-b-0 xl:border-r xl:pb-0 xl:pr-6">
+          {/* CURRENT LOGGED-IN USER */}
 
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#D4AF37] to-[#F4D77D] text-xl font-bold text-[#03162F] shadow-lg ring-4 ring-white/10">
-                {profile?.display_name
-                  ?.charAt(0)
-                  ?.toUpperCase() ?? "A"}
-              </div>
+<div className="flex items-center gap-4 border-b border-white/10 pb-5 xl:border-b-0 xl:border-r xl:pb-0 xl:pr-6">
 
-              <div className="min-w-0">
-                <p className="text-sm text-slate-300">
-                  {greeting},
-                </p>
+  {/* USER PROFILE PHOTO */}
 
-                <h1 className="truncate text-2xl font-bold sm:text-3xl">
-                  {profile?.display_name ??
-                    "Alessandro"}
-                </h1>
+  <div className="relative shrink-0">
+    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-white shadow-lg ring-4 ring-white/10">
 
-                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+      {profile?.avatar_url ? (
+        <img
+          src={profile.avatar_url}
+          alt={profile.display_name}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="relative h-16 w-16 shrink-0">
+  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#D4AF37] to-[#F4D77D] text-xl font-bold text-[#03162F] shadow-lg ring-4 ring-white/10">
+    {profile?.avatar_url ? (
+      <img
+        src={profile.avatar_url}
+        alt={profile.display_name || "Profile"}
+        className="h-full w-full object-cover"
+      />
+    ) : (
+      profile?.display_name
+        ?.charAt(0)
+        ?.toUpperCase() ?? "A"
+    )}
+  </div>
 
-                  {profile?.role ??
-                    "Enterprise Administrator"}
-                </div>
-              </div>
-            </div>
+  {/* ONLINE STATUS */}
+  <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-[#03162F] bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+</div>
+      )}
 
-            {/* LIVE TIME */}
+    </div>
+
+    {/* ONLINE INDICATOR */}
+
+    <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-[#03162F] bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+  </div>
+
+  {/* USER INFORMATION */}
+
+  <div className="min-w-0">
+
+    <p className="text-sm font-medium text-slate-300">
+      {greeting},
+    </p>
+
+    <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">
+      {profile?.display_name || "User"}
+    </h1>
+
+    {profile?.role === "Super Administrator" && (
+  <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
+    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+
+    Super Administrator
+  </div>
+)}
+
+  </div>
+
+</div>
+
+            {/* =================================================
+                LIVE TIME
+            ================================================= */}
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
 
@@ -348,13 +446,17 @@ export default function WelcomeBanner({
               <p className="mt-2 text-xs text-slate-400">
                 {today}
               </p>
+
             </div>
 
-            {/* WEATHER */}
+            {/* =================================================
+                WEATHER
+            ================================================= */}
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
 
               <div className="flex items-center gap-2 text-sm font-semibold text-sky-300">
+
                 {weather?.weatherCode === 0 ? (
                   <Sun className="h-4 w-4 text-yellow-300" />
                 ) : (
@@ -362,6 +464,7 @@ export default function WelcomeBanner({
                 )}
 
                 WEATHER
+
               </div>
 
               {weatherLoading ? (
@@ -372,6 +475,7 @@ export default function WelcomeBanner({
               ) : weather ? (
                 <>
                   <div className="mt-3 flex items-center justify-between">
+
                     <span className="text-3xl font-bold">
                       {Math.round(
                         weather.temperature
@@ -380,6 +484,7 @@ export default function WelcomeBanner({
                     </span>
 
                     <Cloud className="h-8 w-8 text-sky-300" />
+
                   </div>
 
                   <p className="mt-1 text-sm text-slate-300">
@@ -389,6 +494,7 @@ export default function WelcomeBanner({
                   </p>
 
                   <div className="mt-3 flex gap-3 text-xs text-slate-400">
+
                     <span>
                       💧 {weather.humidity}%
                     </span>
@@ -400,6 +506,7 @@ export default function WelcomeBanner({
                       )}{" "}
                       km/h
                     </span>
+
                   </div>
                 </>
               ) : (
@@ -407,9 +514,12 @@ export default function WelcomeBanner({
                   Weather unavailable
                 </p>
               )}
+
             </div>
 
-            {/* BUSINESS FORECAST */}
+            {/* =================================================
+                BUSINESS FORECAST
+            ================================================= */}
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
 
@@ -421,6 +531,7 @@ export default function WelcomeBanner({
               <div className="mt-4 grid grid-cols-3 divide-x divide-white/10">
 
                 <div className="pr-3">
+
                   <div className="flex items-center gap-1 text-xs text-slate-400">
                     <CalendarDays className="h-3.5 w-3.5" />
                     Bookings
@@ -433,9 +544,11 @@ export default function WelcomeBanner({
                   <p className="mt-1 text-xs text-emerald-400">
                     Today
                   </p>
+
                 </div>
 
                 <div className="px-3">
+
                   <p className="text-xs text-slate-400">
                     Revenue
                   </p>
@@ -449,9 +562,11 @@ export default function WelcomeBanner({
                   <p className="mt-1 text-xs text-emerald-400">
                     Today
                   </p>
+
                 </div>
 
                 <div className="pl-3">
+
                   <div className="flex items-center gap-1 text-xs text-slate-400">
                     <Users className="h-3.5 w-3.5" />
                     Customers
@@ -464,16 +579,20 @@ export default function WelcomeBanner({
                   <p className="mt-1 text-xs text-emerald-400">
                     New today
                   </p>
+
                 </div>
 
               </div>
             </div>
 
-            {/* DATE / ACTIONS */}
+            {/* =================================================
+                DATE / ACTIONS
+            ================================================= */}
 
             <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left xl:text-right">
 
               <div>
+
                 <p className="text-xs uppercase tracking-wider text-slate-400">
                   Today
                 </p>
@@ -481,6 +600,7 @@ export default function WelcomeBanner({
                 <p className="mt-2 text-base font-semibold leading-6">
                   {today}
                 </p>
+
               </div>
 
               <div className="mt-4 flex gap-2 xl:justify-end">
@@ -491,6 +611,7 @@ export default function WelcomeBanner({
                   disabled={refreshing}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold transition hover:bg-blue-500 disabled:opacity-60"
                 >
+
                   <RefreshCw
                     className={`h-4 w-4 ${
                       refreshing
@@ -500,47 +621,66 @@ export default function WelcomeBanner({
                   />
 
                   Refresh
+
                 </button>
 
                 <a
                   href="/dashboard/reports"
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold transition hover:bg-white/10"
                 >
+
                   <FileText className="h-4 w-4" />
+
                   Report
+
                 </a>
 
               </div>
 
               <div className="mt-3 flex items-center gap-2 text-xs text-slate-400 xl:justify-end">
+
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
+
                 All systems operational
+
               </div>
+
             </div>
+
           </div>
         </div>
 
-        {/* BOTTOM INFORMATION BAR */}
+        {/* =================================================
+            BOTTOM INFORMATION BAR
+        ================================================= */}
 
         <div className="flex flex-col gap-3 border-t border-white/10 bg-black/10 px-5 py-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-7">
 
           <div className="flex items-center gap-2 text-slate-300">
-            <span className="text-base">💡</span>
+
+            <span className="text-base">
+              💡
+            </span>
 
             <span>
+
               <span className="font-semibold text-sky-300">
                 Daily Focus:
               </span>{" "}
+
               Keep today's bookings moving and
               deliver an excellent customer
               experience.
+
             </span>
+
           </div>
 
           {weather && (
             <div className="flex items-center gap-4 text-slate-400">
 
               <span className="inline-flex items-center gap-1.5">
+
                 <Sunset className="h-4 w-4 text-yellow-300" />
 
                 Sunset{" "}
@@ -550,11 +690,13 @@ export default function WelcomeBanner({
                     weather.sunset
                   )}
                 </strong>
+
               </span>
 
               <span className="hidden h-4 w-px bg-white/10 sm:block" />
 
               <span className="inline-flex items-center gap-1.5">
+
                 <Sunrise className="h-4 w-4 text-purple-300" />
 
                 Sunrise{" "}
@@ -564,11 +706,14 @@ export default function WelcomeBanner({
                     weather.sunrise
                   )}
                 </strong>
+
               </span>
 
             </div>
           )}
+
         </div>
+
       </div>
     </div>
   );

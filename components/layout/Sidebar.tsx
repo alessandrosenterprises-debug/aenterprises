@@ -2,13 +2,69 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import {
+  ChevronDown,
+  Building2,
+  Loader2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 import {
   navigation,
   type NavigationItem,
 } from "@/lib/navigation";
+
+import { supabase } from "@/lib/supabase/client";
+
+/* ============================================================
+   TYPES
+============================================================ */
+
+interface CompanySettings {
+  company_name: string;
+  tagline: string;
+  logo_url: string;
+}
+
+/* ============================================================
+   BRAND WORD
+   Distributes letters across the same width so that:
+   
+   A........................O
+   E........................S
+   
+   line up perfectly.
+============================================================ */
+
+function BrandWord({
+  text,
+  className = "",
+}: {
+  text: string;
+  className?: string;
+}) {
+  const letters = text.split("");
+
+  return (
+    <div
+      className={`flex w-full items-center justify-between whitespace-nowrap ${className}`}
+      aria-label={text}
+    >
+      {letters.map((letter, index) => (
+        <span
+          key={`${letter}-${index}`}
+          className="inline-block"
+        >
+          {letter}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================
+   SIDEBAR ITEM
+============================================================ */
 
 function SidebarItem({
   item,
@@ -17,22 +73,23 @@ function SidebarItem({
   item: NavigationItem;
   pathname: string;
 }) {
-  const hasChildren =
-    !!item.children?.length;
+  const hasChildren = !!item.children?.length;
 
   const activeChild =
     item.children?.some(
       (child) =>
         child.href &&
         (pathname === child.href ||
-          pathname.startsWith(
-            `${child.href}/`
-          ))
+          pathname.startsWith(`${child.href}/`))
     ) ?? false;
 
   const [open, setOpen] = useState(
     Boolean(activeChild)
   );
+
+  /* ==========================================================
+     ITEM WITH CHILDREN
+  ========================================================== */
 
   if (hasChildren) {
     return (
@@ -98,6 +155,10 @@ function SidebarItem({
     );
   }
 
+  /* ==========================================================
+     NORMAL ITEM
+  ========================================================== */
+
   const active =
     !!item.href &&
     (pathname === item.href ||
@@ -125,8 +186,135 @@ function SidebarItem({
   );
 }
 
+/* ============================================================
+   SIDEBAR
+============================================================ */
+
 export default function Sidebar() {
   const pathname = usePathname();
+
+  /* ==========================================================
+     COMPANY STATE
+  ========================================================== */
+
+  const [company, setCompany] =
+    useState<CompanySettings>({
+      company_name:
+        "Alessandro Enterprises",
+
+      tagline:
+        "The Name That Covers All",
+
+      logo_url: "",
+    });
+
+  const [loading, setLoading] =
+    useState(true);
+
+  /* ==========================================================
+     LOAD COMPANY SETTINGS
+  ========================================================== */
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCompany() {
+      try {
+        setLoading(true);
+
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("company_settings")
+          .select(
+            "company_name, tagline, logo_url"
+          )
+          .eq(
+            "singleton_key",
+            "default"
+          )
+          .maybeSingle();
+
+        if (error) {
+          console.error(
+            "Failed to load company branding:",
+            error
+          );
+
+          return;
+        }
+
+        if (!mounted) {
+          return;
+        }
+
+        if (data) {
+          setCompany({
+            company_name:
+              data.company_name?.trim() ||
+              "Alessandro Enterprises",
+
+            tagline:
+              data.tagline?.trim() ||
+              "The Name That Covers All",
+
+            logo_url:
+              data.logo_url?.trim() ||
+              "",
+          });
+        }
+      } catch (error) {
+        console.error(
+          "Company branding error:",
+          error
+        );
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadCompany();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* ==========================================================
+     COMPANY NAME
+  ========================================================== */
+
+  const companyName =
+    company.company_name.trim();
+
+  const normalizedName =
+    companyName.toLowerCase();
+
+  const isAlessandroEnterprises =
+    normalizedName ===
+    "alessandro enterprises";
+
+  const firstLine =
+    isAlessandroEnterprises
+      ? "Alessandro"
+      : companyName.split(" ")[0] ||
+        "Alessandro";
+
+  const secondLine =
+    isAlessandroEnterprises
+      ? "Enterprises"
+      : companyName
+          .split(" ")
+          .slice(1)
+          .join(" ") ||
+        "Enterprises";
+
+  /* ==========================================================
+     RENDER
+  ========================================================== */
 
   return (
     <aside
@@ -146,19 +334,164 @@ export default function Sidebar() {
         shadow-xl
       "
     >
-      {/* BRAND */}
-      <div className="shrink-0 border-b border-white/10 bg-[#03162F] p-6">
-        <h1 className="text-2xl font-bold tracking-wide text-[#D4AF37]">
-          ALESSANDRO
-        </h1>
+      {/* =====================================================
+          COMPANY BRAND
+      ===================================================== */}
 
-        <p className="mt-1 text-sm text-slate-300">
-          Enterprise Platform
-        </p>
+      <div
+        className="
+          shrink-0
+          border-b
+          border-white/10
+          bg-[#03162F]
+          px-4
+          py-5
+        "
+      >
+        <div
+          className="
+            flex
+            w-full
+            items-center
+            gap-4
+          "
+        >
+          {/* =================================================
+              LOGO
+          ================================================= */}
+
+          <div
+            className="
+              flex
+              h-[68px]
+              w-[68px]
+              shrink-0
+              items-center
+              justify-center
+              overflow-hidden
+              rounded-2xl
+              border
+              border-[#D4AF37]/50
+              bg-white
+              shadow-[0_4px_18px_rgba(0,0,0,0.25)]
+            "
+          >
+            {company.logo_url ? (
+              <img
+                src={company.logo_url}
+                alt={`${company.company_name} logo`}
+                className="
+                  h-full
+                  w-full
+                  object-contain
+                  p-2
+                "
+              />
+            ) : loading ? (
+              <Loader2
+                className="
+                  h-6
+                  w-6
+                  animate-spin
+                  text-[#D4AF37]
+                "
+              />
+            ) : (
+              <Building2
+                className="
+                  h-8
+                  w-8
+                  text-[#03162F]
+                "
+              />
+            )}
+          </div>
+
+          {/* =================================================
+              BRAND TEXT
+          ================================================= */}
+
+          <div
+            className="
+              min-w-0
+              flex-1
+              overflow-hidden
+            "
+          >
+            {/* 
+              EXACT WIDTH BRANDING
+
+              Both words use the SAME container width.
+
+              A........................O
+              E........................S
+            */}
+
+            <div
+              className="
+                w-full
+                max-w-[142px]
+              "
+            >
+              <BrandWord
+                text={firstLine}
+                className="
+                  text-[22px]
+                  font-extrabold
+                  leading-none
+                  tracking-[-0.025em]
+                  text-[#D4AF37]
+                "
+              />
+
+              <BrandWord
+                text={secondLine}
+                className="
+                  mt-[2px]
+                  text-[20px]
+                  font-extrabold
+                  leading-none
+                  tracking-[-0.02em]
+                  text-white
+                "
+              />
+
+              {/* =================================================
+                  TAGLINE
+              ================================================= */}
+
+              <p
+                className="
+                  mt-2
+                  w-full
+                  whitespace-nowrap
+                  text-[11px]
+                  font-medium
+                  leading-4
+                  tracking-[0.005em]
+                  text-slate-300
+                "
+              >
+                {company.tagline}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* NAVIGATION */}
-      <nav className="min-h-0 flex-1 overflow-y-auto p-4">
+      {/* =====================================================
+          NAVIGATION
+      ===================================================== */}
+
+      <nav
+        className="
+          min-h-0
+          flex-1
+          overflow-y-auto
+          overflow-x-hidden
+          p-4
+        "
+      >
         <div className="flex flex-col gap-2">
           {navigation.map((item) => (
             <SidebarItem
