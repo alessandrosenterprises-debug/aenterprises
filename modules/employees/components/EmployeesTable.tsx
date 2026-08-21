@@ -30,10 +30,16 @@ interface Employee {
   position: string;
   employment_type?: string | null;
   status: string;
+
   businesses?: {
-  id: string;
-  name: string;
-} | null;
+    id: string;
+    name: string;
+  } | null;
+
+  departments?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface Business {
@@ -41,14 +47,21 @@ interface Business {
   name: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 interface EmployeesTableProps {
   employees: Employee[];
   businesses: Business[];
+  departments: Department[];
 }
 
 export default function EmployeesTable({
   employees,
   businesses,
+  departments,
 }: EmployeesTableProps) {
   const router = useRouter();
 
@@ -88,6 +101,12 @@ export default function EmployeesTable({
       router.refresh();
     } catch (error) {
       console.error(error);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete employee."
+      );
     } finally {
       setDeleting(false);
     }
@@ -99,6 +118,7 @@ export default function EmployeesTable({
       Phone: employee.phone,
       Position: employee.position,
       Business: employee.businesses?.name ?? "",
+      Department: employee.departments?.name ?? "",
       Status: employee.status,
     }));
 
@@ -111,6 +131,7 @@ export default function EmployeesTable({
       Phone: employee.phone,
       Position: employee.position,
       Business: employee.businesses?.name ?? "",
+      Department: employee.departments?.name ?? "",
       Status: employee.status,
     }));
 
@@ -123,6 +144,7 @@ export default function EmployeesTable({
       Phone: employee.phone,
       Position: employee.position,
       Business: employee.businesses?.name ?? "",
+      Department: employee.departments?.name ?? "",
       Status: employee.status,
     }));
 
@@ -139,6 +161,7 @@ export default function EmployeesTable({
       employee.phone?.toLowerCase().includes(query) ||
       employee.position?.toLowerCase().includes(query) ||
       employee.businesses?.name?.toLowerCase().includes(query) ||
+      employee.departments?.name?.toLowerCase().includes(query) ||
       employee.status?.toLowerCase().includes(query)
     ));
   }, [employees, search]);
@@ -154,7 +177,10 @@ export default function EmployeesTable({
             onExcel={handleExportExcel}
             onPDF={handleExportPDF}
           >
-            <EmployeeModal businesses={businesses} />
+            <EmployeeModal
+              businesses={businesses}
+              departments={departments}
+            />
           </AEDataTableToolbar>
         }
       >
@@ -177,6 +203,10 @@ export default function EmployeesTable({
             </th>
 
             <th className="px-6 py-4 text-left font-semibold">
+              Department
+            </th>
+
+            <th className="px-6 py-4 text-left font-semibold">
               Status
             </th>
 
@@ -190,7 +220,7 @@ export default function EmployeesTable({
           {filteredEmployees.length === 0 ? (
             <tr>
               <td
-                colSpan={6}
+                colSpan={7}
                 className="py-12 text-center text-slate-500"
               >
                 {search
@@ -217,7 +247,11 @@ export default function EmployeesTable({
                 </td>
 
                 <td className="px-6 py-4">
-                  {employee.businesses?.name}
+                  {employee.businesses?.name ?? "—"}
+                </td>
+
+                <td className="px-6 py-4">
+                  {employee.departments?.name ?? "—"}
                 </td>
 
                 <td className="px-6 py-4">
@@ -253,7 +287,10 @@ export default function EmployeesTable({
       <AEDetailsModal
         open={detailsOpen}
         title="Employee Details"
-        onClose={() => setDetailsOpen(false)}
+        onClose={() => {
+          setDetailsOpen(false);
+          setSelectedEmployee(null);
+        }}
       >
         {selectedEmployee && (
           <div className="grid gap-4">
@@ -293,7 +330,17 @@ export default function EmployeesTable({
               </p>
 
               <p className="font-semibold">
-                {selectedEmployee.businesses?.name}
+                {selectedEmployee.businesses?.name ?? "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-500">
+                Department
+              </p>
+
+              <p className="font-semibold">
+                {selectedEmployee.departments?.name ?? "—"}
               </p>
             </div>
 
@@ -312,10 +359,14 @@ export default function EmployeesTable({
 
       <EmployeeModal
         businesses={businesses}
+        departments={departments}
         mode="edit"
         employee={selectedEmployee ?? undefined}
         open={editOpen}
-        onClose={() => setEditOpen(false)}
+        onClose={() => {
+          setEditOpen(false);
+          setSelectedEmployee(null);
+        }}
       />
 
       <AEConfirmDialog

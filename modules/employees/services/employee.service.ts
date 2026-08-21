@@ -47,6 +47,11 @@ export interface Employee {
     id: string;
     name: string;
   } | null;
+
+  departments?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export async function getEmployees(): Promise<Employee[]> {
@@ -55,12 +60,16 @@ export async function getEmployees(): Promise<Employee[]> {
   const { data, error } = await supabase
     .from("employees")
     .select(`
-      *,
-      businesses (
-        id,
-        name
-      )
-    `)
+  *,
+  businesses (
+    id,
+    name
+  ),
+  departments (
+    id,
+    name
+  )
+`)
     .order("created_at", {
       ascending: false,
     });

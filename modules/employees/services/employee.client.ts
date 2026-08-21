@@ -1,50 +1,76 @@
 import { supabase } from "@/lib/supabase/client";
 
 export interface CreateEmployeeInput {
-  business_id: string;
+  business_id: string | null;
+  department_id: string | null;
+
   full_name: string;
   phone: string;
-  email?: string;
-  gender?: string;
-  date_of_birth?: string;
-  national_id?: string;
-  address?: string;
+
+  email?: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  national_id?: string | null;
+  address?: string | null;
+
   position: string;
-  employment_type?: string;
-  salary?: number;
-  date_joined?: string;
-  notes?: string;
+  employment_type?: string | null;
+
+  salary?: number | null;
+  date_joined?: string | null;
+
+  notes?: string | null;
   is_active?: boolean;
 }
 
 export async function createEmployee(
   employee: CreateEmployeeInput
 ) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("employees")
     .insert({
       business_id: employee.business_id,
+      department_id: employee.department_id,
+
       full_name: employee.full_name,
       phone: employee.phone,
+
       email: employee.email || null,
       gender: employee.gender || null,
       date_of_birth: employee.date_of_birth || null,
       national_id: employee.national_id || null,
       address: employee.address || null,
+
       position: employee.position,
+
       employment_type:
         employee.employment_type || "Full Time",
+
       salary: employee.salary ?? null,
+
       date_joined:
-        employee.date_joined || new Date().toISOString().split("T")[0],
+        employee.date_joined ||
+        new Date().toISOString().split("T")[0],
+
       notes: employee.notes || null,
+
       is_active: employee.is_active ?? true,
+
       status: "Active",
-    });
+    })
+    .select()
+    .single();
 
   if (error) {
-    throw error;
+    console.error(
+      "Employee create error:",
+      error
+    );
+
+    throw new Error(error.message);
   }
+
+  return data;
 }
 
 export async function updateEmployee(
@@ -55,37 +81,48 @@ export async function updateEmployee(
     .from("employees")
     .update({
       business_id: employee.business_id,
+      department_id: employee.department_id,
+
       full_name: employee.full_name,
       phone: employee.phone,
+
       email: employee.email || null,
       gender: employee.gender || null,
       date_of_birth: employee.date_of_birth || null,
       national_id: employee.national_id || null,
       address: employee.address || null,
+
       position: employee.position,
+
       employment_type:
         employee.employment_type || "Full Time",
+
       salary: employee.salary ?? null,
+
       date_joined:
-        employee.date_joined || new Date().toISOString().split("T")[0],
+        employee.date_joined ||
+        new Date().toISOString().split("T")[0],
+
       notes: employee.notes || null,
+
       is_active: employee.is_active ?? true,
+
+      updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .select();
-
-  console.log("UPDATE DATA:", data);
-  console.log("UPDATE ERROR:", error);
+    .select()
+    .single();
 
   if (error) {
-    throw error;
+    console.error(
+      "Employee update error:",
+      error
+    );
+
+    throw new Error(error.message);
   }
 
-  if (!data || data.length === 0) {
-    throw new Error(
-      "No employee was updated. Check the UPDATE policy or matching row."
-    );
-  }
+  return data;
 }
 
 export async function deleteEmployee(id: string) {
@@ -93,18 +130,17 @@ export async function deleteEmployee(id: string) {
     .from("employees")
     .delete()
     .eq("id", id)
-    .select();
-
-  console.log("DELETE DATA:", data);
-  console.log("DELETE ERROR:", error);
+    .select()
+    .single();
 
   if (error) {
-    throw error;
+    console.error(
+      "Employee delete error:",
+      error
+    );
+
+    throw new Error(error.message);
   }
 
-  if (!data || data.length === 0) {
-    throw new Error(
-      "No employee was deleted. Check the DELETE policy or matching row."
-    );
-  }
+  return data;
 }

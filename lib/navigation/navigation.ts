@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   MessageCircle,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -73,17 +74,25 @@ export const navigation: NavigationItem[] = [
     icon: Users,
   },
 
+  /*
+   * ==========================================================
+   * HUMAN RESOURCES
+   *
+   * Everything related to employees, departments,
+   * payroll and future HR functionality lives here.
+   * ==========================================================
+   */
   {
-    title: "Employees",
-    href: "/dashboard/employees",
-    icon: UserCog,
+    title: "Human Resources",
+    href: "/dashboard/hr",
+    icon: UsersRound,
   },
 
   {
-  title: "Emails",
-  href: "/dashboard/emails",
-  icon: Mail,
-},
+    title: "Emails",
+    href: "/dashboard/emails",
+    icon: Mail,
+  },
 
   {
     title: "Messages",
@@ -119,10 +128,6 @@ export const navigation: NavigationItem[] = [
     title: "Configuration",
     icon: SlidersHorizontal,
     children: [
-      {
-        title: "Departments",
-        href: "/dashboard/configuration/departments",
-      },
       {
         title: "Roles",
         href: "/dashboard/configuration/roles",

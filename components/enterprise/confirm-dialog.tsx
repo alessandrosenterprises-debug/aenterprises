@@ -7,6 +7,12 @@ interface AEConfirmDialogProps {
   title: string;
   message: string;
   loading?: boolean;
+
+  confirmText?: string;
+  loadingText?: string;
+
+  variant?: "danger" | "success" | "primary";
+
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -16,9 +22,22 @@ export function AEConfirmDialog({
   title,
   message,
   loading = false,
+
+  confirmText = "Confirm",
+  loadingText = "Processing...",
+
+  variant = "primary",
+
   onCancel,
   onConfirm,
 }: AEConfirmDialogProps) {
+  const confirmClass =
+    variant === "danger"
+      ? "bg-red-600 hover:bg-red-700"
+      : variant === "success"
+        ? "bg-emerald-600 hover:bg-emerald-700"
+        : "bg-[#03162F] hover:bg-[#0A2852]";
+
   return (
     <Modal
       open={open}
@@ -26,26 +45,35 @@ export function AEConfirmDialog({
       onClose={onCancel}
     >
       <div className="space-y-6">
+
         <p className="text-slate-600">
           {message}
         </p>
 
         <div className="flex justify-end gap-3">
+
           <button
+            type="button"
             onClick={onCancel}
-            className="rounded-xl border border-slate-300 px-5 py-2 font-medium hover:bg-slate-100"
+            disabled={loading}
+            className="rounded-xl border border-slate-300 px-5 py-2.5 font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
 
           <button
+            type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="rounded-xl bg-red-600 px-5 py-2 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+            className={`rounded-xl px-5 py-2.5 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${confirmClass}`}
           >
-            {loading ? "Deleting..." : "Delete"}
+            {loading
+              ? loadingText
+              : confirmText}
           </button>
+
         </div>
+
       </div>
     </Modal>
   );

@@ -3,37 +3,28 @@
 import { useState } from "react";
 
 import Modal from "@/components/ui/modal/Modal";
-import EmployeeForm from "./EmployeeForm";
-
-interface Business {
-  id: string;
-  name: string;
-}
+import DepartmentForm from "./DepartmentForm";
 
 interface Department {
   id: string;
   name: string;
+  description: string | null;
+  status: string;
 }
 
-interface EmployeeModalProps {
-  businesses: Business[];
-  departments: Department[];
-
+interface DepartmentModalProps {
   mode?: "create" | "edit";
-
-  employee?: any;
+  department?: Department;
   open?: boolean;
   onClose?: () => void;
 }
 
-export default function EmployeeModal({
-  businesses,
-  departments,
+export default function DepartmentModal({
   mode = "create",
-  employee,
+  department,
   open,
   onClose,
-}: EmployeeModalProps) {
+}: DepartmentModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
 
   const isOpen = open ?? internalOpen;
@@ -51,10 +42,13 @@ export default function EmployeeModal({
       {mode === "create" && (
         <button
           type="button"
-          onClick={() => setInternalOpen(true)}
+          onClick={() => {
+  console.log("ADD DEPARTMENT CLICKED");
+  setInternalOpen(true);
+}}
           className="rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
         >
-          + Add Employee
+          + Add Department
         </button>
       )}
 
@@ -62,16 +56,14 @@ export default function EmployeeModal({
         open={isOpen}
         title={
           mode === "create"
-            ? "New Employee"
-            : "Edit Employee"
+            ? "New Department"
+            : "Edit Department"
         }
         onClose={handleClose}
       >
-        <EmployeeForm
-          businesses={businesses}
-          departments={departments}
+        <DepartmentForm
           mode={mode}
-          employee={employee}
+          department={department}
           onSuccess={handleClose}
         />
       </Modal>

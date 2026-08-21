@@ -3,40 +3,34 @@
 import { useState } from "react";
 
 import Modal from "@/components/ui/modal/Modal";
-import EmployeeForm from "./EmployeeForm";
 
-interface Business {
-  id: string;
-  name: string;
-}
+import PayrollPeriodForm from "./PayrollPeriodForm";
 
-interface Department {
-  id: string;
-  name: string;
-}
+import type {
+  PayrollPeriod,
+} from "@/modules/payroll/types/payroll.types";
 
-interface EmployeeModalProps {
-  businesses: Business[];
-  departments: Department[];
-
+interface PayrollPeriodModalProps {
   mode?: "create" | "edit";
 
-  employee?: any;
+  period?: PayrollPeriod;
+
   open?: boolean;
+
   onClose?: () => void;
 }
 
-export default function EmployeeModal({
-  businesses,
-  departments,
+export default function PayrollPeriodModal({
   mode = "create",
-  employee,
+  period,
   open,
   onClose,
-}: EmployeeModalProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
+}: PayrollPeriodModalProps) {
+  const [internalOpen, setInternalOpen] =
+    useState(false);
 
-  const isOpen = open ?? internalOpen;
+  const isOpen =
+    open ?? internalOpen;
 
   function handleClose() {
     if (onClose) {
@@ -51,10 +45,12 @@ export default function EmployeeModal({
       {mode === "create" && (
         <button
           type="button"
-          onClick={() => setInternalOpen(true)}
+          onClick={() =>
+            setInternalOpen(true)
+          }
           className="rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
         >
-          + Add Employee
+          + Add Payroll Period
         </button>
       )}
 
@@ -62,16 +58,14 @@ export default function EmployeeModal({
         open={isOpen}
         title={
           mode === "create"
-            ? "New Employee"
-            : "Edit Employee"
+            ? "New Payroll Period"
+            : "Edit Payroll Period"
         }
         onClose={handleClose}
       >
-        <EmployeeForm
-          businesses={businesses}
-          departments={departments}
+        <PayrollPeriodForm
           mode={mode}
-          employee={employee}
+          period={period}
           onSuccess={handleClose}
         />
       </Modal>

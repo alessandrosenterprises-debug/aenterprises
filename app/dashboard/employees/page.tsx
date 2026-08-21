@@ -1,10 +1,12 @@
 import { getBusinesses } from "@/modules/businesses/services/business.service";
+import { getDepartments } from "@/modules/departments/services/department.service";
 import { getEmployees } from "@/modules/employees/services/employee.service";
 import EmployeesTable from "@/modules/employees/components/EmployeesTable";
 
 export default async function EmployeesPage() {
   const employees = await getEmployees();
   const businesses = await getBusinesses();
+  const departments = await getDepartments();
 
   return (
     <div className="space-y-6">
@@ -19,9 +21,10 @@ export default async function EmployeesPage() {
       </div>
 
       <EmployeesTable
-      employees={employees}
-      businesses={businesses}
-/>
+        employees={employees}
+        businesses={businesses}
+        departments={departments}
+      />
     </div>
   );
 }
