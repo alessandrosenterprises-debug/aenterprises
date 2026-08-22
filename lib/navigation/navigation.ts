@@ -83,10 +83,43 @@ export const navigation: NavigationItem[] = [
    * ==========================================================
    */
   {
-    title: "Human Resources",
-    href: "/dashboard/hr",
-    icon: UsersRound,
-  },
+  title: "Human Resources",
+  icon: UsersRound,
+  children: [
+    {
+      title: "HR Overview",
+      href: "/dashboard/hr",
+    },
+    {
+      title: "Employees",
+      href: "/dashboard/hr/employees",
+    },
+    {
+      title: "Departments",
+      href: "/dashboard/hr/departments",
+    },
+    {
+      title: "Leave & Attendance",
+      href: "/dashboard/hr/leave-attendance",
+    },
+    {
+      title: "Employee Documents",
+      href: "/dashboard/hr/documents",
+    },
+    {
+      title: "Loans & Advances",
+      href: "/dashboard/hr/loans-advances",
+    },
+    {
+      title: "Payroll",
+      href: "/dashboard/hr/payroll",
+    },
+    {
+      title: "HR Reports",
+      href: "/dashboard/hr/reports",
+    },
+  ],
+},
 
   {
     title: "Emails",

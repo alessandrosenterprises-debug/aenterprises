@@ -6,7 +6,19 @@ interface AEConfirmDialogProps {
   open: boolean;
   title: string;
   message: string;
+
   loading?: boolean;
+
+  /*
+   * Support both naming styles.
+   * Existing HR components use:
+   * confirmLabel / loadingLabel
+   *
+   * Newer components may use:
+   * confirmText / loadingText
+   */
+  confirmLabel?: string;
+  loadingLabel?: string;
 
   confirmText?: string;
   loadingText?: string;
@@ -14,23 +26,37 @@ interface AEConfirmDialogProps {
   variant?: "danger" | "success" | "primary";
 
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 export function AEConfirmDialog({
   open,
   title,
   message,
+
   loading = false,
 
-  confirmText = "Confirm",
-  loadingText = "Processing...",
+  confirmLabel,
+  loadingLabel,
+
+  confirmText,
+  loadingText,
 
   variant = "primary",
 
   onCancel,
   onConfirm,
 }: AEConfirmDialogProps) {
+  const finalConfirmLabel =
+    confirmLabel ??
+    confirmText ??
+    "Confirm";
+
+  const finalLoadingLabel =
+    loadingLabel ??
+    loadingText ??
+    "Processing...";
+
   const confirmClass =
     variant === "danger"
       ? "bg-red-600 hover:bg-red-700"
@@ -68,8 +94,8 @@ export function AEConfirmDialog({
             className={`rounded-xl px-5 py-2.5 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${confirmClass}`}
           >
             {loading
-              ? loadingText
-              : confirmText}
+              ? finalLoadingLabel
+              : finalConfirmLabel}
           </button>
 
         </div>
