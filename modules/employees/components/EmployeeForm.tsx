@@ -108,7 +108,14 @@ export default function EmployeeForm({
   }));
 
   async function onSubmit(data: EmployeeFormValues) {
-    try {
+  try {
+    if (!data.department_id) {
+      toast.error(
+        "Please select a department before saving the employee."
+      );
+
+      return;
+    }
       const employeeData = {
         business_id: data.business_id || null,
         department_id: data.department_id || null,
@@ -185,16 +192,18 @@ export default function EmployeeForm({
         />
 
         {/* Department */}
-        <Select
-          label="Department"
-          placeholder={
-            departments.length > 0
-              ? "Select Department"
-              : "No departments available"
-          }
-          options={departmentOptions}
-          {...register("department_id")}
-        />
+<Select
+  label="Department *"
+  placeholder={
+    departments.length > 0
+      ? "Select Department"
+      : "No departments available"
+  }
+  options={departmentOptions}
+  {...register("department_id", {
+    required: "Department is required.",
+  })}
+/>
 
         {/* Employee Name */}
         <Input

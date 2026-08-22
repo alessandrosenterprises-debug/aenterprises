@@ -492,55 +492,72 @@ export async function getDepartmentReportData(
   }
 
   const department =
-    departmentResult.data;
+  departmentResult.data;
+
+console.log(
+  "[HR REPORT DEBUG] departmentId:",
+  JSON.stringify(departmentId)
+);
+
+console.log(
+  "[HR REPORT DEBUG] department:",
+  JSON.stringify(department, null, 2)
+);
+
+/* ==========================================================
+   LOAD EMPLOYEES
+========================================================== */
 
   /* ==========================================================
      LOAD EMPLOYEES
   ========================================================== */
 
-  const employeesResult =
-    await supabase
-      .from("employees")
-      .select(
-        `
-          id,
-          full_name,
-          phone,
-          email,
-          gender,
-          date_of_birth,
-          national_id,
-          address,
-          position,
-          employment_type,
-          salary,
-          date_joined,
-          notes,
-          is_active,
-          status
-        `
-      )
-      .eq(
-        "department_id",
-        departmentId
-      )
-      .order(
-        "full_name"
-      );
+ const employeesResult =
+  await supabase
+    .from("employees")
+    .select(
+  `
+    id,
+    full_name,
+    phone,
+    email,
+    gender,
+    date_of_birth,
+    national_id,
+    address,
+    position,
+    employment_type,
+    salary,
+    date_joined,
+    notes,
+    is_active,
+    status,
+    department_id
+  `
+)
+    .eq(
+      "department_id",
+      departmentId
+    )
+    .order(
+      "full_name"
+    );
 
   if (
-    employeesResult.error
-  ) {
-    throw new Error(
-      `Failed to load department employees: ${employeesResult.error.message}`
-    );
-  }
+  employeesResult.error
+) {
+  throw new Error(
+    `Failed to load department employees: ${employeesResult.error.message}`
+  );
+}
 
-  const employees =
-    (
-      employeesResult.data ??
-      []
-    ).map(
+
+
+const employees =
+  (
+    employeesResult.data ??
+    []
+  ).map(
       (employee) => ({
         id: employee.id,
 
