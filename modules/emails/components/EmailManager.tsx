@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -164,9 +165,6 @@ export default function EmailManager({
   const [composeOpen, setComposeOpen] =
     useState(false);
 
-  const [replyOpen, setReplyOpen] =
-    useState(false);
-
   const [composerMode, setComposerMode] =
     useState<ComposerMode>("compose");
 
@@ -197,11 +195,6 @@ export default function EmailManager({
   /*
    * ---------------------------------------------------------
    * LIVE STATISTICS
-   * ---------------------------------------------------------
-   *
-   * We calculate these from the current client state so the
-   * numbers immediately reflect sent/read/replied/archived
-   * actions without requiring a page refresh.
    * ---------------------------------------------------------
    */
 
@@ -237,12 +230,79 @@ export default function EmailManager({
     };
   }, [emails]);
 
-  /*
-   * Keep the server stats referenced so the component remains
-   * compatible with the page contract even when the local
-   * state has not changed.
-   */
   void stats;
+
+  /*
+   * ---------------------------------------------------------
+   * PREVENT BACKGROUND SCROLL
+   * ---------------------------------------------------------
+   */
+
+  useEffect(() => {
+    const modalOpen =
+      selectedEmail !== null ||
+      composeOpen;
+
+    if (!modalOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+    };
+  }, [
+    selectedEmail,
+    composeOpen,
+  ]);
+
+  /*
+   * ---------------------------------------------------------
+   * ESCAPE KEY
+   * ---------------------------------------------------------
+   */
+
+  useEffect(() => {
+    function handleEscape(
+      event: KeyboardEvent
+    ) {
+      if (
+        event.key !== "Escape"
+      ) {
+        return;
+      }
+
+      if (composeOpen) {
+        closeComposer();
+        return;
+      }
+
+      if (selectedEmail) {
+        closeEmail();
+      }
+    }
+
+    document.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      document.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, [
+    composeOpen,
+    selectedEmail,
+  ]);
 
   /*
    * ---------------------------------------------------------
@@ -256,11 +316,15 @@ export default function EmailManager({
     const thread =
       new Map<string, EmailRecord>();
 
-    thread.set(email.id, email);
+    thread.set(
+      email.id,
+      email
+    );
 
     /*
      * Walk backwards through parents.
      */
+
     let current = email;
 
     while (current.parent_email_id) {
@@ -274,7 +338,9 @@ export default function EmailManager({
         break;
       }
 
-      if (thread.has(parent.id)) {
+      if (
+        thread.has(parent.id)
+      ) {
         break;
       }
 
@@ -287,8 +353,9 @@ export default function EmailManager({
     }
 
     /*
-     * Walk forward through children/replies.
+     * Walk forward through children.
      */
+
     let changed = true;
 
     while (changed) {
@@ -419,9 +486,12 @@ export default function EmailManager({
 
   function closeComposer() {
     setComposeOpen(false);
-    setReplyOpen(false);
     setComposerMode("compose");
     resetComposer();
+  }
+
+  function closeEmail() {
+    setSelectedEmail(null);
   }
 
   /*
@@ -433,9 +503,12 @@ export default function EmailManager({
   function openCompose() {
     resetComposer();
 
-    setComposerMode("compose");
+    setComposerMode(
+      "compose"
+    );
+
     setSelectedEmail(null);
-    setReplyOpen(false);
+
     setComposeOpen(true);
   }
 
@@ -449,13 +522,16 @@ export default function EmailManager({
     email: EmailRecord
   ) {
     setSelectedEmail(email);
+
     setComposeOpen(false);
-    setReplyOpen(false);
-    setComposerMode("compose");
+
     setError("");
     setSuccess("");
 
-    if (email.status === "Unread") {
+    if (
+      email.status ===
+      "Unread"
+    ) {
       void handleRead(email);
     }
   }
@@ -494,7 +570,8 @@ export default function EmailManager({
             ? {
                 ...item,
                 status: "Read",
-                read_at: readAt,
+                read_at:
+                  readAt,
                 updated_at:
                   new Date().toISOString(),
               }
@@ -502,16 +579,19 @@ export default function EmailManager({
         )
       );
 
-      setSelectedEmail((current) =>
-        current?.id === email.id
-          ? {
-              ...current,
-              status: "Read",
-              read_at: readAt,
-              updated_at:
-                new Date().toISOString(),
-            }
-          : current
+      setSelectedEmail(
+        (current) =>
+          current?.id ===
+          email.id
+            ? {
+                ...current,
+                status: "Read",
+                read_at:
+                  readAt,
+                updated_at:
+                  new Date().toISOString(),
+              }
+            : current
       );
     } catch (err) {
       setError(
@@ -637,10 +717,6 @@ export default function EmailManager({
   function prepareReply(
     email: EmailRecord
   ) {
-    /*
-     * Reply to an outgoing email should go to the original
-     * recipient rather than the sender.
-     */
     const recipient =
       email.source === "Outgoing"
         ? email.recipient_email
@@ -654,7 +730,9 @@ export default function EmailManager({
       return;
     }
 
-    setComposerMode("reply");
+    setComposerMode(
+      "reply"
+    );
 
     setTo(recipient);
 
@@ -675,7 +753,14 @@ export default function EmailManager({
     setError("");
     setSuccess("");
 
-    setReplyOpen(true);
+    /*
+     * Close the thread before opening
+     * the dedicated composer.
+     */
+
+    setSelectedEmail(null);
+
+    setComposeOpen(true);
   }
 
   /*
@@ -687,7 +772,9 @@ export default function EmailManager({
   function prepareForward(
     email: EmailRecord
   ) {
-    setComposerMode("forward");
+    setComposerMode(
+      "forward"
+    );
 
     setTo("");
     setCc("");
@@ -730,7 +817,7 @@ export default function EmailManager({
     setError("");
     setSuccess("");
 
-    setReplyOpen(false);
+    setSelectedEmail(null);
     setComposeOpen(true);
   }
 
@@ -743,7 +830,9 @@ export default function EmailManager({
   function prepareResend(
     email: EmailRecord
   ) {
-    if (!email.recipient_email) {
+    if (
+      !email.recipient_email
+    ) {
       setError(
         "This sent email does not have a recipient."
       );
@@ -751,7 +840,9 @@ export default function EmailManager({
       return;
     }
 
-    setComposerMode("resend");
+    setComposerMode(
+      "resend"
+    );
 
     setTo(
       email.recipient_email
@@ -769,12 +860,14 @@ export default function EmailManager({
       email.subject ?? ""
     );
 
-    setBody(email.body);
+    setBody(
+      email.body ?? ""
+    );
 
     setError("");
     setSuccess("");
 
-    setReplyOpen(false);
+    setSelectedEmail(null);
     setComposeOpen(true);
   }
 
@@ -785,212 +878,58 @@ export default function EmailManager({
    */
 
   async function handleSend(
-    event: React.FormEvent
+    event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
-    const recipient =
-      to.trim();
-
-    const messageBody =
-      body.trim();
-
-    if (!recipient) {
+    if (!to.trim()) {
       setError(
-        "Recipient email is required."
+        "Please enter a recipient."
       );
 
       return;
     }
 
-    if (!messageBody) {
+    if (!body.trim()) {
       setError(
-        "Email message cannot be empty."
+        "Please enter a message."
       );
 
       return;
     }
-
-    const isReply =
-      composerMode === "reply";
-
-    const isForward =
-      composerMode === "forward";
-
-    const isResend =
-      composerMode === "resend";
 
     try {
       setLoadingId(
-        selectedEmail?.id ??
-          "compose"
+        "sending"
       );
 
       setError("");
       setSuccess("");
 
-      const result =
-        await sendEmail({
-          to: recipient,
-
-          cc:
-            cc.trim() ||
-            undefined,
-
-          bcc:
-            bcc.trim() ||
-            undefined,
-
-          subject:
-            subject.trim() ||
-            "Message from Alessandro Enterprises",
-
-          body: messageBody,
-
-          businessId:
-            selectedEmail?.business_id ??
-            null,
-
-          customerId:
-            selectedEmail?.customer_id ??
-            null,
-
-          assignedTo:
-            selectedEmail?.assigned_to ??
-            null,
-
-          /*
-           * ONLY replies get a parent.
-           *
-           * Compose:
-           * null
-           *
-           * Forward:
-           * null
-           *
-           * Resend:
-           * null
-           *
-           * Reply:
-           * selected email ID
-           */
-          parentEmailId:
-            isReply
-              ? selectedEmail?.id ??
-                null
-              : null,
-        });
-
-      /*
-       * -------------------------------------------------------
-       * ADD NEW OUTGOING EMAIL
-       * -------------------------------------------------------
-       */
-
-      if (result.email) {
-        const sentEmail =
-          result.email as EmailRecord;
-
-        setEmails((current) => {
-          const withoutDuplicate =
-            current.filter(
-              (item) =>
-                item.id !==
-                sentEmail.id
-            );
-
-          return [
-            sentEmail,
-            ...withoutDuplicate,
-          ];
-        });
-      }
-
-      /*
-       * -------------------------------------------------------
-       * UPDATE ORIGINAL EMAIL ONLY FOR REPLIES
-       * -------------------------------------------------------
-       */
-
-      if (
-        isReply &&
-        selectedEmail
-      ) {
-        const repliedAt =
-          new Date().toISOString();
-
-        setEmails((current) =>
-          current.map((item) =>
-            item.id ===
-            selectedEmail.id
-              ? {
-                  ...item,
-                  status:
-                    "Replied",
-                  replied_at:
-                    repliedAt,
-                  updated_at:
-                    repliedAt,
-                }
-              : item
-          )
-        );
-
-        setSelectedEmail(
-          (current) =>
-            current
-              ? {
-                  ...current,
-                  status:
-                    "Replied",
-                  replied_at:
-                    repliedAt,
-                  updated_at:
-                    repliedAt,
-                }
-              : current
-        );
-      }
-
-      /*
-       * -------------------------------------------------------
-       * SUCCESS MESSAGE
-       * -------------------------------------------------------
-       */
-
-      let successMessage =
-        "Email sent successfully.";
-
-      if (isReply) {
-        successMessage =
-          "Reply sent successfully.";
-      } else if (isForward) {
-        successMessage =
-          "Email forwarded successfully.";
-      } else if (isResend) {
-        successMessage =
-          "Email resent successfully.";
-      }
+      await sendEmail({
+        to: to.trim(),
+        cc: cc.trim() || undefined,
+        bcc: bcc.trim() || undefined,
+        subject:
+          subject.trim() ||
+          "(No subject)",
+        body: body.trim(),
+      });
 
       setSuccess(
-        successMessage
+        composerMode ===
+          "reply"
+          ? "Reply sent successfully."
+          : composerMode ===
+            "forward"
+          ? "Email forwarded successfully."
+          : composerMode ===
+            "resend"
+          ? "Email resent successfully."
+          : "Email sent successfully."
       );
 
-      /*
-       * Close composer.
-       */
-      setComposeOpen(false);
-      setReplyOpen(false);
-
-      setComposerMode(
-        "compose"
-      );
-
-      setTo("");
-      setCc("");
-      setBcc("");
-      setSubject("");
-      setBody("");
+      closeComposer();
     } catch (err) {
       setError(
         err instanceof Error
@@ -1004,6 +943,45 @@ export default function EmailManager({
 
   /*
    * =========================================================
+   * STAT CARD DATA
+   * =========================================================
+   */
+
+  const statCards = [
+    {
+      label: "Total Emails",
+      value: liveStats.total,
+      icon: Mail,
+    },
+    {
+      label: "Unread",
+      value: liveStats.unread,
+      icon: MailOpen,
+    },
+    {
+      label: "Read",
+      value: liveStats.read,
+      icon: Check,
+    },
+    {
+      label: "Replied",
+      value: liveStats.replied,
+      icon: Reply,
+    },
+    {
+      label: "Sent",
+      value: liveStats.sent,
+      icon: Send,
+    },
+    {
+      label: "Archived",
+      value: liveStats.archived,
+      icon: Archive,
+    },
+  ];
+
+  /*
+   * =========================================================
    * RENDER
    * =========================================================
    */
@@ -1014,65 +992,40 @@ export default function EmailManager({
           STATISTICS
       ====================================================== */}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        {[
-          {
-            label: "Total",
-            value: liveStats.total,
-            icon: Mail,
-          },
-          {
-            label: "Unread",
-            value: liveStats.unread,
-            icon: Mail,
-          },
-          {
-            label: "Read",
-            value: liveStats.read,
-            icon: MailOpen,
-          },
-          {
-            label: "Replied",
-            value: liveStats.replied,
-            icon: Reply,
-          },
-          {
-            label: "Sent",
-            value: liveStats.sent,
-            icon: Send,
-          },
-          {
-            label: "Archived",
-            value: liveStats.archived,
-            icon: Archive,
-          },
-        ].map((item) => {
-          const Icon =
-            item.icon;
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-6">
+        {statCards.map(
+          (item) => {
+            const Icon =
+              item.icon;
 
-          return (
-            <div
-              key={item.label}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-500">
-                    {item.label}
-                  </p>
+            return (
+              <div
+                key={
+                  item.label
+                }
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">
+                      {item.label}
+                    </p>
 
-                  <p className="mt-2 text-3xl font-bold text-[#03162F]">
-                    {item.value}
-                  </p>
-                </div>
+                    <p className="mt-2 text-3xl font-bold text-[#03162F]">
+                      {
+                        item.value
+                      }
+                    </p>
+                  </div>
 
-                <div className="rounded-xl bg-[#03162F] p-3 text-white">
-                  <Icon className="h-5 w-5" />
+                  <div className="rounded-xl bg-[#03162F] p-3 text-white">
+                    <Icon className="h-5 w-5" />
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          }
+        )}
       </div>
 
       {/* =====================================================
@@ -1117,24 +1070,26 @@ export default function EmailManager({
               "Replied",
               "Sent",
               "Archived",
-            ].map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() =>
-                  setFilter(
-                    item as Filter
-                  )
-                }
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                  filter === item
-                    ? "bg-[#03162F] text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
+            ].map(
+              (item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() =>
+                    setFilter(
+                      item as Filter
+                    )
+                  }
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                    filter === item
+                      ? "bg-[#03162F] text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {item}
+                </button>
+              )
+            )}
           </div>
         </div>
 
@@ -1291,19 +1246,39 @@ export default function EmailManager({
       ====================================================== */}
 
       {selectedEmail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03162F]/60 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#03162F]/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Email details"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closeEmail();
+            }
+          }}
+        >
+          <div
+            className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
+          >
             {/* HEADER */}
 
-            <div className="flex items-start justify-between border-b border-slate-200 p-6">
-              <div className="min-w-0">
+            <div className="flex shrink-0 items-start justify-between border-b border-slate-200 bg-white p-5 sm:p-6">
+              <div className="min-w-0 pr-4">
                 <div className="flex flex-wrap gap-2">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(
                       selectedEmail.status
                     )}`}
                   >
-                    {selectedEmail.status}
+                    {
+                      selectedEmail.status
+                    }
                   </span>
 
                   <span
@@ -1311,7 +1286,9 @@ export default function EmailManager({
                       selectedEmail.priority
                     )}`}
                   >
-                    {selectedEmail.priority}
+                    {
+                      selectedEmail.priority
+                    }
                   </span>
 
                   {selectedThread.length >
@@ -1325,7 +1302,7 @@ export default function EmailManager({
                   )}
                 </div>
 
-                <h2 className="mt-3 text-2xl font-bold text-[#03162F]">
+                <h2 className="mt-3 break-words text-xl font-bold text-[#03162F] sm:text-2xl">
                   {selectedEmail.subject ||
                     "(No subject)"}
                 </h2>
@@ -1333,20 +1310,20 @@ export default function EmailManager({
 
               <button
                 type="button"
-                onClick={() =>
-                  setSelectedEmail(
-                    null
-                  )
+                onClick={
+                  closeEmail
                 }
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-[#03162F]"
+                aria-label="Close email"
+                title="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* THREAD CONTENT */}
+            {/* SCROLLABLE BODY */}
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
               <div className="space-y-4">
                 {selectedThread.map(
                   (
@@ -1359,15 +1336,17 @@ export default function EmailManager({
 
                     return (
                       <div
-                        key={email.id}
-                        className={`rounded-2xl border p-5 ${
+                        key={
+                          email.id
+                        }
+                        className={`rounded-2xl border p-4 sm:p-5 ${
                           isOutgoing
                             ? "border-blue-100 bg-blue-50"
                             : "border-slate-200 bg-slate-50"
                         }`}
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="font-bold text-[#03162F]">
                                 {isOutgoing
@@ -1392,11 +1371,13 @@ export default function EmailManager({
                                   email.status
                                 )}`}
                               >
-                                {email.status}
+                                {
+                                  email.status
+                                }
                               </span>
                             </div>
 
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="mt-1 break-words text-sm text-slate-500">
                               {isOutgoing
                                 ? email.recipient_email
                                 : email.sender_email}
@@ -1411,13 +1392,15 @@ export default function EmailManager({
                         </div>
 
                         {email.subject && (
-                          <p className="mt-4 font-semibold text-[#03162F]">
-                            {email.subject}
+                          <p className="mt-4 break-words font-semibold text-[#03162F]">
+                            {
+                              email.subject
+                            }
                           </p>
                         )}
 
                         {email.cc && (
-                          <p className="mt-2 text-xs text-slate-500">
+                          <p className="mt-2 break-words text-xs text-slate-500">
                             <span className="font-semibold">
                               CC:
                             </span>{" "}
@@ -1426,7 +1409,7 @@ export default function EmailManager({
                         )}
 
                         {email.bcc && (
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1 break-words text-xs text-slate-500">
                             <span className="font-semibold">
                               BCC:
                             </span>{" "}
@@ -1434,15 +1417,18 @@ export default function EmailManager({
                           </p>
                         )}
 
-                        <div className="mt-5 whitespace-pre-wrap text-sm leading-7 text-slate-700">
-                          {email.body}
+                        <div className="mt-5 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
+                          {
+                            email.body
+                          }
                         </div>
 
                         {index <
                           selectedThread.length -
                             1 && (
                           <div className="mt-5 border-t border-slate-200 pt-3 text-xs font-medium text-slate-400">
-                            Conversation continues
+                            Conversation
+                            continues
                           </div>
                         )}
                       </div>
@@ -1450,245 +1436,118 @@ export default function EmailManager({
                   }
                 )}
               </div>
-
-              {/* =================================================
-                  REPLY FORM
-              ================================================== */}
-
-              {replyOpen && (
-                <form
-                  onSubmit={
-                    handleSend
-                  }
-                  className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-[#03162F]">
-                        Reply
-                      </h3>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        Reply to{" "}
-                        {to}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setReplyOpen(
-                          false
-                        )
-                      }
-                      className="text-sm font-semibold text-slate-500 hover:text-slate-900"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  {error && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {error}
-                    </div>
-                  )}
-
-                  <input
-                    value={to}
-                    onChange={(event) =>
-                      setTo(
-                        event.target
-                          .value
-                      )
-                    }
-                    placeholder="Recipient"
-                    type="email"
-                    className={inputClass}
-                    required
-                  />
-
-                  <input
-                    value={cc}
-                    onChange={(event) =>
-                      setCc(
-                        event.target
-                          .value
-                      )
-                    }
-                    placeholder="CC (optional)"
-                    className={inputClass}
-                  />
-
-                  <input
-                    value={bcc}
-                    onChange={(event) =>
-                      setBcc(
-                        event.target
-                          .value
-                      )
-                    }
-                    placeholder="BCC (optional)"
-                    className={inputClass}
-                  />
-
-                  <input
-                    value={subject}
-                    onChange={(event) =>
-                      setSubject(
-                        event.target
-                          .value
-                      )
-                    }
-                    placeholder="Subject"
-                    className={inputClass}
-                  />
-
-                  <textarea
-                    value={body}
-                    onChange={(event) =>
-                      setBody(
-                        event.target
-                          .value
-                      )
-                    }
-                    placeholder="Write your reply..."
-                    className={`${inputClass} min-h-[180px] resize-y`}
-                    required
-                  />
-
-                  <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setReplyOpen(
-                          false
-                        )
-                      }
-                      className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={
-                        loadingId !==
-                        null
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white hover:bg-[#0A2852] disabled:opacity-50"
-                    >
-                      <Send className="h-4 w-4" />
-
-                      {loadingId
-                        ? "Sending..."
-                        : "Send Reply"}
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
 
-            {/* =================================================
-                FOOTER ACTIONS
-            ================================================== */}
+            {/* FIXED FOOTER */}
 
-            {!replyOpen && (
-              <div className="flex flex-wrap justify-between gap-3 border-t border-slate-200 p-5">
-                <div className="flex flex-wrap gap-2">
-                  {selectedEmail.status ===
-                    "Unread" && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void handleRead(
-                          selectedEmail
-                        )
-                      }
-                      disabled={
-                        loadingId ===
-                        selectedEmail.id
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                    >
-                      <MailOpen className="h-4 w-4" />
-                      Mark Read
-                    </button>
-                  )}
-
-                  {selectedEmail.status !==
-                    "Unread" && (
-                    <button
-                      type="button"
-                      disabled
-                      className="inline-flex cursor-default items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-400"
-                    >
-                      <Check className="h-4 w-4" />
-                      Read
-                    </button>
-                  )}
-
+            <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:p-5">
+              <div className="flex flex-wrap gap-2">
+                {selectedEmail.status ===
+                  "Unread" && (
                   <button
                     type="button"
                     onClick={() =>
-                      prepareReply(
+                      void handleRead(
                         selectedEmail
                       )
                     }
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0A2852]"
+                    disabled={
+                      loadingId ===
+                      selectedEmail.id
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                   >
-                    <Reply className="h-4 w-4" />
-                    Reply
+                    <MailOpen className="h-4 w-4" />
+                    Mark Read
                   </button>
+                )}
 
+                {selectedEmail.status !==
+                  "Unread" && (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex cursor-default items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-400"
+                  >
+                    <Check className="h-4 w-4" />
+                    Read
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    prepareReply(
+                      selectedEmail
+                    )
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0A2852]"
+                >
+                  <Reply className="h-4 w-4" />
+                  Reply
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    prepareForward(
+                      selectedEmail
+                    )
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  <Forward className="h-4 w-4" />
+                  Forward
+                </button>
+
+                {selectedEmail.source ===
+                  "Outgoing" && (
                   <button
                     type="button"
                     onClick={() =>
-                      prepareForward(
+                      prepareResend(
                         selectedEmail
                       )
                     }
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    <Forward className="h-4 w-4" />
-                    Forward
+                    <RotateCcw className="h-4 w-4" />
+                    Resend
                   </button>
+                )}
 
-                  {selectedEmail.source ===
-                    "Outgoing" && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        prepareResend(
-                          selectedEmail
-                        )
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      Resend
-                    </button>
-                  )}
+                {selectedEmail.status !==
+                  "Archived" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void handleArchive(
+                        selectedEmail
+                      )
+                    }
+                    disabled={
+                      loadingId ===
+                      selectedEmail.id
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <Archive className="h-4 w-4" />
+                    Archive
+                  </button>
+                )}
+              </div>
 
-                  {selectedEmail.status !==
-                    "Archived" && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void handleArchive(
-                          selectedEmail
-                        )
-                      }
-                      disabled={
-                        loadingId ===
-                        selectedEmail.id
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                    >
-                      <Archive className="h-4 w-4" />
-                      Archive
-                    </button>
-                  )}
-                </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={
+                    closeEmail
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4" />
+                  Close
+                </button>
 
                 <button
                   type="button"
@@ -1701,29 +1560,60 @@ export default function EmailManager({
                     loadingId ===
                     selectedEmail.id
                   }
-                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
                   Delete
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
 
       {/* =====================================================
-          COMPOSE / FORWARD / RESEND MODAL
+          COMPOSE / REPLY / FORWARD / RESEND MODAL
       ====================================================== */}
 
       {composeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#03162F]/60 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-            {/* HEADER */}
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-[#03162F]/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={
+            composerMode ===
+            "reply"
+              ? "Reply"
+              : composerMode ===
+                "forward"
+              ? "Forward email"
+              : composerMode ===
+                "resend"
+              ? "Resend email"
+              : "Compose email"
+          }
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closeComposer();
+            }
+          }}
+        >
+          <div
+            className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
+          >
+            {/* =================================================
+                COMPOSER HEADER
+            ================================================== */}
 
-            <div className="flex items-center justify-between border-b border-slate-200 p-6">
-              <div>
-                <h2 className="text-xl font-bold text-[#03162F]">
+            <div className="flex shrink-0 items-start justify-between border-b border-slate-200 bg-white p-5 sm:p-6">
+              <div className="min-w-0 pr-4">
+                <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
                   {composerMode ===
                   "reply"
                     ? "Reply"
@@ -1736,7 +1626,7 @@ export default function EmailManager({
                     : "Compose Email"}
                 </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 break-words text-sm text-slate-500">
                   {composerMode ===
                   "reply"
                     ? `Reply to ${to}`
@@ -1750,169 +1640,211 @@ export default function EmailManager({
                 </p>
               </div>
 
+              {/* CLOSE BUTTON */}
+
               <button
                 type="button"
                 onClick={
                   closeComposer
                 }
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-[#03162F]"
+                aria-label="Close email dialog"
+                title="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* FORM */}
+            {/* =================================================
+                SCROLLABLE FORM BODY
+            ================================================== */}
 
             <form
-              onSubmit={
-                handleSend
-              }
-              className="flex-1 space-y-4 overflow-y-auto p-6"
-            >
-              {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
+  id="email-composer-form"
+  data-email-composer="true"
+  onSubmit={handleSend}
+  className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6"
+>
+              <div className="space-y-4">
+                {error && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                {/* TO */}
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    To
+                  </label>
+
+                  <input
+                    value={to}
+                    onChange={(
+                      event
+                    ) =>
+                      setTo(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="recipient@example.com"
+                    type="email"
+                    className={
+                      inputClass
+                    }
+                    required
+                  />
                 </div>
-              )}
 
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  To
-                </label>
+                {/* CC */}
 
-                <input
-                  value={to}
-                  onChange={(
-                    event
-                  ) =>
-                    setTo(
-                      event.target
-                        .value
-                    )
-                  }
-                  placeholder="recipient@example.com"
-                  type="email"
-                  className={
-                    inputClass
-                  }
-                  required
-                />
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    CC
+                  </label>
+
+                  <input
+                    value={cc}
+                    onChange={(
+                      event
+                    ) =>
+                      setCc(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="CC (optional)"
+                    className={
+                      inputClass
+                    }
+                  />
+                </div>
+
+                {/* BCC */}
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    BCC
+                  </label>
+
+                  <input
+                    value={bcc}
+                    onChange={(
+                      event
+                    ) =>
+                      setBcc(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="BCC (optional)"
+                    className={
+                      inputClass
+                    }
+                  />
+                </div>
+
+                {/* SUBJECT */}
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Subject
+                  </label>
+
+                  <input
+                    value={
+                      subject
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setSubject(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="Subject"
+                    className={
+                      inputClass
+                    }
+                  />
+                </div>
+
+                {/* MESSAGE */}
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Message
+                  </label>
+
+                  <textarea
+                    value={body}
+                    onChange={(
+                      event
+                    ) =>
+                      setBody(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder={
+                      composerMode ===
+                      "reply"
+                        ? "Write your reply..."
+                        : "Write your email..."
+                    }
+                    className={`${inputClass} min-h-[220px] resize-y`}
+                    required
+                  />
+                </div>
               </div>
+            </form>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  CC
-                </label>
+            {/* =================================================
+                FIXED COMPOSER FOOTER
+            ================================================== */}
 
-                <input
-                  value={cc}
-                  onChange={(
-                    event
-                  ) =>
-                    setCc(
-                      event.target
-                        .value
-                    )
-                  }
-                  placeholder="CC (optional)"
-                  className={
-                    inputClass
-                  }
-                />
-              </div>
+            <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <button
+                type="button"
+                onClick={
+                  closeComposer
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <X className="h-4 w-4" />
+                Close
+              </button>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  BCC
-                </label>
-
-                <input
-                  value={bcc}
-                  onChange={(
-                    event
-                  ) =>
-                    setBcc(
-                      event.target
-                        .value
-                    )
-                  }
-                  placeholder="BCC (optional)"
-                  className={
-                    inputClass
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Subject
-                </label>
-
-                <input
-                  value={
-                    subject
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setSubject(
-                      event.target
-                        .value
-                    )
-                  }
-                  placeholder="Subject"
-                  className={
-                    inputClass
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Message
-                </label>
-
-                <textarea
-                  value={body}
-                  onChange={(
-                    event
-                  ) =>
-                    setBody(
-                      event.target
-                        .value
-                    )
-                  }
-                  placeholder={
-                    composerMode ===
-                    "reply"
-                      ? "Write your reply..."
-                      : "Write your email..."
-                  }
-                  className={`${inputClass} min-h-[240px] resize-y`}
-                  required
-                />
-              </div>
-
-              {/* FOOTER */}
-
-              <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={
                     closeComposer
                   }
-                  className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
+                  form=""
                   disabled={
                     loadingId !==
                     null
                   }
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-6 py-3 font-semibold text-white hover:bg-[#0A2852] disabled:opacity-50"
+                  onClick={() => {
+                    const form =
+                      document.querySelector(
+                        'form[data-email-composer="true"]'
+                      ) as HTMLFormElement | null;
+
+                    form?.requestSubmit();
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#03162F] px-6 py-3 font-semibold text-white transition hover:bg-[#0A2852] disabled:opacity-50"
                 >
                   {composerMode ===
                   "forward" ? (
@@ -1941,7 +1873,7 @@ export default function EmailManager({
                     : "Send Email"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

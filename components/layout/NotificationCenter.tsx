@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { supabase } from "@/lib/supabase/client";
 import {
   Bell,
   Check,
@@ -11,6 +12,12 @@ import {
   MessageCircle,
   X,
 } from "lucide-react";
+
+/*
+|--------------------------------------------------------------------------
+| TYPES
+|--------------------------------------------------------------------------
+*/
 
 type NotificationType =
   | "booking"
@@ -39,79 +46,160 @@ interface Notification {
 
 /*
 |--------------------------------------------------------------------------
-| DEMO NOTIFICATIONS
+| DATABASE NOTIFICATION TYPE
 |--------------------------------------------------------------------------
-|
-| Temporary notifications until the real notification database is connected.
-|
 */
 
-const initialNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "booking",
-    title: "New Booking Request",
-    sender: "John Banda",
-    preview:
-      "I would like to book an appointment for tomorrow at 10:00...",
-    time: "5 minutes ago",
-    unread: true,
-    details: {
-      business: "Alessandro Elite Fashion",
-      date: "20 August 2026 at 10:00",
-      amount: "ZMW 150.00",
-      message:
-        "I would like to book an appointment for tomorrow at 10:00. Please confirm if the time is available.",
-    },
-  },
+interface NotificationRow {
+  id: string;
+  type: string;
+  title: string;
+  sender: string;
+  preview: string;
+  message: string;
+  business: string | null;
+  notification_date: string | null;
+  amount: string | null;
+  subject: string | null;
+  action_url: string | null;
+  unread: boolean;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
-  {
-    id: "2",
-    type: "message",
-    title: "New Customer Message",
-    sender: "Mary Phiri",
-    preview:
-      "Hello, I wanted to ask about the services you offer...",
-    time: "18 minutes ago",
-    unread: true,
-    details: {
-      subject: "Question about services",
-      message:
-        "Hello, I wanted to ask about the services you offer and whether I can make an appointment this week.",
-    },
-  },
+/*
+|--------------------------------------------------------------------------
+| HELPERS
+|--------------------------------------------------------------------------
+*/
 
-  {
-    id: "3",
-    type: "issue",
-    title: "Issue Requires Attention",
-    sender: "Alessandro Tech Solutions",
-    preview:
-      "A reported issue requires management review...",
-    time: "32 minutes ago",
-    unread: true,
-    details: {
-      business: "Alessandro Tech Solutions",
-      message:
-        "A reported operational issue requires management review and a response.",
-    },
-  },
+function normalizeNotificationType(
+  type: string
+): NotificationType {
+  switch (type) {
+    case "booking":
+      return "booking";
 
-  {
-    id: "4",
-    type: "system",
-    title: "System Update",
-    sender: "Alessandro Enterprise System",
-    preview:
-      "All major enterprise services are currently operational.",
-    time: "1 hour ago",
-    unread: false,
+    case "message":
+      return "message";
+
+    case "issue":
+      return "issue";
+
+    case "system":
+      return "system";
+
+    default:
+      return "system";
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
+| NOTIFICATION TIME
+|--------------------------------------------------------------------------
+*/
+
+function formatNotificationTime(
+  value: string
+): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Just now";
+  }
+
+  const seconds = Math.floor(
+    (Date.now() - date.getTime()) / 1000
+  );
+
+  if (seconds < 60) {
+    return "Just now";
+  }
+
+  const minutes = Math.floor(
+    seconds / 60
+  );
+
+  if (minutes < 60) {
+    return `${minutes} minute${
+      minutes === 1 ? "" : "s"
+    } ago`;
+  }
+
+  const hours = Math.floor(
+    minutes / 60
+  );
+
+  if (hours < 24) {
+    return `${hours} hour${
+      hours === 1 ? "" : "s"
+    } ago`;
+  }
+
+  const days = Math.floor(
+    hours / 24
+  );
+
+  return `${days} day${
+    days === 1 ? "" : "s"
+  } ago`;
+}
+
+/*
+|--------------------------------------------------------------------------
+| DATABASE → UI MAPPER
+|--------------------------------------------------------------------------
+*/
+
+function mapNotification(
+  notification: NotificationRow
+): Notification {
+  return {
+    id: notification.id,
+
+    type: normalizeNotificationType(
+      notification.type
+    ),
+
+    title: notification.title,
+
+    sender: notification.sender,
+
+    preview: notification.preview,
+
+    time: formatNotificationTime(
+      notification.created_at
+    ),
+
+    unread:
+      notification.unread === true &&
+      notification.is_read !== true,
+
     details: {
+      business:
+        notification.business ??
+        undefined,
+
+      date:
+        notification.notification_date ??
+        undefined,
+
+      amount:
+        notification.amount ??
+        undefined,
+
+      subject:
+        notification.subject ??
+        undefined,
+
       message:
-        "All major enterprise services are currently operational. No action is required.",
+        notification.message,
     },
-  },
-];
+  };
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -119,30 +207,42 @@ const initialNotifications: Notification[] = [
 |--------------------------------------------------------------------------
 */
 
-function getIcon(type: NotificationType) {
+function getIcon(
+  type: NotificationType
+) {
   switch (type) {
     case "booking":
-      return <Clock className="h-5 w-5" />;
+      return (
+        <Clock className="h-5 w-5" />
+      );
 
     case "message":
-      return <MessageCircle className="h-5 w-5" />;
+      return (
+        <MessageCircle className="h-5 w-5" />
+      );
 
     case "issue":
-      return <X className="h-5 w-5" />;
+      return (
+        <X className="h-5 w-5" />
+      );
 
     case "system":
     default:
-      return <CheckCircle2 className="h-5 w-5" />;
+      return (
+        <CheckCircle2 className="h-5 w-5" />
+      );
   }
 }
 
 /*
 |--------------------------------------------------------------------------
-| ICON CONTAINER
+| NOTIFICATION ICON CONTAINER
 |--------------------------------------------------------------------------
 */
 
-function getIconContainerClass(type: NotificationType) {
+function getIconContainerClass(
+  type: NotificationType
+) {
   switch (type) {
     case "booking":
       return "bg-yellow-100 text-yellow-700";
@@ -166,118 +266,325 @@ function getIconContainerClass(type: NotificationType) {
 */
 
 export default function NotificationCenter() {
-  const [open, setOpen] = useState(false);
+  /*
+   * ---------------------------------------------------------------
+   * STATE
+   * ---------------------------------------------------------------
+   */
 
-  const [mounted, setMounted] = useState(false);
+  const [open, setOpen] =
+    useState(false);
+
+  const [mounted, setMounted] =
+    useState(false);
 
   const [selected, setSelected] =
     useState<Notification | null>(null);
 
   const [notifications, setNotifications] =
-    useState<Notification[]>(initialNotifications);
+    useState<Notification[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [markingAsRead, setMarkingAsRead] =
+    useState(false);
 
   /*
-  |--------------------------------------------------------------------------
-  | CLIENT MOUNT
-  |--------------------------------------------------------------------------
-  |
-  | This prevents hydration problems when using document.body with portals.
-  |
-  */
+   * ---------------------------------------------------------------
+   * LOAD NOTIFICATIONS
+   * ---------------------------------------------------------------
+   *
+   * Only unread notifications are loaded.
+   *
+   * Once a notification is marked as read:
+   *
+   * unread = false
+   * is_read = true
+   *
+   * Therefore it will not return after a browser refresh.
+   * ---------------------------------------------------------------
+   */
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadNotifications() {
+      setLoading(true);
+
+      try {
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("notifications")
+          .select(`
+            id,
+            type,
+            title,
+            sender,
+            preview,
+            message,
+            business,
+            notification_date,
+            amount,
+            subject,
+            action_url,
+            unread,
+            is_read,
+            read_at,
+            created_at,
+            updated_at
+          `)
+          .eq("unread", true)
+          .eq("is_read", false)
+          .order("created_at", {
+            ascending: false,
+          });
+
+        if (error) {
+          console.error(
+            "Failed to load notifications:",
+            error
+          );
+
+          return;
+        }
+
+        if (!active) {
+          return;
+        }
+
+        const loaded =
+          (data ?? []).map(
+            (notification) =>
+              mapNotification(
+                notification as NotificationRow
+              )
+          );
+
+        setNotifications(loaded);
+      } catch (error) {
+        console.error(
+          "Notification loading error:",
+          error
+        );
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadNotifications();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /*
+   * ---------------------------------------------------------------
+   * CLIENT MOUNT
+   * ---------------------------------------------------------------
+   */
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   /*
-  |--------------------------------------------------------------------------
-  | UNREAD COUNT
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * UNREAD COUNT
+   * ---------------------------------------------------------------
+   */
 
-  const unreadCount = notifications.filter(
-    (notification) => notification.unread
-  ).length;
+  const unreadCount =
+    notifications.filter(
+      (notification) =>
+        notification.unread
+    ).length;
 
   /*
-  |--------------------------------------------------------------------------
-  | MARK ONE AS READ
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * MARK ONE NOTIFICATION AS READ
+   * ---------------------------------------------------------------
+   */
 
-  function markAsRead(id: string) {
-    setNotifications((current) =>
-      current.map((notification) =>
-        notification.id === id
-          ? {
-              ...notification,
-              unread: false,
-            }
-          : notification
-      )
-    );
+  async function markAsRead(
+    id: string
+  ) {
+    if (markingAsRead) {
+      return;
+    }
+
+    setMarkingAsRead(true);
+
+    try {
+      const now =
+        new Date().toISOString();
+
+      const {
+        error,
+      } = await supabase
+        .from("notifications")
+        .update({
+          unread: false,
+          is_read: true,
+          read_at: now,
+          updated_at: now,
+        })
+        .eq("id", id);
+
+      if (error) {
+        console.error(
+          "Failed to mark notification as read:",
+          error
+        );
+
+        return;
+      }
+
+      /*
+       * Remove it immediately from the notification list.
+       */
+
+      setNotifications(
+        (current) =>
+          current.filter(
+            (notification) =>
+              notification.id !== id
+          )
+      );
+
+      /*
+       * Close the detail popup.
+       */
+
+      setSelected(null);
+    } catch (error) {
+      console.error(
+        "Mark notification as read error:",
+        error
+      );
+    } finally {
+      setMarkingAsRead(false);
+    }
   }
 
   /*
-  |--------------------------------------------------------------------------
-  | MARK ALL AS READ
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * MARK ALL AS READ
+   * ---------------------------------------------------------------
+   */
 
-  function markAllAsRead() {
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        unread: false,
-      }))
-    );
+  async function markAllAsRead() {
+    if (
+      notifications.length === 0 ||
+      markingAsRead
+    ) {
+      return;
+    }
+
+    setMarkingAsRead(true);
+
+    try {
+      const now =
+        new Date().toISOString();
+
+      const {
+        error,
+      } = await supabase
+        .from("notifications")
+        .update({
+          unread: false,
+          is_read: true,
+          read_at: now,
+          updated_at: now,
+        })
+        .eq("unread", true)
+        .eq("is_read", false);
+
+      if (error) {
+        console.error(
+          "Failed to mark all notifications as read:",
+          error
+        );
+
+        return;
+      }
+
+      /*
+       * Clear the notification list immediately.
+       */
+
+      setNotifications([]);
+
+      /*
+       * Close any open notification detail.
+       */
+
+      setSelected(null);
+    } catch (error) {
+      console.error(
+        "Mark all notifications as read error:",
+        error
+      );
+    } finally {
+      setMarkingAsRead(false);
+    }
   }
 
   /*
-  |--------------------------------------------------------------------------
-  | OPEN NOTIFICATION
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * OPEN NOTIFICATION
+   * ---------------------------------------------------------------
+   *
+   * IMPORTANT:
+   *
+   * Opening a notification does NOT mark it as read.
+   *
+   * The user must explicitly press "Mark as Read".
+   * ---------------------------------------------------------------
+   */
 
-  function openNotification(notification: Notification) {
-    markAsRead(notification.id);
-
-    setSelected({
-      ...notification,
-      unread: false,
-    });
-
+  function openNotification(
+    notification: Notification
+  ) {
+    setSelected(notification);
     setOpen(false);
   }
 
   /*
-  |--------------------------------------------------------------------------
-  | CLOSE DETAILS
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * CLOSE DETAILS
+   * ---------------------------------------------------------------
+   */
 
   function closeDetails() {
     setSelected(null);
   }
 
   /*
-  |--------------------------------------------------------------------------
-  | CLOSE NOTIFICATION CENTER
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * CLOSE NOTIFICATION CENTER
+   * ---------------------------------------------------------------
+   */
 
   function closeCenter() {
     setOpen(false);
   }
 
   /*
-  |--------------------------------------------------------------------------
-  | ESCAPE KEY
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * ESCAPE KEY
+   * ---------------------------------------------------------------
+   */
 
   useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
+    function handleEscape(
+      event: KeyboardEvent
+    ) {
       if (event.key !== "Escape") {
         return;
       }
@@ -306,10 +613,10 @@ export default function NotificationCenter() {
   }, [open, selected]);
 
   /*
-  |--------------------------------------------------------------------------
-  | PREVENT BACKGROUND SCROLL WHEN MODAL IS OPEN
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * PREVENT BACKGROUND SCROLL
+   * ---------------------------------------------------------------
+   */
 
   useEffect(() => {
     if (!selected) {
@@ -320,7 +627,8 @@ export default function NotificationCenter() {
     const previousOverflow =
       document.body.style.overflow;
 
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow =
+      "hidden";
 
     return () => {
       document.body.style.overflow =
@@ -329,10 +637,10 @@ export default function NotificationCenter() {
   }, [selected]);
 
   /*
-  |--------------------------------------------------------------------------
-  | VIEW MORE ROUTES
-  |--------------------------------------------------------------------------
-  */
+   * ---------------------------------------------------------------
+   * VIEW MORE ROUTE
+   * ---------------------------------------------------------------
+   */
 
   function getViewMoreHref(
     type: NotificationType
@@ -354,10 +662,10 @@ export default function NotificationCenter() {
   }
 
   /*
-  |--------------------------------------------------------------------------
-  | RENDER
-  |--------------------------------------------------------------------------
-  */
+   |--------------------------------------------------------------------------
+   | RENDER
+   |--------------------------------------------------------------------------
+   */
 
   return (
     <>
@@ -369,7 +677,9 @@ export default function NotificationCenter() {
         <button
           type="button"
           onClick={() =>
-            setOpen((value) => !value)
+            setOpen(
+              (current) => !current
+            )
           }
           className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition ${
             open
@@ -395,7 +705,9 @@ export default function NotificationCenter() {
 
         {open && (
           <>
-            {/* Outside click layer */}
+            {/* ====================================================
+                OUTSIDE CLICK
+            ==================================================== */}
 
             <button
               type="button"
@@ -404,10 +716,14 @@ export default function NotificationCenter() {
               className="fixed inset-0 z-40 cursor-default bg-transparent"
             />
 
-            {/* Panel */}
+            {/* ====================================================
+                PANEL
+            ==================================================== */}
 
             <div className="absolute right-0 top-14 z-50 w-[calc(100vw-2rem)] max-w-[390px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-              {/* PANEL HEADER */}
+              {/* ==================================================
+                  HEADER
+              ================================================== */}
 
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <div>
@@ -425,18 +741,36 @@ export default function NotificationCenter() {
                 {unreadCount > 0 && (
                   <button
                     type="button"
-                    onClick={markAllAsRead}
-                    className="text-xs font-semibold text-[#03162F] transition hover:text-[#D4AF37]"
+                    onClick={() => {
+                      void markAllAsRead();
+                    }}
+                    disabled={
+                      markingAsRead
+                    }
+                    className="text-xs font-semibold text-[#03162F] transition hover:text-[#D4AF37] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Mark all as read
+                    {markingAsRead
+                      ? "Updating..."
+                      : "Mark all as read"}
                   </button>
                 )}
               </div>
 
-              {/* NOTIFICATION LIST */}
+              {/* ==================================================
+                  LIST
+              ================================================== */}
 
               <div className="max-h-[460px] overflow-y-auto">
-                {notifications.length === 0 ? (
+                {loading ? (
+                  <div className="px-6 py-12 text-center">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-[#03162F]" />
+
+                    <p className="mt-3 text-sm text-slate-500">
+                      Loading notifications...
+                    </p>
+                  </div>
+                ) : notifications.length ===
+                  0 ? (
                   <div className="px-6 py-12 text-center">
                     <Bell className="mx-auto h-10 w-10 text-slate-300" />
 
@@ -452,18 +786,16 @@ export default function NotificationCenter() {
                   notifications.map(
                     (notification) => (
                       <button
-                        key={notification.id}
+                        key={
+                          notification.id
+                        }
                         type="button"
                         onClick={() =>
                           openNotification(
                             notification
                           )
                         }
-                        className={`flex w-full gap-3 border-b border-slate-100 p-4 text-left transition hover:bg-slate-50 ${
-                          notification.unread
-                            ? "bg-blue-50/40"
-                            : "bg-white"
-                        }`}
+                        className="flex w-full gap-3 border-b border-slate-100 bg-blue-50/40 p-4 text-left transition hover:bg-slate-50"
                       >
                         {/* ICON */}
 
@@ -482,24 +814,30 @@ export default function NotificationCenter() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-semibold text-[#03162F]">
-                              {notification.title}
+                              {
+                                notification.title
+                              }
                             </p>
 
-                            {notification.unread && (
-                              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
-                            )}
+                            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
                           </div>
 
                           <p className="mt-1 text-xs font-semibold text-slate-600">
-                            {notification.sender}
+                            {
+                              notification.sender
+                            }
                           </p>
 
                           <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                            {notification.preview}
+                            {
+                              notification.preview
+                            }
                           </p>
 
                           <p className="mt-2 text-xs text-slate-400">
-                            {notification.time}
+                            {
+                              notification.time
+                            }
                           </p>
                         </div>
                       </button>
@@ -508,7 +846,9 @@ export default function NotificationCenter() {
                 )}
               </div>
 
-              {/* PANEL FOOTER */}
+              {/* ==================================================
+                  FOOTER
+              ================================================== */}
 
               <div className="border-t border-slate-200 p-3">
                 <a
@@ -527,10 +867,6 @@ export default function NotificationCenter() {
 
       {/* ==========================================================
           NOTIFICATION DETAIL MODAL
-          IMPORTANT:
-          This is rendered directly into document.body.
-          Therefore it cannot be trapped underneath WelcomeBanner,
-          Header, Sidebar, or another stacking context.
       ========================================================== */}
 
       {mounted &&
@@ -580,9 +916,7 @@ export default function NotificationCenter() {
                   {selected.sender}
                 </p>
 
-                {/* =================================================
-                    TOP-RIGHT CLOSE BUTTON
-                ================================================= */}
+                {/* TOP RIGHT CLOSE */}
 
                 <button
                   type="button"
@@ -615,25 +949,34 @@ export default function NotificationCenter() {
                         </p>
 
                         <p className="mt-1 break-words font-semibold text-[#03162F]">
-                          {selected.sender}
+                          {
+                            selected.sender
+                          }
                         </p>
                       </div>
 
                       <span className="shrink-0 text-xs text-slate-400">
-                        {selected.time}
+                        {
+                          selected.time
+                        }
                       </span>
                     </div>
 
                     {/* SUBJECT */}
 
-                    {selected.details.subject && (
+                    {selected.details
+                      .subject && (
                       <div className="mt-4 border-t border-slate-200 pt-4">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Subject
                         </p>
 
                         <p className="mt-1 break-words font-semibold text-[#03162F]">
-                          {selected.details.subject}
+                          {
+                            selected
+                              .details
+                              .subject
+                          }
                         </p>
                       </div>
                     )}
@@ -646,7 +989,11 @@ export default function NotificationCenter() {
                       </p>
 
                       <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-slate-600">
-                        {selected.details.message}
+                        {
+                          selected
+                            .details
+                            .message
+                        }
                       </p>
                     </div>
                   </div>
@@ -735,28 +1082,25 @@ export default function NotificationCenter() {
                     )}
 
                   {/* =================================================
-                      ACTIONS
-                  ================================================= */}
-
-                  {/* =================================================
-    ACTIONS
-================================================= */}
-
-{/* =================================================
     ACTIONS
 ================================================= */}
 
 <div className="border-t border-slate-200 pt-5">
 
   {/* PRIMARY ACTIONS */}
-  <div className="grid grid-cols-3 gap-2">
+  <div
+    className={
+      selected.type === "booking"
+        ? "grid grid-cols-1 gap-2 sm:grid-cols-3"
+        : "grid grid-cols-1 gap-2 sm:grid-cols-2"
+    }
+  >
 
     {/* MARK AS READ */}
     <button
       type="button"
       onClick={() => {
         markAsRead(selected.id);
-        closeDetails();
       }}
       className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
     >
@@ -767,7 +1111,10 @@ export default function NotificationCenter() {
       </span>
     </button>
 
-    {/* BOOKING: ACCEPT */}
+    {/* =================================================
+        BOOKING ACTIONS
+    ================================================= */}
+
     {selected.type === "booking" && (
       <button
         type="button"
@@ -779,11 +1126,11 @@ export default function NotificationCenter() {
         className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
       >
         <Check className="h-4 w-4 shrink-0" />
-        Accept
+
+        <span>Accept</span>
       </button>
     )}
 
-    {/* BOOKING: REJECT */}
     {selected.type === "booking" && (
       <button
         type="button"
@@ -795,11 +1142,15 @@ export default function NotificationCenter() {
         className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
       >
         <X className="h-4 w-4 shrink-0" />
-        Reject
+
+        <span>Reject</span>
       </button>
     )}
 
-    {/* MESSAGE: REPLY */}
+    {/* =================================================
+        MESSAGE ACTION
+    ================================================= */}
+
     {selected.type === "message" && (
       <a
         href="/dashboard/messages"
@@ -807,11 +1158,15 @@ export default function NotificationCenter() {
         className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-[#03162F] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0A2852]"
       >
         <MessageCircle className="h-4 w-4 shrink-0" />
-        Reply
+
+        <span>Reply</span>
       </a>
     )}
 
-    {/* ISSUE: REVIEW */}
+    {/* =================================================
+        ISSUE ACTION
+    ================================================= */}
+
     {selected.type === "issue" && (
       <a
         href="/dashboard/notifications"
@@ -819,11 +1174,15 @@ export default function NotificationCenter() {
         className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
       >
         <Eye className="h-4 w-4 shrink-0" />
-        Review Issue
+
+        <span>Review Issue</span>
       </a>
     )}
 
-    {/* VIEW MORE */}
+    {/* =================================================
+        VIEW MORE
+    ================================================= */}
+
     <a
       href={
         selected.type === "booking"
@@ -836,6 +1195,7 @@ export default function NotificationCenter() {
       className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-[#03162F] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0A2852]"
     >
       <Eye className="h-4 w-4 shrink-0" />
+
       <span className="text-center leading-5">
         View More
       </span>
@@ -843,7 +1203,7 @@ export default function NotificationCenter() {
   </div>
 
   {/* =================================================
-      CLOSE — KEEP THIS EXACTLY AS IT IS
+      CLOSE BUTTON
   ================================================= */}
 
   <button
@@ -852,7 +1212,8 @@ export default function NotificationCenter() {
     className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
   >
     <X className="h-4 w-4" />
-    Close
+
+    <span>Close</span>
   </button>
 
 </div>

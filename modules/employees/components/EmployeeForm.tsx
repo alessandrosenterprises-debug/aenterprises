@@ -118,7 +118,7 @@ export default function EmployeeForm({
     }
       const employeeData = {
         business_id: data.business_id || null,
-        department_id: data.department_id || null,
+        department_id: data.department_id,
 
         full_name: data.full_name.trim(),
         phone: data.phone.trim(),

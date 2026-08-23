@@ -10,6 +10,12 @@ export async function POST() {
   try {
     const supabase = await createClient();
 
+    /*
+     * ---------------------------------------------------------
+     * 1. GET CURRENT USER
+     * ---------------------------------------------------------
+     */
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -25,21 +31,74 @@ export async function POST() {
       );
     }
 
+    const {
+  data: profile,
+  error: profileError,
+} = await supabase
+  .from("profiles")
+  .select("id")
+  .eq("auth_user_id", user.id)
+  .maybeSingle();
+
+if (profileError) {
+  console.error(
+    "Unable to load user profile:",
+    JSON.stringify(profileError, null, 2)
+  );
+
+  return NextResponse.json(
+    {
+      error: "Unable to load user profile.",
+    },
+    {
+      status: 500,
+    }
+  );
+}
+
+if (!profile) {
+  return NextResponse.json(
+    {
+      error:
+        "Your authenticated account does not have a profile record.",
+    },
+    {
+      status: 403,
+    }
+  );
+}
+
+const profileId = profile.id;
+
+    /*
+     * ---------------------------------------------------------
+     * 2. GET GMAIL INBOX
+     * ---------------------------------------------------------
+     */
+
     const messages = await getInboxMessages(50);
 
     let imported = 0;
     let skipped = 0;
+    let notificationsCreated = 0;
+    let notificationsSkipped = 0;
     let failed = 0;
+
+    /*
+     * ---------------------------------------------------------
+     * 3. PROCESS EACH GMAIL MESSAGE
+     * ---------------------------------------------------------
+     */
 
     for (const message of messages) {
       /*
-       * ---------------------------------------------------------
-       * 1. CHECK IF THIS GMAIL MESSAGE ALREADY EXISTS
-       * ---------------------------------------------------------
+       * -------------------------------------------------------
+       * 3A. CHECK WHETHER EMAIL ALREADY EXISTS
+       * -------------------------------------------------------
        */
 
       const {
-        data: existing,
+        data: existingEmail,
         error: lookupError,
       } = await supabase
         .from("emails")
@@ -64,21 +123,159 @@ export async function POST() {
         continue;
       }
 
-      if (existing) {
+      /*
+       * -------------------------------------------------------
+       * 3B. IF EMAIL ALREADY EXISTS
+       * -------------------------------------------------------
+       *
+       * The email itself must not be duplicated.
+       *
+       * However, we still check whether its notification
+       * exists. This repairs emails that were imported before
+       * notification support was added.
+       */
+
+      if (existingEmail) {
         skipped++;
+
+        const {
+          data: existingNotification,
+          error: notificationLookupError,
+        } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq(
+            "source_id",
+            message.gmail_message_id
+          )
+          .maybeSingle();
+
+        if (notificationLookupError) {
+          console.error(
+            "Notification lookup failed:",
+            JSON.stringify(
+              notificationLookupError,
+              null,
+              2
+            )
+          );
+
+          continue;
+        }
+
+        /*
+         * Notification already exists.
+         */
+
+        if (existingNotification) {
+          notificationsSkipped++;
+          continue;
+        }
+
+        /*
+         * No notification exists for this imported email.
+         * Create the missing notification.
+         */
+
+        const notificationPreview =
+          message.body
+            ?.replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 120) ||
+          message.subject ||
+          "New email received.";
+
+        const {
+          error: existingEmailNotificationError,
+        } = await supabase
+          .from("notifications")
+          .insert({
+            user_id:
+  profileId,
+
+            source_id:
+              message.gmail_message_id,
+
+            type:
+              "message",
+
+            title:
+              "New Customer Email",
+
+            sender:
+              message.sender_name ||
+              message.sender_email,
+
+            preview:
+              notificationPreview,
+
+            message:
+              message.body ||
+              "You received a new email.",
+
+            subject:
+              message.subject ||
+              null,
+
+            action_url:
+              "/dashboard/emails",
+
+            unread:
+              true,
+
+            is_read:
+              false,
+
+            created_at:
+              message.date &&
+              !Number.isNaN(
+                Date.parse(
+                  message.date
+                )
+              )
+                ? new Date(
+                    message.date
+                  ).toISOString()
+                : new Date().toISOString(),
+
+            updated_at:
+              new Date().toISOString(),
+          });
+
+        if (
+          existingEmailNotificationError
+        ) {
+          /*
+           * A unique conflict means another request
+           * created the notification at the same time.
+           */
+
+          if (
+            existingEmailNotificationError.code ===
+            "23505"
+          ) {
+            notificationsSkipped++;
+          } else {
+            console.error(
+              "Failed to create missing email notification:",
+              JSON.stringify(
+                existingEmailNotificationError,
+                null,
+                2
+              )
+            );
+          }
+        } else {
+          notificationsCreated++;
+        }
+
         continue;
       }
 
       /*
-       * ---------------------------------------------------------
-       * 2. FIND THE PARENT EMAIL
-       * ---------------------------------------------------------
-       *
-       * Gmail replies contain RFC Message-ID values such as:
-       *
-       * <abc123@gmail.com>
-       *
-       * These are different from Gmail's API message ID.
+       * -------------------------------------------------------
+       * 3C. FIND PARENT EMAIL
+       * -------------------------------------------------------
        */
 
       let parentEmailId:
@@ -89,8 +286,7 @@ export async function POST() {
         message.in_reply_to,
 
         ...(message.references
-          ? message.references
-              .split(/\s+/)
+          ? message.references.split(/\s+/)
           : []),
       ]
         .filter(
@@ -99,8 +295,7 @@ export async function POST() {
           ): value is string =>
             typeof value ===
               "string" &&
-            value.trim()
-              .length > 0
+            value.trim().length > 0
         )
         .map(
           (value) =>
@@ -108,9 +303,9 @@ export async function POST() {
         );
 
       /*
-       * ---------------------------------------------------------
-       * 3. MATCH USING RFC MESSAGE-ID
-       * ---------------------------------------------------------
+       * -------------------------------------------------------
+       * 3D. MATCH USING RFC MESSAGE-ID
+       * -------------------------------------------------------
        */
 
       for (const reference of references) {
@@ -128,10 +323,6 @@ export async function POST() {
           .maybeSingle();
 
         if (parentLookupError) {
-          /*
-           * Do not abort the entire sync because
-           * one parent lookup failed.
-           */
           console.error(
             "Email parent lookup failed:",
             JSON.stringify(
@@ -153,9 +344,9 @@ export async function POST() {
       }
 
       /*
-       * ---------------------------------------------------------
-       * 4. FALL BACK TO GMAIL THREAD
-       * ---------------------------------------------------------
+       * -------------------------------------------------------
+       * 3E. FALL BACK TO GMAIL THREAD
+       * -------------------------------------------------------
        */
 
       if (
@@ -199,9 +390,9 @@ export async function POST() {
       }
 
       /*
-       * ---------------------------------------------------------
-       * 5. CREATE VALID TIMESTAMP
-       * ---------------------------------------------------------
+       * -------------------------------------------------------
+       * 3F. CREATE VALID TIMESTAMP
+       * -------------------------------------------------------
        */
 
       const createdAt =
@@ -217,11 +408,9 @@ export async function POST() {
           : new Date().toISOString();
 
       /*
-       * ---------------------------------------------------------
-       * 6. INSERT INCOMING EMAIL
-       * ---------------------------------------------------------
-       *
-       * Incoming Gmail messages always start as Unread.
+       * -------------------------------------------------------
+       * 3G. INSERT EMAIL
+       * -------------------------------------------------------
        */
 
       const {
@@ -230,11 +419,14 @@ export async function POST() {
       } = await supabase
         .from("emails")
         .insert({
-          business_id: null,
+          business_id:
+            null,
 
-          customer_id: null,
+          customer_id:
+            null,
 
-          assigned_to: null,
+          assigned_to:
+            null,
 
           parent_email_id:
             parentEmailId,
@@ -272,10 +464,6 @@ export async function POST() {
           created_at:
             createdAt,
 
-          /*
-           * Gmail identifiers.
-           */
-
           gmail_message_id:
             message.gmail_message_id,
 
@@ -284,13 +472,6 @@ export async function POST() {
 
           gmail_message_date:
             createdAt,
-
-          /*
-           * RFC email identifiers.
-           *
-           * These allow us to connect Gmail replies
-           * to emails already stored in the OS.
-           */
 
           rfc_message_id:
             message.message_id,
@@ -304,12 +485,13 @@ export async function POST() {
         .select("id")
         .single();
 
-      if (insertError) {
-        /*
-         * A duplicate can still happen if two sync
-         * requests run at the same time.
-         */
+      /*
+       * -------------------------------------------------------
+       * 3H. HANDLE EMAIL INSERT ERROR
+       * -------------------------------------------------------
+       */
 
+      if (insertError) {
         if (
           insertError.code ===
           "23505"
@@ -332,13 +514,94 @@ export async function POST() {
       }
 
       /*
-       * ---------------------------------------------------------
-       * 7. IF THIS IS A REPLY, UPDATE THE PARENT
-       * ---------------------------------------------------------
-       *
-       * The newly imported email remains Unread.
-       *
-       * The previous email becomes Replied.
+       * -------------------------------------------------------
+       * 3I. CREATE NOTIFICATION FOR NEW EMAIL
+       * -------------------------------------------------------
+       */
+
+      const notificationPreview =
+        message.body
+          ?.replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 120) ||
+        message.subject ||
+        "New email received.";
+
+      const {
+        error:
+          newEmailNotificationError,
+      } = await supabase
+        .from("notifications")
+        .insert({
+          user_id:
+  profileId,
+
+          source_id:
+            message.gmail_message_id,
+
+          type:
+            "message",
+
+          title:
+            "New Customer Email",
+
+          sender:
+            message.sender_name ||
+            message.sender_email,
+
+          preview:
+            notificationPreview,
+
+          message:
+            message.body ||
+            "You received a new email.",
+
+          subject:
+            message.subject ||
+            null,
+
+          action_url:
+            "/dashboard/emails",
+
+          unread:
+            true,
+
+          is_read:
+            false,
+
+          created_at:
+            createdAt,
+
+          updated_at:
+            new Date().toISOString(),
+        });
+
+      if (
+        newEmailNotificationError
+      ) {
+        if (
+          newEmailNotificationError.code ===
+          "23505"
+        ) {
+          notificationsSkipped++;
+        } else {
+          console.error(
+            "Failed to create email notification:",
+            JSON.stringify(
+              newEmailNotificationError,
+              null,
+              2
+            )
+          );
+        }
+      } else {
+        notificationsCreated++;
+      }
+
+      /*
+       * -------------------------------------------------------
+       * 3J. UPDATE PARENT EMAIL IF THIS IS A REPLY
+       * -------------------------------------------------------
        */
 
       if (parentEmailId) {
@@ -371,24 +634,33 @@ export async function POST() {
         }
       }
 
+      /*
+       * -------------------------------------------------------
+       * 3K. COUNT SUCCESSFUL IMPORT
+       * -------------------------------------------------------
+       */
+
       imported++;
 
       console.log(
         `Imported Gmail email ${insertedEmail.id}` +
-          (parentEmailId
-            ? ` as reply to ${parentEmailId}`
-            : "")
+          (
+            parentEmailId
+              ? ` as reply to ${parentEmailId}`
+              : ""
+          )
       );
     }
 
     /*
      * ---------------------------------------------------------
-     * 8. RETURN SYNC RESULT
+     * 4. RETURN SYNC RESULT
      * ---------------------------------------------------------
      */
 
     return NextResponse.json({
-      success: true,
+      success:
+        true,
 
       checked:
         messages.length,
@@ -397,9 +669,19 @@ export async function POST() {
 
       skipped,
 
+      notificationsCreated,
+
+      notificationsSkipped,
+
       failed,
     });
   } catch (error) {
+    /*
+     * ---------------------------------------------------------
+     * 5. UNEXPECTED ERROR
+     * ---------------------------------------------------------
+     */
+
     console.error(
       "Gmail sync error:",
       error

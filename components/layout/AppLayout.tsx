@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
-
+import PageTransition from "./PageTransition";
 interface AppLayoutProps {
   children: ReactNode;
 }
@@ -30,8 +30,10 @@ export default function AppLayout({
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 p-6">
-            {children}
-          </main>
+  <PageTransition>
+    {children}
+  </PageTransition>
+</main>
 
           <Footer />
         </div>
