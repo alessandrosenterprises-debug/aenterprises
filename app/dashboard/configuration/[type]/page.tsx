@@ -20,24 +20,38 @@ const routeToConfigurationType: Record<
   businesses: "businesses",
   branches: "branches",
   operators: "operators",
+
   "mobile-money-services":
     "mobileMoneyServices",
-  "loan-products": "loanProducts",
+
+  "loan-products":
+    "loanProducts",
+
+  "loan-terms":
+    "loanTerms",
+
   categories: "categories",
   roles: "roles",
   permissions: "permissions",
+
   "company-settings":
     "companySettings",
 
-  // Backward-compatible aliases.
+  // Backward-compatible aliases
   mobileMoneyServices:
     "mobileMoneyServices",
+
   loanProducts:
     "loanProducts",
+
+  loanTerms:
+    "loanTerms",
+
   companySettings:
     "companySettings",
 
-  departments: "departments",
+  departments:
+    "departments",
 };
 
 export default async function Page({
@@ -50,9 +64,7 @@ export default async function Page({
 
   if (
     !configurationType ||
-    !configurationSchemas[
-      configurationType
-    ]
+    !configurationSchemas[configurationType]
   ) {
     notFound();
   }

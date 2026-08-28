@@ -1,8 +1,8 @@
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 
 /* ============================================================
    TYPES
-============================================================ */
+   ============================================================ */
 
 export type PlatformSettingsSection =
   | "customer_app"
@@ -75,31 +75,24 @@ export interface PlatformSettings {
   id: string;
 
   customer_app: CustomerAppSettings;
-
   website: WebsiteSettings;
-
   businesses: BusinessSettings;
-
   communications: CommunicationSettings;
-
   appearance: AppearanceSettings;
-
   system: SystemSettings;
 
   created_at?: string;
-
   updated_at?: string;
 }
 
 /* ============================================================
    DEFAULT SETTINGS
-============================================================ */
+   ============================================================ */
 
 export const defaultCustomerAppSettings: CustomerAppSettings = {
   app_name: "Alessandro Enterprises",
   logo_url: "",
-  welcome_message:
-    "Welcome to Alessandro Enterprises",
+  welcome_message: "Welcome to Alessandro Enterprises",
 
   bookings_enabled: true,
   products_enabled: true,
@@ -117,8 +110,7 @@ export const defaultWebsiteSettings: WebsiteSettings = {
   show_businesses: true,
   show_promotions: true,
 
-  homepage_heading:
-    "Welcome to Alessandro Enterprises",
+  homepage_heading: "Welcome to Alessandro Enterprises",
 
   meta_description: "",
 
@@ -166,34 +158,28 @@ export const defaultSystemSettings: SystemSettings = {
 
 /* ============================================================
    DEFAULT PLATFORM SETTINGS
-============================================================ */
+   ============================================================ */
 
 export const defaultPlatformSettings: Omit<
   PlatformSettings,
   "id"
 > = {
-  customer_app:
-    defaultCustomerAppSettings,
+  customer_app: defaultCustomerAppSettings,
 
-  website:
-    defaultWebsiteSettings,
+  website: defaultWebsiteSettings,
 
-  businesses:
-    defaultBusinessSettings,
+  businesses: defaultBusinessSettings,
 
-  communications:
-    defaultCommunicationSettings,
+  communications: defaultCommunicationSettings,
 
-  appearance:
-    defaultAppearanceSettings,
+  appearance: defaultAppearanceSettings,
 
-  system:
-    defaultSystemSettings,
+  system: defaultSystemSettings,
 };
 
 /* ============================================================
    ERROR HANDLING
-============================================================ */
+   ============================================================ */
 
 function getSupabaseErrorMessage(
   error: unknown
@@ -225,23 +211,58 @@ function getSupabaseErrorMessage(
   return String(error);
 }
 
+function getSupabaseErrorDetails(
+  error: unknown
+) {
+  if (
+    typeof error === "object" &&
+    error !== null
+  ) {
+    const err =
+      error as Record<string, unknown>;
+
+    return {
+      message: err.message ?? null,
+      details: err.details ?? null,
+      hint: err.hint ?? null,
+      code: err.code ?? null,
+    };
+  }
+
+  return {
+    message:
+      error instanceof Error
+        ? error.message
+        : String(error),
+
+    details: null,
+    hint: null,
+    code: null,
+  };
+}
+
 function throwSupabaseError(
   operation: string,
   error: unknown
 ): never {
+  const details =
+    getSupabaseErrorDetails(error);
+
   console.error(
     `Supabase ${operation} error:`,
-    error
+    details
   );
 
   throw new Error(
-    getSupabaseErrorMessage(error)
+    details.message
+      ? String(details.message)
+      : getSupabaseErrorMessage(error)
   );
 }
 
 /* ============================================================
    NORMALIZE SETTINGS
-============================================================ */
+   ============================================================ */
 
 function normalizePlatformSettings(
   data: any
@@ -289,27 +310,27 @@ function normalizePlatformSettings(
 
 /* ============================================================
    GET ALL PLATFORM SETTINGS
-============================================================ */
+   ============================================================ */
 
 export async function getPlatformSettings(): Promise<PlatformSettings> {
+  const supabase = await createClient();
+
   const {
     data,
     error,
   } = await supabase
     .from("platform_settings")
-    .select(
-      `
-        id,
-        customer_app,
-        website,
-        businesses,
-        communications,
-        appearance,
-        system,
-        created_at,
-        updated_at
-      `
-    )
+    .select(`
+      id,
+      customer_app,
+      website,
+      businesses,
+      communications,
+      appearance,
+      system,
+      created_at,
+      updated_at
+    `)
     .order("created_at", {
       ascending: true,
     })
@@ -323,15 +344,6 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
     );
   }
 
-  /*
-   * If the database row does not exist,
-   * return the defaults.
-   *
-   * We do NOT insert automatically here.
-   * Loading should never unexpectedly
-   * create database records.
-   */
-
   if (!data) {
     return {
       id: "",
@@ -339,14 +351,12 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
     };
   }
 
-  return normalizePlatformSettings(
-    data
-  );
+  return normalizePlatformSettings(data);
 }
 
 /* ============================================================
    GET ONE SETTINGS SECTION
-============================================================ */
+   ============================================================ */
 
 export async function getPlatformSettingsSection<
   T extends PlatformSettingsSection
@@ -361,16 +371,16 @@ export async function getPlatformSettingsSection<
 
 /* ============================================================
    UPDATE ONE SETTINGS SECTION
-============================================================ */
+   ============================================================ */
 
 export async function updatePlatformSettingsSection<
   T extends PlatformSettingsSection
 >(
   section: T,
-  values: Partial<
-    PlatformSettings[T]
-  >
+  values: Partial<PlatformSettings[T]>
 ): Promise<PlatformSettings> {
+  const supabase = await createClient();
+
   const current =
     await getPlatformSettings();
 
@@ -384,13 +394,14 @@ export async function updatePlatformSettingsSection<
 
   const updateValues = {
     [section]: updatedSection,
+
     updated_at:
       new Date().toISOString(),
   };
 
-  /*
-   * Existing platform_settings row
-   */
+  /* ==========================================================
+     UPDATE EXISTING ROW
+     ========================================================== */
 
   if (current.id) {
     const {
@@ -400,19 +411,17 @@ export async function updatePlatformSettingsSection<
       .from("platform_settings")
       .update(updateValues)
       .eq("id", current.id)
-      .select(
-        `
-          id,
-          customer_app,
-          website,
-          businesses,
-          communications,
-          appearance,
-          system,
-          created_at,
-          updated_at
-        `
-      )
+      .select(`
+        id,
+        customer_app,
+        website,
+        businesses,
+        communications,
+        appearance,
+        system,
+        created_at,
+        updated_at
+      `)
       .single();
 
     if (error) {
@@ -422,17 +431,12 @@ export async function updatePlatformSettingsSection<
       );
     }
 
-    return normalizePlatformSettings(
-      data
-    );
+    return normalizePlatformSettings(data);
   }
 
-  /*
-   * No row exists yet.
-   *
-   * Create the complete configuration
-   * using defaults for all other sections.
-   */
+  /* ==========================================================
+     CREATE COMPLETE SETTINGS ROW
+     ========================================================== */
 
   const insertValues = {
     customer_app:
@@ -472,19 +476,17 @@ export async function updatePlatformSettingsSection<
   } = await supabase
     .from("platform_settings")
     .insert(insertValues)
-    .select(
-      `
-        id,
-        customer_app,
-        website,
-        businesses,
-        communications,
-        appearance,
-        system,
-        created_at,
-        updated_at
-      `
-    )
+    .select(`
+      id,
+      customer_app,
+      website,
+      businesses,
+      communications,
+      appearance,
+      system,
+      created_at,
+      updated_at
+    `)
     .single();
 
   if (error) {
@@ -494,14 +496,12 @@ export async function updatePlatformSettingsSection<
     );
   }
 
-  return normalizePlatformSettings(
-    data
-  );
+  return normalizePlatformSettings(data);
 }
 
 /* ============================================================
    UPDATE MULTIPLE SETTINGS SECTIONS
-============================================================ */
+   ============================================================ */
 
 export async function updatePlatformSettings(
   values: Partial<
@@ -516,6 +516,8 @@ export async function updatePlatformSettings(
     >
   >
 ): Promise<PlatformSettings> {
+  const supabase = await createClient();
+
   const current =
     await getPlatformSettings();
 
@@ -548,9 +550,9 @@ export async function updatePlatformSettings(
       new Date().toISOString(),
   };
 
-  /*
-   * Update existing row.
-   */
+  /* ==========================================================
+     UPDATE EXISTING ROW
+     ========================================================== */
 
   if (current.id) {
     const {
@@ -560,46 +562,7 @@ export async function updatePlatformSettings(
       .from("platform_settings")
       .update(updateValues)
       .eq("id", current.id)
-      .select(
-        `
-          id,
-          customer_app,
-          website,
-          businesses,
-          communications,
-          appearance,
-          system,
-          created_at,
-          updated_at
-        `
-      )
-      .single();
-
-    if (error) {
-      throwSupabaseError(
-        "updating platform settings",
-        error
-      );
-    }
-
-    return normalizePlatformSettings(
-      data
-    );
-  }
-
-  /*
-   * Create the configuration row
-   * if it doesn't exist.
-   */
-
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("platform_settings")
-    .insert(updateValues)
-    .select(
-      `
+      .select(`
         id,
         customer_app,
         website,
@@ -609,8 +572,40 @@ export async function updatePlatformSettings(
         system,
         created_at,
         updated_at
-      `
-    )
+      `)
+      .single();
+
+    if (error) {
+      throwSupabaseError(
+        "updating platform settings",
+        error
+      );
+    }
+
+    return normalizePlatformSettings(data);
+  }
+
+  /* ==========================================================
+     CREATE SETTINGS ROW
+     ========================================================== */
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("platform_settings")
+    .insert(updateValues)
+    .select(`
+      id,
+      customer_app,
+      website,
+      businesses,
+      communications,
+      appearance,
+      system,
+      created_at,
+      updated_at
+    `)
     .single();
 
   if (error) {
@@ -620,14 +615,12 @@ export async function updatePlatformSettings(
     );
   }
 
-  return normalizePlatformSettings(
-    data
-  );
+  return normalizePlatformSettings(data);
 }
 
 /* ============================================================
    SAVE CUSTOMER APP SETTINGS
-============================================================ */
+   ============================================================ */
 
 export async function saveCustomerAppSettings(
   values: Partial<CustomerAppSettings>
@@ -640,7 +633,7 @@ export async function saveCustomerAppSettings(
 
 /* ============================================================
    SAVE WEBSITE SETTINGS
-============================================================ */
+   ============================================================ */
 
 export async function saveWebsiteSettings(
   values: Partial<WebsiteSettings>
@@ -653,7 +646,7 @@ export async function saveWebsiteSettings(
 
 /* ============================================================
    SAVE BUSINESS SETTINGS
-============================================================ */
+   ============================================================ */
 
 export async function saveBusinessSettings(
   values: Partial<BusinessSettings>
@@ -666,7 +659,7 @@ export async function saveBusinessSettings(
 
 /* ============================================================
    SAVE COMMUNICATION SETTINGS
-============================================================ */
+   ============================================================ */
 
 export async function saveCommunicationSettings(
   values: Partial<CommunicationSettings>
@@ -679,7 +672,7 @@ export async function saveCommunicationSettings(
 
 /* ============================================================
    SAVE APPEARANCE SETTINGS
-============================================================ */
+   ============================================================ */
 
 export async function saveAppearanceSettings(
   values: Partial<AppearanceSettings>
@@ -692,7 +685,7 @@ export async function saveAppearanceSettings(
 
 /* ============================================================
    SAVE SYSTEM SETTINGS
-============================================================ */
+   ============================================================ */
 
 export async function saveSystemSettings(
   values: Partial<SystemSettings>
@@ -704,19 +697,54 @@ export async function saveSystemSettings(
 }
 
 /* ============================================================
-   LEGACY GENERIC CREATE
-   ------------------------------------------------------------
-   Kept temporarily so existing configuration modules
-   do not break while we migrate them to the new service.
-============================================================ */
+   GENERIC GET CONFIGURATION
+   ============================================================ */
+
+export async function getConfiguration(
+  table: string
+) {
+  const supabase = await createClient();
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(table)
+    .select("*")
+    .order("created_at", {
+      ascending: false,
+    });
+
+  if (error) {
+    throwSupabaseError(
+      `loading configuration from ${table}`,
+      error
+    );
+  }
+
+  return data ?? [];
+}
+
+/* ============================================================
+   GENERIC CREATE CONFIGURATION
+   ============================================================ */
 
 export async function createConfiguration(
   table: string,
   values: Record<string, unknown>
 ) {
-  console.warn(
-    `createConfiguration("${table}") is using the legacy generic configuration API.`
-  );
+  const supabase = await createClient();
+
+  const {
+    data: userData,
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  console.log("RLS CREATE DIAGNOSTIC:", {
+    table,
+    userId: userData.user?.id ?? null,
+    userError: userError?.message ?? null,
+  });
 
   const {
     data,
@@ -728,6 +756,18 @@ export async function createConfiguration(
     .single();
 
   if (error) {
+    console.error("RLS INSERT FAILED:", {
+      table,
+      userId: userData.user?.id ?? null,
+      userError: userError?.message ?? null,
+      error: {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      },
+    });
+
     throwSupabaseError(
       `creating configuration in ${table}`,
       error
@@ -736,21 +776,16 @@ export async function createConfiguration(
 
   return data;
 }
-
 /* ============================================================
-   LEGACY GENERIC UPDATE
-   ------------------------------------------------------------
-   Kept temporarily for compatibility.
-============================================================ */
+   GENERIC UPDATE CONFIGURATION
+   ============================================================ */
 
 export async function updateConfiguration(
   table: string,
   id: string,
   values: Record<string, unknown>
 ) {
-  console.warn(
-    `updateConfiguration("${table}") is using the legacy generic configuration API.`
-  );
+  const supabase = await createClient();
 
   const {
     data,
@@ -773,18 +808,14 @@ export async function updateConfiguration(
 }
 
 /* ============================================================
-   LEGACY GENERIC DELETE
-   ------------------------------------------------------------
-   Kept temporarily for compatibility.
-============================================================ */
+   GENERIC DELETE CONFIGURATION
+   ============================================================ */
 
 export async function deleteConfiguration(
   table: string,
   id: string
 ) {
-  console.warn(
-    `deleteConfiguration("${table}") is using the legacy generic configuration API.`
-  );
+  const supabase = await createClient();
 
   const {
     error,
@@ -805,9 +836,7 @@ export async function deleteConfiguration(
 
 /* ============================================================
    CONFIGURATION FORM TYPES
-   ------------------------------------------------------------
-   Existing configuration pages can continue importing these.
-============================================================ */
+   ============================================================ */
 
 export type ConfigurationFieldType =
   | "text"

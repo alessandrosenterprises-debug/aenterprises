@@ -8,6 +8,7 @@ import { loanProductsSchema } from "./loan-products";
 import { categoriesSchema } from "./categories";
 import { businessesSchema } from "./businesses";
 import { companySettingsSchema } from "./company-settings";
+import { loanTermsSchema } from "./loan-terms";
 
 export const configurationSchemas = {
   departments: departmentsSchema,
@@ -17,6 +18,7 @@ export const configurationSchemas = {
   branches: branchesSchema,
   operators: operatorsSchema,
   mobileMoneyServices: mobileMoneyServicesSchema,
+  loanTerms: loanTermsSchema,
   loanProducts: loanProductsSchema,
   categories: categoriesSchema,
   companySettings: companySettingsSchema,

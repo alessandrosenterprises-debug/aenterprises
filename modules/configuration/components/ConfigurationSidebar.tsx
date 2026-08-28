@@ -29,6 +29,11 @@ const menu = [
     href: "/dashboard/configuration/loan-products",
     icon: "🏦",
   },
+{
+  label: "Loan Terms",
+  href: "/dashboard/configuration/loanTerms",
+  icon: "📅",
+},
   {
     label: "Categories",
     href: "/dashboard/configuration/categories",

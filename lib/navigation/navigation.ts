@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   MessageCircle,
   UsersRound,
+  HandCoins,
   type LucideIcon,
 } from "lucide-react";
 
@@ -76,6 +77,20 @@ export const navigation: NavigationItem[] = [
 
   /*
    * ==========================================================
+   * CUSTOMER LOANS
+   *
+   * Operational customer loan management lives here.
+   * This is separate from HR employee loans & advances.
+   * ==========================================================
+   */
+  {
+    title: "Customer Loans",
+    href: "/dashboard/loans",
+    icon: HandCoins,
+  },
+
+  /*
+   * ==========================================================
    * HUMAN RESOURCES
    *
    * Everything related to employees, departments,
@@ -83,43 +98,43 @@ export const navigation: NavigationItem[] = [
    * ==========================================================
    */
   {
-  title: "Human Resources",
-  icon: UsersRound,
-  children: [
-    {
-      title: "HR Overview",
-      href: "/dashboard/hr",
-    },
-    {
-      title: "Employees",
-      href: "/dashboard/hr/employees",
-    },
-    {
-      title: "Departments",
-      href: "/dashboard/hr/departments",
-    },
-    {
-      title: "Leave & Attendance",
-      href: "/dashboard/hr/leave-attendance",
-    },
-    {
-      title: "Employee Documents",
-      href: "/dashboard/hr/documents",
-    },
-    {
-      title: "Loans & Advances",
-      href: "/dashboard/hr/loans-advances",
-    },
-    {
-      title: "Payroll",
-      href: "/dashboard/hr/payroll",
-    },
-    {
-      title: "HR Reports",
-      href: "/dashboard/hr/reports",
-    },
-  ],
-},
+    title: "Human Resources",
+    icon: UsersRound,
+    children: [
+      {
+        title: "HR Overview",
+        href: "/dashboard/hr",
+      },
+      {
+        title: "Employees",
+        href: "/dashboard/hr/employees",
+      },
+      {
+        title: "Departments",
+        href: "/dashboard/hr/departments",
+      },
+      {
+        title: "Leave & Attendance",
+        href: "/dashboard/hr/leave-attendance",
+      },
+      {
+        title: "Employee Documents",
+        href: "/dashboard/hr/documents",
+      },
+      {
+        title: "Loans & Advances",
+        href: "/dashboard/hr/loans-advances",
+      },
+      {
+        title: "Payroll",
+        href: "/dashboard/hr/payroll",
+      },
+      {
+        title: "HR Reports",
+        href: "/dashboard/hr/reports",
+      },
+    ],
+  },
 
   {
     title: "Emails",
@@ -157,6 +172,11 @@ export const navigation: NavigationItem[] = [
     icon: BarChart3,
   },
 
+  /*
+   * ==========================================================
+   * CONFIGURATION
+   * ==========================================================
+   */
   {
     title: "Configuration",
     icon: SlidersHorizontal,
@@ -188,6 +208,10 @@ export const navigation: NavigationItem[] = [
       {
         title: "Loan Products",
         href: "/dashboard/configuration/loan-products",
+      },
+      {
+        title: "Loan Terms",
+        href: "/dashboard/configuration/loan-terms",
       },
       {
         title: "Categories",

@@ -8,7 +8,13 @@ import {
 
 import ConfigurationManager from "../components/ConfigurationManager";
 
-import { getBusinesses } from "@/modules/businesses/services/business.service";
+import {
+  getBusinesses,
+} from "@/modules/businesses/services/business.service";
+
+import {
+  getConfigurationLoanProducts,
+} from "@/modules/loans/services/loan-products.service";
 
 interface ConfigurationPageProps {
   type: string;
@@ -17,32 +23,163 @@ interface ConfigurationPageProps {
 export default async function ConfigurationPage({
   type,
 }: ConfigurationPageProps) {
-  const schema =
+  /* ==========================================================
+     LOAD CONFIGURATION SCHEMA
+     ========================================================== */
+
+  const baseSchema =
     getConfigurationSchema(type as any);
 
-  if (!schema) {
+  if (!baseSchema) {
     throw new Error(
       `Configuration schema not found for "${type}".`
     );
   }
 
+  /* ==========================================================
+     LOAD CONFIGURATION DATA
+     ========================================================== */
+
   const rows =
-    await getConfiguration(schema.table);
+    await getConfiguration(
+      baseSchema.table
+    );
+
+  /* ==========================================================
+     LOAD BUSINESSES
+     ========================================================== */
 
   const businesses =
-    schema.table === "branches"
+    baseSchema.table === "branches"
       ? await getBusinesses()
       : [];
+
+  /* ==========================================================
+     LOAD LOAN PRODUCTS
+     ========================================================== */
+
+  const loanProducts =
+    baseSchema.table ===
+    "loan_product_terms"
+      ? await getConfigurationLoanProducts()
+      : [];
+
+  /* ==========================================================
+     BUILD FINAL SCHEMA
+     ========================================================== */
+
+  const schema = {
+    ...baseSchema,
+
+    fields: baseSchema.fields.map(
+      (field) => {
+        /* ====================================================
+           LOAN PRODUCT DROPDOWN
+           ==================================================== */
+
+        if (
+          baseSchema.table ===
+            "loan_product_terms" &&
+          field.key ===
+            "loan_product_id"
+        ) {
+          return {
+            ...field,
+
+            type: "select" as const,
+
+            options:
+              loanProducts.map(
+                (product) => ({
+                  label: product.name,
+                  value: product.id,
+                })
+              ),
+          };
+        }
+
+        return field;
+      }
+    ),
+  };
+
+  /* ==========================================================
+     DISPLAY ROWS
+     ==========================================================
+
+     loan_product_terms stores:
+
+       loan_product_id = UUID
+
+     The administrator should see:
+
+       Customer Loan
+
+     instead of:
+
+       61365b2b-7b74-4c0b-a546-0d779b5df1d3
+
+     We keep the original loan_product_id on the row because
+     Edit still needs the UUID.
+     ========================================================== */
+
+  const displayRows =
+    baseSchema.table ===
+    "loan_product_terms"
+      ? rows.map((row) => {
+          const product =
+            loanProducts.find(
+              (item) =>
+                item.id ===
+                row.loan_product_id
+            );
+
+          return {
+            ...row,
+
+            loan_product_name:
+              product?.name ??
+              row.loan_product_id ??
+              "Unknown Loan Product",
+          };
+        })
+      : rows;
+
+  /* ==========================================================
+     TABLE COLUMNS
+     ========================================================== */
 
   const columns = schema.fields
     .filter(
       (field) =>
         field.type !== "image"
     )
-    .map((field) => ({
-      key: field.key,
-      label: field.label,
-    }));
+    .map((field) => {
+      /*
+       * Replace the raw foreign-key column with
+       * the friendly loan product name.
+       */
+      if (
+        baseSchema.table ===
+          "loan_product_terms" &&
+        field.key ===
+          "loan_product_id"
+      ) {
+        return {
+          key: "loan_product_name",
+          label: "Loan Product",
+        };
+      }
+
+      return {
+        key: field.key,
+        label: field.label,
+      };
+    });
+
+  /* ==========================================================
+     PAGE
+     ========================================================== */
 
   return (
     <div className="min-w-0 space-y-6">
@@ -58,7 +195,7 @@ export default async function ConfigurationPage({
 
       <ConfigurationManager
         schema={schema}
-        initialRows={rows}
+        initialRows={displayRows}
         columns={columns}
         businesses={businesses}
       />

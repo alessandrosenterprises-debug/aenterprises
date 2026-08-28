@@ -8,10 +8,10 @@ import ConfigurationTable from "./ConfigurationTable";
 import ConfigurationForm from "./ConfigurationForm";
 
 import {
-  createConfiguration,
-  updateConfiguration,
-  deleteConfiguration,
-} from "../services/configuration.service";
+  createConfigurationAction,
+  updateConfigurationAction,
+  deleteConfigurationAction,
+} from "@/app/dashboard/configuration/actions";
 
 import { ConfigurationSchema } from "../types/configuration";
 
@@ -22,14 +22,11 @@ interface Business {
 
 interface ConfigurationManagerProps {
   schema: ConfigurationSchema;
-
   initialRows: Record<string, any>[];
-
   columns: {
     key: string;
     label: string;
   }[];
-
   businesses?: Business[];
 }
 
@@ -41,29 +38,17 @@ export default function ConfigurationManager({
 }: ConfigurationManagerProps) {
   const router = useRouter();
 
-  const [showForm, setShowForm] =
-    useState(false);
-
+  const [showForm, setShowForm] = useState(false);
   const [editingRow, setEditingRow] =
     useState<Record<string, any> | null>(null);
-
   const [viewingRow, setViewingRow] =
     useState<Record<string, any> | null>(null);
 
-  /*
-   * Businesses stores `active` in Supabase,
-   * while the UI uses `status`.
-   *
-   * Keep the original `active` value and add
-   * a display-only `status` property.
-   */
   const displayRows =
     schema.table === "businesses"
       ? initialRows.map((row) => ({
           ...row,
-          status: row.active
-            ? "Active"
-            : "Inactive",
+          status: row.active ? "Active" : "Inactive",
         }))
       : initialRows;
 
@@ -73,43 +58,27 @@ export default function ConfigurationManager({
     setShowForm(true);
   }
 
-  function handleView(
-    row: Record<string, any>
-  ) {
+  function handleView(row: Record<string, any>) {
     setShowForm(false);
     setEditingRow(null);
 
-    /*
-     * Make sure Businesses has a UI status
-     * when opened in the View modal.
-     */
     if (schema.table === "businesses") {
       setViewingRow({
         ...row,
-        status: row.active
-          ? "Active"
-          : "Inactive",
+        status: row.active ? "Active" : "Inactive",
       });
     } else {
       setViewingRow(row);
     }
   }
 
-  function handleEdit(
-    row: Record<string, any>
-  ) {
+  function handleEdit(row: Record<string, any>) {
     setViewingRow(null);
 
-    /*
-     * Convert database `active` boolean
-     * into the UI `status` select value.
-     */
     if (schema.table === "businesses") {
       setEditingRow({
         ...row,
-        status: row.active
-          ? "Active"
-          : "Inactive",
+        status: row.active ? "Active" : "Inactive",
       });
     } else {
       setEditingRow(row);
@@ -127,9 +96,7 @@ export default function ConfigurationManager({
     setViewingRow(null);
   }
 
-  function formatValue(
-    value: unknown
-  ): string {
+  function formatValue(value: unknown): string {
     if (
       value === null ||
       value === undefined ||
@@ -144,11 +111,7 @@ export default function ConfigurationManager({
 
     if (typeof value === "object") {
       try {
-        return JSON.stringify(
-          value,
-          null,
-          2
-        );
+        return JSON.stringify(value, null, 2);
       } catch {
         return String(value);
       }
@@ -161,25 +124,14 @@ export default function ConfigurationManager({
     values: Record<string, any>
   ) {
     try {
-      /*
-       * Never mutate the original form object.
-       */
       const payload = {
         ...values,
       };
 
       /*
-       * ======================================================
-       * BUSINESSES
-       * ======================================================
-       *
-       * UI:
-       *   status = "Active" | "Inactive"
-       *
-       * Database:
-       *   active = true | false
-       *
-       * Do NOT send `status` to Supabase.
+       * Businesses:
+       * UI uses status.
+       * Database uses active.
        */
       if (schema.table === "businesses") {
         payload.active =
@@ -188,13 +140,8 @@ export default function ConfigurationManager({
         delete payload.status;
       }
 
-      /*
-       * ======================================================
-       * UPDATE
-       * ======================================================
-       */
       if (editingRow?.id) {
-        await updateConfiguration(
+        await updateConfigurationAction(
           schema.table,
           editingRow.id,
           payload
@@ -204,12 +151,7 @@ export default function ConfigurationManager({
           `${schema.title} updated successfully.`
         );
       } else {
-        /*
-         * ====================================================
-         * CREATE
-         * ====================================================
-         */
-        await createConfiguration(
+        await createConfigurationAction(
           schema.table,
           payload
         );
@@ -220,7 +162,6 @@ export default function ConfigurationManager({
       }
 
       closeForm();
-
       router.refresh();
     } catch (error: any) {
       console.error(
@@ -242,7 +183,6 @@ export default function ConfigurationManager({
       toast.error(
         "This record has no ID."
       );
-
       return;
     }
 
@@ -258,32 +198,27 @@ export default function ConfigurationManager({
         .toLowerCase()
         .replace(/s$/, "");
 
-    const confirmed =
-      window.confirm(
-        recordName
-          ? `Are you sure you want to delete "${recordName}"?`
-          : `Are you sure you want to delete this ${itemName}?`
-      );
+    const confirmed = window.confirm(
+      recordName
+        ? `Are you sure you want to delete "${recordName}"?`
+        : `Are you sure you want to delete this ${itemName}?`
+    );
 
     if (!confirmed) {
       return;
     }
 
     try {
-      await deleteConfiguration(
+      await deleteConfigurationAction(
         schema.table,
         row.id
       );
 
-      if (
-        viewingRow?.id === row.id
-      ) {
+      if (viewingRow?.id === row.id) {
         setViewingRow(null);
       }
 
-      if (
-        editingRow?.id === row.id
-      ) {
+      if (editingRow?.id === row.id) {
         closeForm();
       }
 
@@ -305,42 +240,31 @@ export default function ConfigurationManager({
     }
   }
 
-  /*
-   * Add business options to the Branch form.
-   */
   const formSchema = {
     ...schema,
 
-    fields: schema.fields.map(
-      (field) => {
-        if (
-          schema.table === "branches" &&
-          field.key === "business_id"
-        ) {
-          return {
-            ...field,
-
-            options:
-              businesses.map(
-                (business) => ({
-                  label: business.name,
-                  value: business.id,
-                })
-              ),
-          };
-        }
-
-        return field;
+    fields: schema.fields.map((field) => {
+      if (
+        schema.table === "branches" &&
+        field.key === "business_id"
+      ) {
+        return {
+          ...field,
+          options: businesses.map(
+            (business) => ({
+              label: business.name,
+              value: business.id,
+            })
+          ),
+        };
       }
-    ),
+
+      return field;
+    }),
   };
 
   return (
     <>
-      {/* ======================================================
-          CONFIGURATION TABLE
-          ====================================================== */}
-
       <ConfigurationTable
         title={schema.title}
         rows={displayRows}
@@ -350,10 +274,6 @@ export default function ConfigurationManager({
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
-
-      {/* ======================================================
-          VIEW MODAL
-          ====================================================== */}
 
       {viewingRow && (
         <div
@@ -391,26 +311,22 @@ export default function ConfigurationManager({
 
             <div className="p-6">
               <div className="grid gap-4 md:grid-cols-2">
-                {columns.map(
-                  (column) => (
-                    <div
-                      key={column.key}
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        {column.label}
-                      </p>
+                {columns.map((column) => (
+                  <div
+                    key={column.key}
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {column.label}
+                    </p>
 
-                      <div className="whitespace-pre-wrap break-words text-sm font-medium text-slate-900">
-                        {formatValue(
-                          viewingRow[
-                            column.key
-                          ]
-                        )}
-                      </div>
+                    <div className="whitespace-pre-wrap break-words text-sm font-medium text-slate-900">
+                      {formatValue(
+                        viewingRow[column.key]
+                      )}
                     </div>
-                  )
-                )}
+                  </div>
+                ))}
               </div>
 
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-5">
@@ -425,8 +341,7 @@ export default function ConfigurationManager({
                 <button
                   type="button"
                   onClick={() => {
-                    const row =
-                      viewingRow;
+                    const row = viewingRow;
 
                     if (!row) {
                       return;
@@ -444,10 +359,6 @@ export default function ConfigurationManager({
           </div>
         </div>
       )}
-
-      {/* ======================================================
-          CREATE / EDIT MODAL
-          ====================================================== */}
 
       {showForm && (
         <div
@@ -489,8 +400,7 @@ export default function ConfigurationManager({
               <ConfigurationForm
                 schema={formSchema}
                 defaultValues={
-                  editingRow ??
-                  undefined
+                  editingRow ?? undefined
                 }
                 onSubmit={handleSubmit}
               />
