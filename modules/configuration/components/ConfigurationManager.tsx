@@ -125,8 +125,14 @@ export default function ConfigurationManager({
   ) {
     try {
       const payload = {
-        ...values,
-      };
+  ...values,
+};
+
+// loan_product_name is a UI-only display field.
+// loan_product_terms stores loan_product_id instead.
+if (schema.table === "loan_product_terms") {
+  delete payload.loan_product_name;
+}
 
       /*
        * Businesses:

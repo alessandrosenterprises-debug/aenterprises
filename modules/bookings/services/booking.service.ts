@@ -82,6 +82,11 @@ export interface BookingFormData {
     business_id: string;
   }[];
 
+  /*
+   * IMPORTANT:
+   * Booking form receives SERVICES ONLY.
+   * Products belong to the Orders workflow.
+   */
   catalogItems: {
     id: string;
     name: string;
@@ -90,6 +95,10 @@ export interface BookingFormData {
     base_price: number;
   }[];
 }
+
+/* ============================================================
+   GET BOOKINGS
+   ============================================================ */
 
 export async function getBookings(): Promise<Booking[]> {
   const supabase = await createClient();
@@ -111,23 +120,28 @@ export async function getBookings(): Promise<Booking[]> {
       notes,
       created_at,
       updated_at,
+
       businesses (
         id,
         name
       ),
+
       customers (
         id,
         full_name,
         phone
       ),
+
       employees (
         id,
         full_name
       ),
+
       branches (
         id,
         name
       ),
+
       enterprise_catalog (
         id,
         name,
@@ -162,6 +176,10 @@ export async function getBookings(): Promise<Booking[]> {
   });
 }
 
+/* ============================================================
+   BOOKING FORM DATA
+   ============================================================ */
+
 export async function getBookingFormData(): Promise<BookingFormData> {
   const supabase = await createClient();
 
@@ -172,26 +190,55 @@ export async function getBookingFormData(): Promise<BookingFormData> {
     branchesResult,
     catalogResult,
   ] = await Promise.all([
+    /* --------------------------------------------------------
+       BUSINESSES
+       -------------------------------------------------------- */
+
     supabase
       .from("businesses")
       .select("id, name")
       .order("name"),
 
+    /* --------------------------------------------------------
+       CUSTOMERS
+       -------------------------------------------------------- */
+
     supabase
       .from("customers")
-      .select("id, full_name, phone, business_id")
+      .select(
+        "id, full_name, phone, business_id"
+      )
       .order("full_name"),
+
+    /* --------------------------------------------------------
+       EMPLOYEES
+       -------------------------------------------------------- */
 
     supabase
       .from("employees")
-      .select("id, full_name, business_id, branch_id")
+      .select(
+        "id, full_name, business_id, branch_id"
+      )
       .eq("is_active", true)
       .order("full_name"),
 
+    /* --------------------------------------------------------
+       BRANCHES
+       -------------------------------------------------------- */
+
     supabase
       .from("branches")
-      .select("id, name, business_id")
+      .select(
+        "id, name, business_id"
+      )
       .order("name"),
+
+    /* --------------------------------------------------------
+       SERVICES ONLY
+       
+       IMPORTANT:
+       Products must NOT appear in the Booking form.
+       -------------------------------------------------------- */
 
     supabase
       .from("enterprise_catalog")
@@ -199,42 +246,86 @@ export async function getBookingFormData(): Promise<BookingFormData> {
         "id, name, item_type, business_id, base_price"
       )
       .eq("status", "Active")
+      .eq("item_type", "Service")
       .order("name"),
   ]);
 
+  /* ==========================================================
+     ERROR HANDLING
+     ========================================================== */
+
   if (businessesResult.error) {
+    console.error(
+      "Booking businesses error:",
+      businessesResult.error
+    );
+
     throw businessesResult.error;
   }
 
   if (customersResult.error) {
+    console.error(
+      "Booking customers error:",
+      customersResult.error
+    );
+
     throw customersResult.error;
   }
 
   if (employeesResult.error) {
+    console.error(
+      "Booking employees error:",
+      employeesResult.error
+    );
+
     throw employeesResult.error;
   }
 
   if (branchesResult.error) {
+    console.error(
+      "Booking branches error:",
+      branchesResult.error
+    );
+
     throw branchesResult.error;
   }
 
   if (catalogResult.error) {
+    console.error(
+      "Booking services error:",
+      catalogResult.error
+    );
+
     throw catalogResult.error;
   }
 
+  /* ==========================================================
+     RETURN FORM DATA
+     ========================================================== */
+
   return {
     businesses: businessesResult.data ?? [],
+
     customers: customersResult.data ?? [],
+
     employees: employeesResult.data ?? [],
+
     branches: branchesResult.data ?? [],
+
     catalogItems: (catalogResult.data ?? []).map(
       (item) => ({
         ...item,
-        base_price: Number(item.base_price ?? 0),
+        base_price: Number(
+          item.base_price ?? 0
+        ),
       })
     ),
   };
 }
+
+/* ============================================================
+   BOOKING STATISTICS
+   ============================================================ */
 
 export async function getBookingStats() {
   const supabase = await createClient();
@@ -263,17 +354,23 @@ export async function getBookingStats() {
 
   const bookings = data ?? [];
 
+  /* ----------------------------------------------------------
+     PAID BOOKING REVENUE
+     ---------------------------------------------------------- */
+
   const revenue = bookings
-  .filter(
-    (booking) =>
-      booking.payment_status === "Paid"
-  )
-  .reduce(
-    (total, booking) =>
-      total + Number(booking.amount ?? 0),
-    0
-  );
-    return {
+    .filter(
+      (booking) =>
+        booking.payment_status === "Paid"
+    )
+    .reduce(
+      (total, booking) =>
+        total +
+        Number(booking.amount ?? 0),
+      0
+    );
+
+  return {
     total: bookings.length,
 
     pending: bookings.filter(
@@ -299,6 +396,10 @@ export async function getBookingStats() {
     revenue,
   };
 }
+
+/* ============================================================
+   BOOKINGS FOR REPORTS
+   ============================================================ */
 
 export async function getBookingsForReport({
   fromDate,
@@ -328,29 +429,38 @@ export async function getBookingsForReport({
       notes,
       created_at,
       updated_at,
+
       businesses (
         id,
         name
       ),
+
       customers (
         id,
         full_name,
         phone
       ),
+
       employees (
         id,
         full_name
       ),
+
       branches (
         id,
         name
       ),
+
       enterprise_catalog (
         id,
         name,
         item_type
       )
     `);
+
+  /* ----------------------------------------------------------
+     DATE FILTER
+     ---------------------------------------------------------- */
 
   if (fromDate) {
     query = query.gte(
@@ -366,12 +476,20 @@ export async function getBookingsForReport({
     );
   }
 
+  /* ----------------------------------------------------------
+     BUSINESS FILTER
+     ---------------------------------------------------------- */
+
   if (businessId) {
     query = query.eq(
       "business_id",
       businessId
     );
   }
+
+  /* ----------------------------------------------------------
+     ORDER
+     ---------------------------------------------------------- */
 
   const { data, error } = await query
     .order("booking_date", {
@@ -397,7 +515,9 @@ export async function getBookingsForReport({
 
     return {
       ...row,
-      amount: Number(row.amount ?? 0),
+      amount: Number(
+        row.amount ?? 0
+      ),
     } as Booking;
   });
 }

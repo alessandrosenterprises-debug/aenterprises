@@ -1214,8 +1214,8 @@ export default function BookingManager({
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-slate-700">
-                  Business *
-                </span>
+  Service
+</span>
 
                 <select
                   value={businessId}
@@ -1281,7 +1281,7 @@ export default function BookingManager({
 
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-slate-700">
-                  Service / Catalog Item
+                  Service
                 </span>
 
                 <select
@@ -1295,8 +1295,8 @@ export default function BookingManager({
                   disabled={!businessId}
                 >
                   <option value="">
-                    Select service or item
-                  </option>
+                   Select service
+</option>
 
                   {catalogItems.map(
                     (item) => (

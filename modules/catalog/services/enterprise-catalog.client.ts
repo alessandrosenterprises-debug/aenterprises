@@ -6,8 +6,8 @@ export interface EnterpriseCatalogPayload {
   category?: string | null;
   name: string;
   description?: string | null;
-  base_price: number;
-  quantity: number;
+  base_price?: number | null;
+  quantity?: number | null;
   status: string;
   image_url?: string | null;
   attributes?: Record<string, any>;
@@ -29,9 +29,7 @@ export async function createEnterpriseCatalogItem(
     );
 
     throw new Error(
-      `${error.code ?? "UNKNOWN"}: ${
-        error.message
-      }`
+      `${error.code ?? "UNKNOWN"}: ${error.message}`
     );
   }
 
@@ -56,9 +54,7 @@ export async function updateEnterpriseCatalogItem(
     );
 
     throw new Error(
-      `${error.code ?? "UNKNOWN"}: ${
-        error.message
-      }`
+      `${error.code ?? "UNKNOWN"}: ${error.message}`
     );
   }
 
@@ -80,9 +76,7 @@ export async function deleteEnterpriseCatalogItem(
     );
 
     throw new Error(
-      `${error.code ?? "UNKNOWN"}: ${
-        error.message
-      }`
+      `${error.code ?? "UNKNOWN"}: ${error.message}`
     );
   }
 

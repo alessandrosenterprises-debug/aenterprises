@@ -15,9 +15,20 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  /*
+   * No authenticated user.
+   * Send them to the AEOS login page.
+   */
   if (!user) {
     redirect("/login");
   }
 
+  /*
+   * Authenticated user:
+   * allow access to AEOS.
+   *
+   * Customer accounts are handled separately
+   * by the /customer routes and customer login.
+   */
   return <AppLayout>{children}</AppLayout>;
 }

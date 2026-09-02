@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 
 import type {
   CustomerLoanApplication,
@@ -17,12 +17,14 @@ type RepaymentFrequency =
   | "Monthly";
 
 /**
- * Approval roles allowed to approve customer loans.
+ * Enterprise roles allowed to approve customer loans.
+ *
+ * These values correspond to the normalized names
+ * stored in public.roles.
  */
 type LoanApprovalRole =
-  | "manager"
-  | "admin"
-  | "super_admin";
+  | "super administrator"
+  | "enterprise manager";
 
 /**
  * Determine the repayment frequency from the loan product name.
@@ -77,7 +79,7 @@ function getRepaymentFrequency(
 
 /**
  * Determine the repayment frequency from the application
- * when there is no loan product.
+ * when there is no usable loan product name.
  */
 function getFrequencyFromLoanType(
   loanType: string | null | undefined
@@ -127,8 +129,11 @@ function getFrequencyFromLoanType(
  *
  * Monthly:
  *   30/31 days = 1 installment
- *   60 days = 2 installments
- *   90 days = 3 installments
+ *   60/61 days = 2 installments
+ *   90–92 days = 3 installments
+ *
+ * IMPORTANT:
+ * A 31-day monthly loan must produce ONE installment.
  */
 function calculateInstallmentCount(
   repaymentPeriod: number,
@@ -155,9 +160,17 @@ function calculateInstallmentCount(
       );
 
     case "Monthly":
+      // A monthly repayment covers one calendar month.
+      //
+      // 30 or 31 days = 1 installment
+      // 60 or 61 days = 2 installments
+      // 90–92 days = 3 installments
+      //
+      // Using 31 ensures a 31-day monthly loan
+      // remains one installment.
       return Math.max(
         1,
-        Math.ceil(repaymentPeriod / 30)
+        Math.ceil(repaymentPeriod / 31)
       );
 
     default:
@@ -168,9 +181,11 @@ function calculateInstallmentCount(
 /**
  * Calculate the complete loan figures.
  *
- * Interest is treated as a flat percentage of the approved amount.
+ * Interest is treated as a flat percentage of the
+ * principal/approved amount.
  *
  * Example:
+ *
  * K1,500 at 30%
  *
  * Interest:
@@ -201,7 +216,10 @@ function calculateLoanFigures({
   const principal = Number(amount);
   const rate = Number(interestRate ?? 0);
   const period = Number(repaymentPeriod ?? 0);
-  const paid = Math.max(0, Number(amountPaid ?? 0));
+  const paid = Math.max(
+    0,
+    Number(amountPaid ?? 0)
+  );
 
   if (
     !Number.isFinite(principal) ||
@@ -248,7 +266,12 @@ function calculateLoanFigures({
 
 /**
  * Get the current authenticated user and verify
- * that the user has permission to approve loans.
+ * that the user has permission to approve customer loans.
+ *
+ * profiles.auth_user_id links the enterprise profile
+ * to Supabase Auth.
+ *
+ * profiles.role_id links the profile to public.roles.
  */
 async function getLoanApprover() {
   const supabase = await createClient();
@@ -270,12 +293,23 @@ async function getLoanApprover() {
     );
   }
 
-  const { data: profile, error: profileError } =
-    await supabase
-      .from("profiles")
-      .select("id, full_name, role")
-      .eq("id", user.id)
-      .maybeSingle();
+  /**
+   * Load the current user's enterprise profile.
+   */
+  const {
+    data: profile,
+    error: profileError,
+  } = await supabase
+    .from("profiles")
+    .select(`
+      id,
+      auth_user_id,
+      display_name,
+      role_id,
+      active
+    `)
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
 
   if (profileError) {
     throw new Error(
@@ -289,20 +323,58 @@ async function getLoanApprover() {
     );
   }
 
-  const role =
-    typeof profile.role === "string"
-      ? profile.role.toLowerCase()
-      : "";
+  if (profile.active !== true) {
+    throw new Error(
+      "Your user account is currently inactive."
+    );
+  }
 
+  if (!profile.role_id) {
+    throw new Error(
+      "Your account does not have an assigned role."
+    );
+  }
+
+  /**
+   * Load the assigned role from public.roles.
+   */
+  const {
+    data: roleRecord,
+    error: roleError,
+  } = await supabase
+    .from("roles")
+    .select("id, name")
+    .eq("id", profile.role_id)
+    .maybeSingle();
+
+  if (roleError) {
+    throw new Error(
+      `Unable to verify your role: ${roleError.message}`
+    );
+  }
+
+  if (!roleRecord) {
+    throw new Error(
+      "Your assigned role could not be found."
+    );
+  }
+
+  const roleName = roleRecord.name
+    .trim()
+    .toLowerCase();
+
+  /**
+   * Only these enterprise roles can approve
+   * customer loans.
+   */
   const allowedRoles: LoanApprovalRole[] = [
-    "manager",
-    "admin",
-    "super_admin",
+    "super administrator",
+    "enterprise manager",
   ];
 
   if (
     !allowedRoles.includes(
-      role as LoanApprovalRole
+      roleName as LoanApprovalRole
     )
   ) {
     throw new Error(
@@ -312,11 +384,13 @@ async function getLoanApprover() {
 
   return {
     id: profile.id as string,
+
     name:
-      profile.full_name ??
+      profile.display_name ??
       user.email ??
       "Unknown Approver",
-    role,
+
+    role: roleName,
   };
 }
 
@@ -366,7 +440,9 @@ export async function getCustomerLoanApplications(): Promise<
     throw new Error(error.message);
   }
 
-  return (data ?? []) as CustomerLoanApplication[];
+  return (
+    data ?? []
+  ) as CustomerLoanApplication[];
 }
 
 /**
@@ -598,7 +674,7 @@ export async function createCustomerLoanApplication(
 
         application_date:
           input.application_date ??
-          new Date()
+          now
             .toISOString()
             .split("T")[0],
 
@@ -698,11 +774,24 @@ export async function createCustomerLoanApplication(
 
   return data as CustomerLoanApplication;
 }
+
+/**
+ * Loan product relation returned by Supabase.
+ *
+ * We intentionally only depend on `name` here.
+ *
+ * Interest rate and repayment period are loaded
+ * directly from loan_products when needed.
+ */
 type LoanProductNameRelation =
   | { name: string | null }
   | { name: string | null }[]
   | null;
 
+/**
+ * Safely extract a loan product name from
+ * a Supabase relationship.
+ */
 function getLoanProductName(
   product: LoanProductNameRelation
 ): string | null {
@@ -712,8 +801,12 @@ function getLoanProductName(
 
   return product?.name ?? null;
 }
+
 /**
  * Update a customer loan application.
+ *
+ * Financial figures are recalculated when any of the
+ * calculation inputs change.
  */
 export async function updateCustomerLoanApplication(
   id: string,
@@ -922,7 +1015,7 @@ export async function updateCustomerLoanApplication(
   }
 
   /**
-   * If any of the calculation inputs change,
+   * If any calculation inputs change,
    * recalculate the saved figures.
    */
   const shouldRecalculate =
@@ -933,6 +1026,13 @@ export async function updateCustomerLoanApplication(
     input.loan_type !== undefined;
 
   if (shouldRecalculate) {
+    /**
+     * Load the existing loan.
+     *
+     * We only request the product name from the
+     * relationship. We do NOT access relationship
+     * interest_rate or repayment_period properties.
+     */
     const {
       data: existingLoan,
       error: existingLoanError,
@@ -945,6 +1045,7 @@ export async function updateCustomerLoanApplication(
         repayment_period,
         amount_paid,
         loan_type,
+        loan_product_id,
         loan_products (
           name
         )
@@ -971,6 +1072,15 @@ export async function updateCustomerLoanApplication(
             existingLoan.requested_amount
           );
 
+    if (
+      !Number.isFinite(requestedAmount) ||
+      requestedAmount <= 0
+    ) {
+      throw new Error(
+        "Requested loan amount must be greater than zero."
+      );
+    }
+
     const approvedAmount =
       existingLoan.approved_amount !== null
         ? Number(
@@ -982,24 +1092,143 @@ export async function updateCustomerLoanApplication(
       approvedAmount ??
       requestedAmount;
 
+    /**
+     * IMPORTANT:
+     *
+     * If loan_product_id was supplied in the update,
+     * use the newly selected product.
+     *
+     * Otherwise keep the application's existing product.
+     */
+    const effectiveProductId =
+      input.loan_product_id !== undefined
+        ? input.loan_product_id
+        : existingLoan.loan_product_id;
+
+    /**
+     * This fixes the previous `loanType` error.
+     *
+     * The database field is `loan_type`, not `loanType`.
+     */
+    const loanType: string | null =
+      input.loan_type !== undefined
+        ? input.loan_type
+        : existingLoan.loan_type ?? null;
+
+    let productName: string | null = null;
+
+    let productInterestRate:
+      | number
+      | null = null;
+
+    let productRepaymentPeriod:
+      | number
+      | null = null;
+
+    /**
+     * If there is an effective product, load its
+     * settings directly from loan_products.
+     *
+     * This avoids TypeScript problems caused by
+     * Supabase relationship inference.
+     */
+    if (effectiveProductId) {
+      const {
+        data: product,
+        error: productError,
+      } = await supabase
+        .from("loan_products")
+        .select(`
+          id,
+          name,
+          interest_rate,
+          repayment_period,
+          status
+        `)
+        .eq("id", effectiveProductId)
+        .maybeSingle();
+
+      if (productError) {
+        throw new Error(
+          productError.message
+        );
+      }
+
+      if (!product) {
+        throw new Error(
+          "The selected loan product could not be found."
+        );
+      }
+
+      if (
+        product.status !== "Active"
+      ) {
+        throw new Error(
+          "The selected loan product is not active."
+        );
+      }
+
+      productName =
+        product.name ?? null;
+
+      productInterestRate =
+        product.interest_rate ?? null;
+
+      productRepaymentPeriod =
+        product.repayment_period ?? null;
+    } else {
+      /**
+       * No product is attached.
+       *
+       * We can still determine frequency from
+       * the application loan_type.
+       */
+      productName =
+        getLoanProductName(
+          existingLoan.loan_products
+        );
+    }
+
+    /**
+     * Determine interest rate.
+     *
+     * Priority:
+     *
+     * 1. Explicitly supplied input
+     * 2. Newly selected product settings
+     * 3. Existing saved application value
+     */
     const rate =
       input.interest_rate !== undefined
         ? input.interest_rate
-        : existingLoan.interest_rate;
+        : input.loan_product_id !== undefined
+          ? productInterestRate
+          : existingLoan.interest_rate;
 
+    /**
+     * Determine repayment period.
+     *
+     * Priority:
+     *
+     * 1. Explicitly supplied input
+     * 2. Newly selected product settings
+     * 3. Existing saved application value
+     */
     const period =
       input.repayment_period !== undefined
         ? input.repayment_period
-        : existingLoan.repayment_period;
+        : input.loan_product_id !== undefined
+          ? productRepaymentPeriod
+          : existingLoan.repayment_period;
 
-    const loanType =
-      input.loan_type !== undefined
-        ? input.loan_type
-        : existingLoan.loan_type;
-
-    const productName = getLoanProductName(
-  existingLoan.loan_products
-);
+    /**
+     * Determine repayment frequency.
+     *
+     * Product name is preferred.
+     *
+     * If no recognizable product name exists,
+     * use loan_type.
+     */
     const frequency =
       getRepaymentFrequency(
         productName
@@ -1008,13 +1237,22 @@ export async function updateCustomerLoanApplication(
         loanType
       );
 
+    /**
+     * Recalculate all financial figures.
+     */
     const figures =
       calculateLoanFigures({
         amount:
           amountForCalculation,
-        interestRate: rate,
-        repaymentPeriod: period,
+
+        interestRate:
+          rate,
+
+        repaymentPeriod:
+          period,
+
         frequency,
+
         amountPaid:
           Number(
             existingLoan.amount_paid ?? 0
@@ -1054,8 +1292,8 @@ export async function updateCustomerLoanApplication(
 /**
  * Approve a customer loan application.
  *
- * The authenticated Manager, Admin or Super Admin
- * becomes the official approver.
+ * The authenticated Enterprise Manager or
+ * Super Administrator becomes the official approver.
  */
 export async function approveCustomerLoanApplication(
   id: string,
@@ -1097,6 +1335,7 @@ export async function approveCustomerLoanApplication(
       repayment_period,
       amount_paid,
       loan_type,
+      loan_product_id,
       loan_products (
         name
       )
@@ -1119,9 +1358,10 @@ export async function approveCustomerLoanApplication(
   /**
    * Determine repayment frequency.
    */
-  const productName = getLoanProductName(
-  application.loan_products
-);
+  const productName =
+    getLoanProductName(
+      application.loan_products
+    );
 
   const frequency =
     getRepaymentFrequency(
@@ -1150,7 +1390,8 @@ export async function approveCustomerLoanApplication(
     new Date().toISOString();
 
   /**
-   * Save the approved amount, calculated figures,
+   * Save the approved amount,
+   * calculated figures,
    * approver and approval timestamp together.
    */
   const { data, error } =

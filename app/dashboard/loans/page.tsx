@@ -169,11 +169,25 @@ export default async function LoansPage() {
   }
 
   if (operatorsResult.error) {
-    console.error(
-      "Operators loading error:",
-      operatorsResult.error
-    );
-  }
+  console.error(
+    "Operators loading error:",
+    JSON.stringify(
+      operatorsResult.error,
+      null,
+      2
+    )
+  );
+
+  console.error(
+    "Operators loading error details:",
+    {
+      message: operatorsResult.error.message,
+      details: operatorsResult.error.details,
+      hint: operatorsResult.error.hint,
+      code: operatorsResult.error.code,
+    }
+  );
+}
 
   if (loanTermsResult.error) {
     console.error(

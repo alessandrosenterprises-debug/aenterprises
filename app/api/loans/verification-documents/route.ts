@@ -1,11 +1,40 @@
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
+import {
+  createAdminClient,
+  createClient,
+} from "@/lib/supabase/server";
 
-export async function POST(
-  request: Request
-) {
+const BUCKET = "loan-identity-documents";
+
+const SIGNED_URL_SECONDS = 60 * 60;
+
+export async function POST(request: Request) {
   try {
+    /*
+     * Authenticate the currently logged-in AEOS user.
+     */
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        {
+          error: "You must be signed in to view verification documents.",
+        },
+        { status: 401 },
+      );
+    }
+
+    /*
+     * Use the admin client only for private storage access.
+     */
+    const admin = createAdminClient();
+
     const body = await request.json();
 
     const {
@@ -14,28 +43,56 @@ export async function POST(
       selfiePath,
     } = body;
 
-    const supabase =
-      await createClient();
-
+    /*
+     * Generate a temporary signed URL
+     * for a private storage object.
+     */
     async function createSignedUrl(
-      path: string | null
+      path: string | null | undefined,
     ) {
       if (!path) {
         return null;
       }
 
+      const cleanPath = String(path).trim();
+
+      if (!cleanPath) {
+        return null;
+      }
+
+      /*
+       * Make sure the requested document actually belongs
+       * to our private loan verification bucket structure.
+       *
+       * Expected:
+       *
+       * customer-id/
+       *   application-id/
+       *     document-name.ext
+       */
+      const pathParts = cleanPath.split("/");
+
+      if (pathParts.length !== 3) {
+        console.error(
+          "Invalid verification document path:",
+          cleanPath,
+        );
+
+        return null;
+      }
+
       const { data, error } =
-        await supabase.storage
-          .from("customer-verification")
+        await admin.storage
+          .from(BUCKET)
           .createSignedUrl(
-            path,
-            60 * 60
+            cleanPath,
+            SIGNED_URL_SECONDS,
           );
 
       if (error) {
         console.error(
-          "Signed URL error:",
-          error
+          `Signed URL error for ${cleanPath}:`,
+          error,
         );
 
         return null;
@@ -55,6 +112,8 @@ export async function POST(
     ]);
 
     return NextResponse.json({
+      success: true,
+
       nrcFrontUrl,
       nrcBackUrl,
       selfieUrl,
@@ -62,17 +121,19 @@ export async function POST(
   } catch (error) {
     console.error(
       "Verification documents API error:",
-      error
+      error,
     );
 
     return NextResponse.json(
       {
         error:
-          "Failed to load verification documents.",
+          error instanceof Error
+            ? error.message
+            : "Failed to load verification documents.",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }
