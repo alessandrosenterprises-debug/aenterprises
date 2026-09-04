@@ -1211,257 +1211,42 @@ export default function BookingManager({
               </div>
             )}
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-  Service
-</span>
+           <div className="grid gap-5 md:grid-cols-2">
+  <label className="space-y-2">
+  <span className="text-sm font-semibold text-slate-700">
+    Booking Status
+  </span>
 
-                <select
-                  value={businessId}
-                  onChange={(event) =>
-                    handleBusinessChange(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                  required
-                >
-                  <option value="">
-                    Select business
-                  </option>
+  <select
+    value={status}
+    onChange={(event) =>
+      setStatus(
+        event.target.value as BookingPayload["status"]
+      )
+    }
+    className={inputClass}
+  >
+    <option value="Pending">
+      Pending
+    </option>
 
-                  {formData.businesses.map(
-                    (business) => (
-                      <option
-                        key={business.id}
-                        value={business.id}
-                      >
-                        {business.name}
-                      </option>
-                    )
-                  )}
-                </select>
-              </label>
+    <option value="Confirmed">
+      Confirmed
+    </option>
 
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Customer
-                </span>
+    <option value="Completed">
+      Completed
+    </option>
 
-                <select
-                  value={customerId}
-                  onChange={(event) =>
-                    setCustomerId(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                  disabled={!businessId}
-                >
-                  <option value="">
-                    No customer assigned
-                  </option>
+    <option value="Cancelled">
+      Cancelled
+    </option>
 
-                  {customers.map(
-                    (customer) => (
-                      <option
-                        key={customer.id}
-                        value={customer.id}
-                      >
-                        {customer.full_name}
-                        {customer.phone
-                          ? ` — ${customer.phone}`
-                          : ""}
-                      </option>
-                    )
-                  )}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Service
-                </span>
-
-                <select
-                  value={catalogItemId}
-                  onChange={(event) =>
-                    handleCatalogChange(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                  disabled={!businessId}
-                >
-                  <option value="">
-                   Select service
-</option>
-
-                  {catalogItems.map(
-                    (item) => (
-                      <option
-                        key={item.id}
-                        value={item.id}
-                      >
-                        {item.name}
-                      </option>
-                    )
-                  )}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Employee
-                </span>
-
-                <select
-                  value={employeeId}
-                  onChange={(event) =>
-                    setEmployeeId(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                  disabled={!businessId}
-                >
-                  <option value="">
-                    Select employee
-                  </option>
-
-                  {employees.map(
-                    (employee) => (
-                      <option
-                        key={employee.id}
-                        value={employee.id}
-                      >
-                        {employee.full_name}
-                      </option>
-                    )
-                  )}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Branch
-                </span>
-
-                <select
-                  value={branchId}
-                  onChange={(event) =>
-                    setBranchId(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                  disabled={!businessId}
-                >
-                  <option value="">
-                    Select branch
-                  </option>
-
-                  {branches.map(
-                    (branch) => (
-                      <option
-                        key={branch.id}
-                        value={branch.id}
-                      >
-                        {branch.name}
-                      </option>
-                    )
-                  )}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Amount (ZMW)
-                </span>
-
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={amount}
-                  onChange={(event) =>
-                    setAmount(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                  placeholder="0.00"
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Booking Date *
-                </span>
-
-                <input
-                  type="date"
-                  value={bookingDate}
-                  onChange={(event) =>
-                    setBookingDate(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                  required
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Booking Time
-                </span>
-
-                <input
-                  type="time"
-                  value={bookingTime}
-                  onChange={(event) =>
-                    setBookingTime(
-                      event.target.value
-                    )
-                  }
-                  className={inputClass}
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Booking Status
-                </span>
-
-                <select
-                  value={status}
-                  onChange={(event) =>
-                    setStatus(
-                      event.target
-                        .value as BookingPayload["status"]
-                    )
-                  }
-                  className={inputClass}
-                >
-                  <option value="Pending">
-                    Pending
-                  </option>
-
-                  <option value="Confirmed">
-                    Confirmed
-                  </option>
-
-                  <option value="Completed">
-                    Completed
-                  </option>
-
-                  <option value="Cancelled">
-                    Cancelled
-                  </option>
-                </select>
-              </label>
+    <option value="Rejected">
+      Rejected
+    </option>
+  </select>
+</label>
 
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-slate-700">

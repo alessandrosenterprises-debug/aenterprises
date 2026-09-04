@@ -8,10 +8,34 @@ import {
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 
+type Service = {
+  id: string;
+  business_id: string;
+  item_type: string;
+  category: string | null;
+  name: string;
+  description: string | null;
+  base_price: number | string | null;
+  status: string;
+  image_url: string | null;
+  businesses:
+    | {
+        id: string;
+        name: string;
+        slug: string;
+      }
+    | {
+        id: string;
+        name: string;
+        slug: string;
+      }[]
+    | null;
+};
+
 export default async function CustomerServicesPage() {
   const supabase = await createClient();
 
-  const { data: services, error } = await supabase
+  const { data, error } = await supabase
     .from("enterprise_catalog")
     .select(
       `
@@ -31,8 +55,11 @@ export default async function CustomerServicesPage() {
         )
       `
     )
+    .eq("item_type", "service")
     .eq("status", "Active")
-    .order("name");
+    .order("name", {
+      ascending: true,
+    });
 
   if (error) {
     console.error(
@@ -41,12 +68,16 @@ export default async function CustomerServicesPage() {
     );
   }
 
+  const services = (data ?? []) as Service[];
+
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
       <CustomerNavigation />
 
       <div className="mx-auto w-full max-w-[720px]">
-
+        {/* =========================================================
+            HEADER
+        ========================================================= */}
         <section className="bg-[#03162F] px-5 pb-10 pt-7 text-white">
           <Link
             href="/customer"
@@ -78,8 +109,11 @@ export default async function CustomerServicesPage() {
           </div>
         </section>
 
+        {/* =========================================================
+            ALL SERVICES
+        ========================================================= */}
         <section className="px-5 py-7">
-          {services && services.length > 0 ? (
+          {services.length > 0 ? (
             <div className="space-y-3">
               {services.map((service) => {
                 const business = Array.isArray(
@@ -88,29 +122,33 @@ export default async function CustomerServicesPage() {
                   ? service.businesses[0]
                   : service.businesses;
 
+                const businessHome = business?.slug
+                  ? `/customer/businesses/${business.slug}`
+                  : "/customer/businesses";
+
                 return (
                   <Link
                     key={service.id}
-                    href={
-                      business?.slug
-                        ? `/customer/businesses/${business.slug}`
-                        : "/customer/businesses"
-                    }
-                    className="group block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
+                    href={businessHome}
+                    className="group block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-[#D4AF37]/40 hover:shadow-lg"
                   >
                     <div className="flex gap-4">
+                      {/* SERVICE IMAGE */}
                       {service.image_url ? (
-                        <img
-                          src={service.image_url}
-                          alt={service.name}
-                          className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                        />
+                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+                          <img
+                            src={service.image_url}
+                            alt={service.name}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                        </div>
                       ) : (
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#03162F] text-[#D4AF37]">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#03162F] text-[#D4AF37] transition duration-300 group-hover:bg-[#08264D]">
                           <Wrench className="h-6 w-6" />
                         </div>
                       )}
 
+                      {/* SERVICE INFORMATION */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -119,13 +157,13 @@ export default async function CustomerServicesPage() {
                             </h2>
 
                             {business?.name && (
-                              <p className="mt-1 text-[10px] font-semibold text-[#D4AF37]">
+                              <p className="mt-1 text-[10px] font-bold text-[#D4AF37]">
                                 {business.name}
                               </p>
                             )}
                           </div>
 
-                          <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#D4AF37]" />
+                          <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition duration-300 group-hover:translate-x-1 group-hover:text-[#D4AF37]" />
                         </div>
 
                         {service.description && (
@@ -134,10 +172,33 @@ export default async function CustomerServicesPage() {
                           </p>
                         )}
 
-                        {service.category && (
-                          <span className="mt-3 inline-block rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-600">
-                            {service.category}
-                          </span>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {service.category && (
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-600">
+                              {service.category}
+                            </span>
+                          )}
+
+                          {service.base_price !== null &&
+                            service.base_price !== undefined && (
+                              <span className="rounded-full bg-[#D4AF37]/10 px-2.5 py-1 text-[9px] font-bold text-[#8A6D00]">
+                                K
+                                {Number(
+                                  service.base_price
+                                ).toLocaleString("en-ZM", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+                            )}
+                        </div>
+
+                        {/* BUSINESS HOME INDICATOR */}
+                        {business?.name && (
+                          <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-slate-400 transition group-hover:text-[#03162F]">
+                            Visit {business.name}
+                            <ArrowRight className="h-3 w-3 transition duration-300 group-hover:translate-x-1" />
+                          </div>
                         )}
                       </div>
                     </div>
