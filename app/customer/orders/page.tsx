@@ -1,55 +1,61 @@
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import {
-  CalendarDays,
+  ShoppingBag,
   Clock,
-  MapPin,
-  UserRound,
   CheckCircle2,
   XCircle,
   Hourglass,
-  Plus,
+  Package,
+  Truck,
+  MapPin,
   CreditCard,
   Tag,
+  ChevronRight,
+  Plus,
 } from "lucide-react";
-import CancelBookingButton from "./CancelBookingButton";
-
+import Link from "next/link";
 export const dynamic = "force-dynamic";
 
-interface Booking {
+/* =========================================================
+   TYPES
+========================================================= */
+
+interface OrderItem {
   id: string;
-  business_id: string;
-  customer_id: string | null;
-  employee_id: string | null;
-  branch_id: string | null;
-  catalog_item_id: string | null;
-  booking_date: string;
-  booking_time: string | null;
-  status: string;
-  payment_status: string;
-  amount: number;
-  notes: string | null;
-
-  businesses?: {
-    id: string;
-    name: string;
-  } | null;
-
-  employees?: {
-    id: string;
-    full_name: string;
-  } | null;
-
-  branches?: {
-    id: string;
-    name: string;
-  } | null;
+  order_id: string;
+  catalog_item_id: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
 
   enterprise_catalog?: {
     id: string;
     name: string;
     item_type: string;
   } | null;
+}
+
+interface Order {
+  id: string;
+  business_id: string;
+  customer_id: string;
+  status: string;
+  payment_status: string;
+  fulfillment_method: string;
+  delivery_address: string | null;
+  notes: string | null;
+  subtotal: number;
+  total_amount: number;
+  created_at: string;
+  updated_at: string;
+
+  businesses?: {
+    id: string;
+    name: string;
+  } | null;
+
+  order_items?: OrderItem[];
 }
 
 /* =========================================================
@@ -63,7 +69,7 @@ function formatMoney(amount: number) {
 function formatDate(date: string) {
   if (!date) return "Date not available";
 
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-ZM", {
+  return new Date(date).toLocaleDateString("en-ZM", {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -71,15 +77,10 @@ function formatDate(date: string) {
   });
 }
 
-function formatTime(time: string | null) {
-  if (!time) return "Time not set";
+function formatTime(date: string) {
+  if (!date) return "";
 
-  const [hours, minutes] = time.split(":");
-
-  const date = new Date();
-  date.setHours(Number(hours), Number(minutes), 0, 0);
-
-  return date.toLocaleTimeString("en-ZM", {
+  return new Date(date).toLocaleTimeString("en-ZM", {
     hour: "numeric",
     minute: "2-digit",
   });
@@ -97,7 +98,13 @@ function StatusCard({
   type,
   count,
 }: {
-  type: "pending" | "confirmed" | "completed" | "cancelled";
+  type:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "ready"
+    | "completed"
+    | "cancelled";
   count: number;
 }) {
   const config = {
@@ -107,37 +114,51 @@ function StatusCard({
       icon: Hourglass,
       wrapper: "border-amber-200 bg-amber-50/40",
       iconWrapper: "bg-amber-100 text-amber-600",
-      count: "text-slate-900",
       labelColor: "text-amber-700",
     },
 
     confirmed: {
       label: "Confirmed",
-      description: "Booking confirmed",
+      description: "Order confirmed",
       icon: CheckCircle2,
       wrapper: "border-emerald-200 bg-emerald-50/40",
       iconWrapper: "bg-emerald-100 text-emerald-600",
-      count: "text-slate-900",
       labelColor: "text-emerald-700",
+    },
+
+    processing: {
+      label: "Processing",
+      description: "Being prepared",
+      icon: Package,
+      wrapper: "border-blue-200 bg-blue-50/40",
+      iconWrapper: "bg-blue-100 text-blue-600",
+      labelColor: "text-blue-700",
+    },
+
+    ready: {
+      label: "Ready",
+      description: "Ready for collection",
+      icon: ShoppingBag,
+      wrapper: "border-purple-200 bg-purple-50/40",
+      iconWrapper: "bg-purple-100 text-purple-600",
+      labelColor: "text-purple-700",
     },
 
     completed: {
       label: "Completed",
-      description: "Appointment completed",
+      description: "Order completed",
       icon: CheckCircle2,
       wrapper: "border-blue-200 bg-blue-50/40",
       iconWrapper: "bg-blue-100 text-blue-600",
-      count: "text-slate-900",
       labelColor: "text-blue-700",
     },
 
     cancelled: {
       label: "Cancelled",
-      description: "Booking cancelled",
+      description: "Order cancelled",
       icon: XCircle,
       wrapper: "border-red-200 bg-red-50/40",
       iconWrapper: "bg-red-100 text-red-600",
-      count: "text-slate-900",
       labelColor: "text-red-700",
     },
   };
@@ -171,15 +192,7 @@ function StatusCard({
             {item.label}
           </p>
 
-          <p
-            className={`
-              mt-1
-              text-2xl
-              font-bold
-              leading-none
-              ${item.count}
-            `}
-          >
+          <p className="mt-1 text-2xl font-bold leading-none text-slate-900">
             {count}
           </p>
 
@@ -208,17 +221,17 @@ function StatusCard({
 }
 
 /* =========================================================
-   BOOKING CARD
+   ORDER CARD
 ========================================================= */
 
-function BookingCard({
-  booking,
+function OrderCard({
+  order,
   history = false,
 }: {
-  booking: Booking;
+  order: Order;
   history?: boolean;
 }) {
-  const status = normalizeStatus(booking.status);
+  const status = normalizeStatus(order.status);
 
   const statusConfig = {
     pending: {
@@ -231,6 +244,18 @@ function BookingCard({
       text: "Confirmed",
       className: "bg-emerald-50 text-emerald-700 border-emerald-100",
       icon: CheckCircle2,
+    },
+
+    processing: {
+      text: "Processing",
+      className: "bg-blue-50 text-blue-700 border-blue-100",
+      icon: Package,
+    },
+
+    ready: {
+      text: "Ready",
+      className: "bg-purple-50 text-purple-700 border-purple-100",
+      icon: ShoppingBag,
     },
 
     completed: {
@@ -252,6 +277,12 @@ function BookingCard({
 
   const StatusIcon = config.icon;
 
+  const itemCount =
+    order.order_items?.reduce(
+      (total, item) => total + Number(item.quantity ?? 0),
+      0
+    ) ?? 0;
+
   return (
     <article
       className="
@@ -264,19 +295,25 @@ function BookingCard({
       "
     >
       {/* =================================================
-          BOOKING HEADER
+          ORDER HEADER
       ================================================= */}
 
       <div className="px-4 py-4 sm:px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D4AF37]">
-              {booking.businesses?.name || "Alessandro Enterprises"}
+              {order.businesses?.name ||
+                "Alessandro Enterprises"}
             </p>
 
             <h3 className="mt-1 truncate text-base font-bold text-[#03162F] sm:text-lg">
-              {booking.enterprise_catalog?.name || "Appointment"}
+              Order #{order.id.slice(0, 8).toUpperCase()}
             </h3>
+
+            <p className="mt-1 text-[11px] text-slate-400">
+              {formatDate(order.created_at)} ·{" "}
+              {formatTime(order.created_at)}
+            </p>
           </div>
 
           <span
@@ -301,86 +338,97 @@ function BookingCard({
       </div>
 
       {/* =================================================
-          DETAILS
+          ITEMS
       ================================================= */}
 
       <div className="border-t border-slate-100 px-4 py-4 sm:px-5">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-          {/* DATE */}
+        <div className="space-y-3">
+          {order.order_items?.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between gap-3"
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#03162F]">
+                  <Package className="h-4 w-4" />
+                </div>
 
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold text-[#03162F]">
+                    {item.enterprise_catalog?.name ||
+                      "Product"}
+                  </p>
+
+                  <p className="text-[10px] text-slate-400">
+                    Qty: {item.quantity}
+                  </p>
+                </div>
+              </div>
+
+              <p className="shrink-0 text-xs font-bold text-[#03162F]">
+                {formatMoney(item.total_price)}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-medium text-slate-400">
+              Items
+            </p>
+
+            <p className="text-xs font-semibold text-[#03162F]">
+              {itemCount}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* =================================================
+          FULFILLMENT
+      ================================================= */}
+
+      <div className="border-t border-slate-100 px-4 py-4 sm:px-5">
+        <div className="grid grid-cols-2 gap-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#03162F]">
-              <CalendarDays className="h-4 w-4" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[10px] font-medium text-slate-400">
-                Date
-              </p>
-
-              <p className="truncate text-xs font-semibold text-[#03162F]">
-                {formatDate(booking.booking_date)}
-              </p>
-            </div>
-          </div>
-
-          {/* TIME */}
-
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#03162F]">
-              <Clock className="h-4 w-4" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[10px] font-medium text-slate-400">
-                Time
-              </p>
-
-              <p className="truncate text-xs font-semibold text-[#03162F]">
-                {formatTime(booking.booking_time)}
-              </p>
-            </div>
-          </div>
-
-          {/* BRANCH */}
-
-          {booking.branches?.name && (
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#03162F]">
+              {order.fulfillment_method === "Delivery" ? (
+                <Truck className="h-4 w-4" />
+              ) : (
                 <MapPin className="h-4 w-4" />
-              </div>
-
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium text-slate-400">
-                  Branch
-                </p>
-
-                <p className="truncate text-xs font-semibold text-[#03162F]">
-                  {booking.branches.name}
-                </p>
-              </div>
+              )}
             </div>
-          )}
 
-          {/* STAFF */}
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium text-slate-400">
+                Fulfillment
+              </p>
 
-          {booking.employees?.full_name && (
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#03162F]">
-                <UserRound className="h-4 w-4" />
-              </div>
-
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium text-slate-400">
-                  Staff
-                </p>
-
-                <p className="truncate text-xs font-semibold text-[#03162F]">
-                  {booking.employees.full_name}
-                </p>
-              </div>
+              <p className="truncate text-xs font-semibold text-[#03162F]">
+                {order.fulfillment_method}
+              </p>
             </div>
-          )}
+          </div>
+
+          {order.fulfillment_method === "Delivery" &&
+            order.delivery_address && (
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#03162F]">
+                  <MapPin className="h-4 w-4" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium text-slate-400">
+                    Address
+                  </p>
+
+                  <p className="truncate text-xs font-semibold text-[#03162F]">
+                    {order.delivery_address}
+                  </p>
+                </div>
+              </div>
+            )}
         </div>
       </div>
 
@@ -401,7 +449,7 @@ function BookingCard({
               </p>
 
               <p className="text-xs font-semibold capitalize text-[#03162F]">
-                {booking.payment_status || "Pending"}
+                {order.payment_status || "Pending"}
               </p>
             </div>
           </div>
@@ -410,7 +458,7 @@ function BookingCard({
             <Tag className="h-4 w-4 text-slate-400" />
 
             <p className="text-sm font-bold text-[#03162F]">
-              {formatMoney(booking.amount)}
+              {formatMoney(order.total_amount)}
             </p>
           </div>
         </div>
@@ -420,14 +468,14 @@ function BookingCard({
           NOTES
       ================================================= */}
 
-      {booking.notes && (
+      {order.notes && (
         <div className="border-t border-slate-100 px-4 py-3 sm:px-5">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
             Notes
           </p>
 
           <p className="mt-1 text-xs leading-5 text-slate-600">
-            {booking.notes}
+            {order.notes}
           </p>
         </div>
       )}
@@ -438,21 +486,20 @@ function BookingCard({
 
       <div className="border-t border-slate-100 px-4 py-3 sm:px-5">
         <div className="flex gap-2.5">
-          {/* VIEW DETAILS */}
-
           <a
-            href={`/customer/bookings/${booking.id}`}
+            href={`/customer/orders/${order.id}`}
             className="
               flex
               flex-1
               items-center
               justify-center
+              gap-1.5
               rounded-xl
-              border
+              border-2
               border-[#03162F]
-              px-3
-              py-2.5
-              text-xs
+              px-4
+              py-3
+              text-sm
               font-bold
               text-[#03162F]
               transition
@@ -461,15 +508,8 @@ function BookingCard({
             "
           >
             View Details
+            <ChevronRight className="h-4 w-4" />
           </a>
-
-          {/* CANCEL BOOKING */}
-
-          {!history &&
-            status !== "cancelled" &&
-            status !== "completed" && (
-              <CancelBookingButton bookingId={booking.id} />
-            )}
         </div>
       </div>
     </article>
@@ -480,7 +520,7 @@ function BookingCard({
    EMPTY STATE
 ========================================================= */
 
-function EmptyBookings({
+function EmptyOrders({
   history,
 }: {
   history?: boolean;
@@ -488,43 +528,42 @@ function EmptyBookings({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center shadow-sm">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-[#03162F]">
-        <CalendarDays className="h-6 w-6" />
+        <ShoppingBag className="h-6 w-6" />
       </div>
 
       <h3 className="mt-3 text-base font-bold text-[#03162F]">
         {history
-          ? "No booking history yet"
-          : "No upcoming bookings"}
+          ? "No order history yet"
+          : "No active orders"}
       </h3>
 
       <p className="mx-auto mt-1.5 max-w-sm text-xs leading-5 text-slate-500">
         {history
-          ? "Your completed, cancelled or past appointments will appear here."
-          : "Your pending and confirmed appointments will appear here."}
+          ? "Your completed and cancelled orders will appear here."
+          : "Your pending, confirmed and active orders will appear here."}
       </p>
 
-      {history && (
-        <a
-          href="/customer/services"
-          className="
-            mt-4
-            inline-flex
-            items-center
-            justify-center
-            rounded-xl
-            bg-slate-100
-            px-5
-            py-2.5
-            text-xs
-            font-bold
-            text-[#03162F]
-            transition
-            hover:bg-slate-200
-          "
-        >
-          Browse Services
-        </a>
-      )}
+      <a
+        href="/customer/services"
+        className="
+          mt-4
+          inline-flex
+          items-center
+          justify-center
+          gap-2
+          rounded-xl
+          bg-slate-100
+          px-5
+          py-2.5
+          text-xs
+          font-bold
+          text-[#03162F]
+          transition
+          hover:bg-slate-200
+        "
+      >
+        Browse Products
+      </a>
     </div>
   );
 }
@@ -533,7 +572,7 @@ function EmptyBookings({
    MAIN PAGE
 ========================================================= */
 
-export default async function CustomerBookingsPage() {
+export default async function CustomerOrdersPage() {
   const supabase = await createClient();
 
   /* =======================================================
@@ -552,7 +591,7 @@ export default async function CustomerBookingsPage() {
         <section className="mx-auto max-w-3xl px-4 py-10">
           <div className="rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-sm">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#03162F] text-white">
-              <CalendarDays className="h-5 w-5" />
+              <ShoppingBag className="h-5 w-5" />
             </div>
 
             <h1 className="mt-4 text-lg font-bold text-[#03162F]">
@@ -560,7 +599,7 @@ export default async function CustomerBookingsPage() {
             </h1>
 
             <p className="mt-1.5 text-xs text-slate-500">
-              You need to sign in to view your bookings.
+              You need to sign in to view your orders.
             </p>
           </div>
         </section>
@@ -630,12 +669,12 @@ export default async function CustomerBookingsPage() {
             </p>
 
             <h1 className="mt-1.5 text-2xl font-bold">
-              My Bookings
+              My Orders
             </h1>
 
             <p className="mt-1.5 text-xs text-slate-300">
-              View and manage your appointments with
-              Alessandro Enterprises.
+              View and manage your orders with Alessandro
+              Enterprises.
             </p>
           </div>
         </section>
@@ -643,7 +682,7 @@ export default async function CustomerBookingsPage() {
         <section className="mx-auto max-w-4xl px-4 py-7">
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-[#03162F]">
-              <CalendarDays className="h-6 w-6" />
+              <ShoppingBag className="h-6 w-6" />
             </div>
 
             <h2 className="mt-3 text-base font-bold text-[#03162F]">
@@ -661,126 +700,119 @@ export default async function CustomerBookingsPage() {
   }
 
   /* =======================================================
-     BOOKINGS
+     ORDERS
   ======================================================= */
 
   const { data, error } = await supabase
-    .from("bookings")
-    .select(`
-      id,
-      business_id,
-      customer_id,
-      employee_id,
-      branch_id,
-      catalog_item_id,
-      booking_date,
-      booking_time,
-      status,
-      payment_status,
-      amount,
-      notes,
-
-      businesses (
+    .from("orders")
+    .select(
+      `
         id,
-        name
-      ),
+        business_id,
+        customer_id,
+        status,
+        payment_status,
+        fulfillment_method,
+        delivery_address,
+        notes,
+        subtotal,
+        total_amount,
+        created_at,
+        updated_at,
 
-      employees (
-        id,
-        full_name
-      ),
+        businesses (
+          id,
+          name
+        ),
 
-      branches (
-        id,
-        name
-      ),
+        order_items (
+          id,
+          order_id,
+          catalog_item_id,
+          quantity,
+          unit_price,
+          total_price,
 
-      enterprise_catalog (
-        id,
-        name,
-        item_type
-      )
-    `)
+          enterprise_catalog (
+            id,
+            name,
+            item_type
+          )
+        )
+      `
+    )
     .eq("customer_id", customer.id)
-    .order("booking_date", {
-      ascending: true,
-    })
-    .order("booking_time", {
-      ascending: true,
+    .order("created_at", {
+      ascending: false,
     });
 
   if (error) {
-    console.error("Customer bookings error:", error);
+    console.error("Customer orders error:", error);
   }
 
-  const bookings =
-    (data ?? []) as unknown as Booking[];
+  const orders = (data ?? []) as unknown as Order[];
 
   /* =======================================================
      STATUS COUNTS
   ======================================================= */
 
-  const pendingBookings = bookings.filter(
-    (booking) =>
-      normalizeStatus(booking.status) === "pending"
+  const pendingOrders = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "pending"
   );
 
-  const confirmedBookings = bookings.filter(
-    (booking) =>
-      normalizeStatus(booking.status) === "confirmed"
+  const confirmedOrders = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "confirmed"
   );
 
-  const completedBookings = bookings.filter(
-    (booking) =>
-      normalizeStatus(booking.status) === "completed"
+  const processingOrders = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "processing"
   );
 
-  const cancelledBookings = bookings.filter(
-    (booking) =>
-      normalizeStatus(booking.status) === "cancelled"
+  const readyOrders = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "ready"
+  );
+
+  const completedOrders = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "completed"
+  );
+
+  const cancelledOrders = orders.filter(
+    (order) =>
+      normalizeStatus(order.status) === "cancelled"
   );
 
   /* =======================================================
-     UPCOMING
+     ACTIVE ORDERS
   ======================================================= */
 
-  const upcomingBookings = bookings.filter(
-    (booking) => {
-      const status = normalizeStatus(
-        booking.status
-      );
+  const activeOrders = orders.filter((order) => {
+    const status = normalizeStatus(order.status);
 
-      return (
-        status === "pending" ||
-        status === "confirmed"
-      );
-    }
-  );
+    return (
+      status === "pending" ||
+      status === "confirmed" ||
+      status === "processing" ||
+      status === "ready"
+    );
+  });
 
   /* =======================================================
      HISTORY
   ======================================================= */
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const historyOrders = orders.filter((order) => {
+    const status = normalizeStatus(order.status);
 
-  const historyBookings = bookings.filter(
-    (booking) => {
-      const status = normalizeStatus(
-        booking.status
-      );
-
-      const bookingDate = new Date(
-        `${booking.booking_date}T00:00:00`
-      );
-
-      return (
-        status === "completed" ||
-        status === "cancelled" ||
-        bookingDate < today
-      );
-    }
-  );
+    return (
+      status === "completed" ||
+      status === "cancelled"
+    );
+  });
 
   /* =======================================================
      RENDER
@@ -803,41 +835,39 @@ export default async function CustomerBookingsPage() {
               </p>
 
               <h1 className="mt-1.5 text-2xl font-bold sm:text-3xl">
-                My Bookings
+                My Orders
               </h1>
 
               <p className="mt-1.5 max-w-xl text-xs leading-5 text-slate-300 sm:text-sm">
-                View and manage your appointments with
-                Alessandro Enterprises.
+                View and manage your orders with Alessandro
+                Enterprises.
               </p>
             </div>
 
-            {/* NEW BOOKING BUTTON */}
-
-            <a
-              href="/customer/bookings/new"
-              className="
-                inline-flex
-                w-full
-                items-center
-                justify-center
-                gap-2
-                rounded-xl
-                bg-[#D4AF37]
-                px-4
-                py-3
-                text-sm
-                font-bold
-                text-[#03162F]
-                shadow-md
-                transition
-                hover:bg-[#e5c34a]
-                sm:w-auto
-              "
-            >
-              <Plus className="h-4 w-4" />
-              New Booking
-            </a>
+            <Link
+  href="/customer/orders/new"
+  className="
+    inline-flex
+    w-full
+    items-center
+    justify-center
+    gap-2
+    rounded-xl
+    bg-[#D4AF37]
+    px-4
+    py-3
+    text-sm
+    font-bold
+    text-[#03162F]
+    shadow-md
+    transition
+    hover:bg-[#e5c34a]
+    sm:w-auto
+  "
+>
+  <Plus className="h-4 w-4" />
+  New Order
+</Link>
           </div>
         </div>
       </section>
@@ -849,16 +879,16 @@ export default async function CustomerBookingsPage() {
       <section className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
 
         {/* =================================================
-            BOOKING STATUS
+            ORDER STATUS
         ================================================= */}
 
         <div>
           <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
-            Booking Status
+            Order Status
           </h2>
 
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-            Track the status of your appointments.
+            Track the status of your orders.
           </p>
         </div>
 
@@ -869,22 +899,22 @@ export default async function CustomerBookingsPage() {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           <StatusCard
             type="pending"
-            count={pendingBookings.length}
+            count={pendingOrders.length}
           />
 
           <StatusCard
             type="confirmed"
-            count={confirmedBookings.length}
+            count={confirmedOrders.length}
           />
 
           <StatusCard
-            type="completed"
-            count={completedBookings.length}
+            type="processing"
+            count={processingOrders.length}
           />
 
           <StatusCard
-            type="cancelled"
-            count={cancelledBookings.length}
+            type="ready"
+            count={readyOrders.length}
           />
         </div>
 
@@ -895,7 +925,7 @@ export default async function CustomerBookingsPage() {
         <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
           <div className="grid grid-cols-2 gap-1">
             <a
-              href="#upcoming"
+              href="#active"
               className="
                 flex
                 items-center
@@ -910,7 +940,7 @@ export default async function CustomerBookingsPage() {
                 sm:text-sm
               "
             >
-              Upcoming ({upcomingBookings.length})
+              Active ({activeOrders.length})
             </a>
 
             <a
@@ -930,47 +960,45 @@ export default async function CustomerBookingsPage() {
                 sm:text-sm
               "
             >
-              History ({historyBookings.length})
+              History ({historyOrders.length})
             </a>
           </div>
         </div>
 
         {/* =================================================
-            UPCOMING BOOKINGS
+            ACTIVE ORDERS
         ================================================= */}
 
         <section
-          id="upcoming"
+          id="active"
           className="scroll-mt-6 pt-7"
         >
           <div className="mb-4">
             <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
-              Upcoming Bookings
+              Active Orders
             </h2>
 
             <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-              Your pending and confirmed appointments.
+              Your pending, confirmed and active orders.
             </p>
           </div>
 
-          {upcomingBookings.length === 0 ? (
-            <EmptyBookings />
+          {activeOrders.length === 0 ? (
+            <EmptyOrders />
           ) : (
             <div className="space-y-4">
-              {upcomingBookings.map(
-                (booking) => (
-                  <BookingCard
-                    key={booking.id}
-                    booking={booking}
-                  />
-                )
-              )}
+              {activeOrders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                />
+              ))}
             </div>
           )}
         </section>
 
         {/* =================================================
-            BOOKING HISTORY
+            ORDER HISTORY
         ================================================= */}
 
         <section
@@ -979,31 +1007,28 @@ export default async function CustomerBookingsPage() {
         >
           <div className="mb-4">
             <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
-              Booking History
+              Order History
             </h2>
 
             <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-              Your completed, cancelled and past appointments.
+              Your completed and cancelled orders.
             </p>
           </div>
 
-          {historyBookings.length === 0 ? (
-            <EmptyBookings history />
+          {historyOrders.length === 0 ? (
+            <EmptyOrders history />
           ) : (
             <div className="space-y-4">
-              {historyBookings.map(
-                (booking) => (
-                  <BookingCard
-                    key={booking.id}
-                    booking={booking}
-                    history
-                  />
-                )
-              )}
+              {historyOrders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  history
+                />
+              ))}
             </div>
           )}
         </section>
-
       </section>
     </main>
   );

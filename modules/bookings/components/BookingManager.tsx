@@ -1503,6 +1503,8 @@ export default function BookingManager({
               </div>
             </div>
 
+            
+
             {booking.notes && (
               <div className="rounded-xl border border-slate-200 p-4">
                 <p className="text-sm font-semibold text-slate-700">
