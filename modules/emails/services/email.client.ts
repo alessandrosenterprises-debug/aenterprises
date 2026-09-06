@@ -96,6 +96,12 @@ export async function deleteEmail(
 }
 
 export interface SendEmailPayload {
+  action?:
+    | "compose"
+    | "reply"
+    | "forward"
+    | "resend";
+
   businessId?: string | null;
   customerId?: string | null;
   assignedTo?: string | null;
@@ -113,7 +119,7 @@ export async function sendEmail(
   payload: SendEmailPayload
 ) {
   const response = await fetch(
-  "/api/send",
+    "/api/send",
     {
       method: "POST",
 

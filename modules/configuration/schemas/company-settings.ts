@@ -36,6 +36,11 @@ export const companySettingsSchema: ConfigurationSchema = {
       type: "text",
     },
     {
+      key: "whatsapp",
+      label: "WhatsApp",
+      type: "text",
+    },
+    {
       key: "email",
       label: "Email",
       type: "text",

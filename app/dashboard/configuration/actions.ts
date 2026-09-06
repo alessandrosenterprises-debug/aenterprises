@@ -4,12 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 
 /* ============================================================
-   SUPABASE ADMIN CLIENT
-   ------------------------------------------------------------
-   IMPORTANT:
-   This key must ONLY exist on the server.
-   Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
-   ============================================================ */
+SUPABASE ADMIN CLIENT
+---------------------------------------------------------------
+
+IMPORTANT:
+This key must ONLY exist on the server.
+Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
+============================================================ */
 
 function createAdminClient() {
   const url =
@@ -43,8 +44,8 @@ function createAdminClient() {
 }
 
 /* ============================================================
-   ERROR HELPERS
-   ============================================================ */
+ERROR HELPERS
+============================================================ */
 
 function getErrorDetails(error: unknown) {
   if (
@@ -95,8 +96,8 @@ function throwActionError(
 }
 
 /* ============================================================
-   VERIFY AUTHENTICATED CONFIGURATION ADMIN
-   ============================================================ */
+VERIFY AUTHENTICATED CONFIGURATION ADMIN
+============================================================ */
 
 async function requireConfigurationAdmin() {
   /*
@@ -203,8 +204,8 @@ async function requireConfigurationAdmin() {
 }
 
 /* ============================================================
-   CREATE
-   ============================================================ */
+CREATE
+============================================================ */
 
 export async function createConfigurationAction(
   table: string,
@@ -259,8 +260,8 @@ export async function createConfigurationAction(
 }
 
 /* ============================================================
-   UPDATE
-   ============================================================ */
+UPDATE
+============================================================ */
 
 export async function updateConfigurationAction(
   table: string,
@@ -313,8 +314,8 @@ export async function updateConfigurationAction(
 }
 
 /* ============================================================
-   DELETE
-   ============================================================ */
+DELETE
+============================================================ */
 
 export async function deleteConfigurationAction(
   table: string,
@@ -360,4 +361,122 @@ export async function deleteConfigurationAction(
   }
 
   return true;
+}
+
+/* ============================================================
+SAVE COMPANY SETTINGS
+---------------------------------------------------------------
+
+Company Settings is a singleton configuration record.
+
+The Customer App support contacts are stored here so that:
+
+AEOS Admin
+    ↓
+company_settings
+    ↓
+Customer App
+
+The client component calls this Server Action instead of
+importing the server-only configuration service directly.
+============================================================ */
+
+export async function saveCompanySettingsAction(
+  values: Record<string, unknown>
+) {
+  /*
+   * Verify the authenticated configuration administrator.
+   */
+  const {
+    user,
+    roleName,
+  } = await requireConfigurationAdmin();
+
+  console.log(
+    "Company settings save authorization:",
+    {
+      userId: user.id,
+      roleName,
+    }
+  );
+
+  /*
+   * Server-only admin client.
+   */
+  const supabaseAdmin =
+    createAdminClient();
+
+  /*
+   * The company_settings table uses the singleton_key
+   * "default" to identify the enterprise-wide settings row.
+   */
+  const {
+    data: existingSettings,
+    error: existingError,
+  } = await supabaseAdmin
+    .from("company_settings")
+    .select("id")
+    .eq("singleton_key", "default")
+    .maybeSingle();
+
+  if (existingError) {
+    throwActionError(
+      "read",
+      "company_settings",
+      existingError
+    );
+  }
+
+  const settingsValues = {
+    ...values,
+    singleton_key: "default",
+    updated_at: new Date().toISOString(),
+  };
+
+  /*
+   * Update the existing singleton row.
+   */
+  if (existingSettings?.id) {
+    const {
+      data,
+      error,
+    } = await supabaseAdmin
+      .from("company_settings")
+      .update(settingsValues)
+      .eq("id", existingSettings.id)
+      .select()
+      .single();
+
+    if (error) {
+      throwActionError(
+        "update",
+        "company_settings",
+        error
+      );
+    }
+
+    return data;
+  }
+
+  /*
+   * Create the singleton row if it does not exist.
+   */
+  const {
+    data,
+    error,
+  } = await supabaseAdmin
+    .from("company_settings")
+    .insert(settingsValues)
+    .select()
+    .single();
+
+  if (error) {
+    throwActionError(
+      "create",
+      "company_settings",
+      error
+    );
+  }
+
+  return data;
 }

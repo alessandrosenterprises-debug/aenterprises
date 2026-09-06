@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -11,6 +12,10 @@ import {
   createConfigurationAction,
   updateConfigurationAction,
   deleteConfigurationAction,
+} from "@/app/dashboard/configuration/actions";
+
+import {
+  saveCompanySettingsAction,
 } from "@/app/dashboard/configuration/actions";
 
 import { ConfigurationSchema } from "../types/configuration";
@@ -44,6 +49,9 @@ export default function ConfigurationManager({
   const [viewingRow, setViewingRow] =
     useState<Record<string, any> | null>(null);
 
+  const isCompanySettings =
+    schema.table === "company_settings";
+
   const displayRows =
     schema.table === "businesses"
       ? initialRows.map((row) => ({
@@ -54,7 +62,20 @@ export default function ConfigurationManager({
 
   function handleCreate() {
     setViewingRow(null);
-    setEditingRow(null);
+
+    /*
+     * Company Settings is a singleton record.
+     *
+     * There should only ever be one company settings
+     * record, so "Add Company Settings" becomes an
+     * edit of the existing record when one already exists.
+     */
+    if (isCompanySettings && initialRows.length > 0) {
+      setEditingRow(initialRows[0]);
+    } else {
+      setEditingRow(null);
+    }
+
     setShowForm(true);
   }
 
@@ -124,15 +145,41 @@ export default function ConfigurationManager({
     values: Record<string, any>
   ) {
     try {
-      const payload = {
-  ...values,
-};
+      /*
+       * ======================================================
+       * COMPANY SETTINGS
+       * ======================================================
+       *
+       * Company Settings is a singleton configuration record.
+       * It must never be handled through the generic
+       * create/update configuration actions.
+       */
+      if (isCompanySettings) {
+        await saveCompanySettingsAction(values);
 
-// loan_product_name is a UI-only display field.
-// loan_product_terms stores loan_product_id instead.
-if (schema.table === "loan_product_terms") {
-  delete payload.loan_product_name;
-}
+        toast.success(
+          editingRow
+            ? "Company Settings updated successfully."
+            : "Company Settings saved successfully."
+        );
+
+        closeForm();
+        router.refresh();
+
+        return;
+      }
+
+      const payload = {
+        ...values,
+      };
+
+      /*
+       * loan_product_name is a UI-only display field.
+       * loan_product_terms stores loan_product_id instead.
+       */
+      if (schema.table === "loan_product_terms") {
+        delete payload.loan_product_name;
+      }
 
       /*
        * Businesses:
@@ -185,6 +232,17 @@ if (schema.table === "loan_product_terms") {
   async function handleDelete(
     row: Record<string, any>
   ) {
+    /*
+     * Company Settings is the enterprise singleton.
+     * Do not allow it to be deleted accidentally.
+     */
+    if (isCompanySettings) {
+      toast.error(
+        "Company Settings cannot be deleted."
+      );
+      return;
+    }
+
     if (!row.id) {
       toast.error(
         "This record has no ID."

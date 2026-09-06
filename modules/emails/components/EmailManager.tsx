@@ -714,54 +714,30 @@ export default function EmailManager({
    * =========================================================
    */
 
-  function prepareReply(
-    email: EmailRecord
-  ) {
-    const recipient =
-      email.source === "Outgoing"
-        ? email.recipient_email
-        : email.sender_email;
+  function prepareReply(email: EmailRecord) {
+  setComposerMode("reply");
 
-    if (!recipient) {
-      setError(
-        "This email does not have a valid reply recipient."
-      );
+  setSelectedEmail(email);
 
-      return;
-    }
+  setTo(
+    email.source === "Outgoing"
+      ? email.recipient_email ?? ""
+      : email.sender_email
+  );
 
-    setComposerMode(
-      "reply"
-    );
+  setCc("");
+  setBcc("");
 
-    setTo(recipient);
+  setSubject(
+    email.subject
+      ? `Re: ${email.subject}`
+      : "Re:"
+  );
 
-    setSubject(
-      email.subject
-        ? email.subject
-            .toLowerCase()
-            .startsWith("re:")
-          ? email.subject
-          : `Re: ${email.subject}`
-        : "Re: Message"
-    );
+  setBody("");
 
-    setBody("");
-    setCc("");
-    setBcc("");
-
-    setError("");
-    setSuccess("");
-
-    /*
-     * Close the thread before opening
-     * the dedicated composer.
-     */
-
-    setSelectedEmail(null);
-
-    setComposeOpen(true);
-  }
+  setComposeOpen(true);
+}
 
   /*
    * =========================================================
@@ -878,68 +854,73 @@ export default function EmailManager({
    */
 
   async function handleSend(
-    event: React.FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
+  event: React.FormEvent<HTMLFormElement>
+) {
+  event.preventDefault();
 
-    if (!to.trim()) {
-      setError(
-        "Please enter a recipient."
-      );
-
-      return;
-    }
-
-    if (!body.trim()) {
-      setError(
-        "Please enter a message."
-      );
-
-      return;
-    }
-
-    try {
-      setLoadingId(
-        "sending"
-      );
-
-      setError("");
-      setSuccess("");
-
-      await sendEmail({
-        to: to.trim(),
-        cc: cc.trim() || undefined,
-        bcc: bcc.trim() || undefined,
-        subject:
-          subject.trim() ||
-          "(No subject)",
-        body: body.trim(),
-      });
-
-      setSuccess(
-        composerMode ===
-          "reply"
-          ? "Reply sent successfully."
-          : composerMode ===
-            "forward"
-          ? "Email forwarded successfully."
-          : composerMode ===
-            "resend"
-          ? "Email resent successfully."
-          : "Email sent successfully."
-      );
-
-      closeComposer();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to send email."
-      );
-    } finally {
-      setLoadingId(null);
-    }
+  if (!to.trim()) {
+    setError("Recipient email is required.");
+    return;
   }
+
+  if (!body.trim()) {
+    setError("Email message cannot be empty.");
+    return;
+  }
+
+  setLoadingId("sending");
+  setError("");
+  setSuccess("");
+
+  try {
+    await sendEmail({
+      action: composerMode,
+
+      customerId:
+        selectedEmail?.customer_id ??
+        null,
+
+      parentEmailId:
+        composerMode === "reply"
+          ? selectedEmail?.id ?? null
+          : null,
+
+      to: to.trim(),
+
+      cc:
+        cc.trim() || undefined,
+
+      bcc:
+        bcc.trim() || undefined,
+
+      subject:
+        subject.trim() ||
+        "(No subject)",
+
+      body: body.trim(),
+    });
+
+    setSuccess(
+      composerMode === "reply"
+        ? "Reply sent successfully."
+        : composerMode === "forward"
+        ? "Email forwarded successfully."
+        : composerMode === "resend"
+        ? "Email resent successfully."
+        : "Email sent successfully."
+    );
+
+    closeComposer();
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Unable to send email."
+    );
+  } finally {
+    setLoadingId(null);
+  }
+}
 
   /*
    * =========================================================

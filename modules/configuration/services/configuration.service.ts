@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/server";
 
 /* ============================================================
@@ -80,6 +81,44 @@ export interface PlatformSettings {
   communications: CommunicationSettings;
   appearance: AppearanceSettings;
   system: SystemSettings;
+
+  created_at?: string;
+  updated_at?: string;
+}
+
+/* ============================================================
+   COMPANY SETTINGS
+   Enterprise-wide company information.
+
+   This is stored separately from platform_settings because
+   these values are shared across AEOS, the customer app,
+   website, and other enterprise-facing systems.
+   ============================================================ */
+
+export interface CompanySettings {
+  id: string;
+
+  company_name: string;
+  tagline: string | null;
+  description: string | null;
+  logo_url: string | null;
+
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+
+  address: string | null;
+  city: string | null;
+  country: string | null;
+
+  website: string | null;
+
+  currency: string;
+  timezone: string;
+
+  active: boolean;
+
+  singleton_key: string;
 
   created_at?: string;
   updated_at?: string;
@@ -261,7 +300,7 @@ function throwSupabaseError(
 }
 
 /* ============================================================
-   NORMALIZE SETTINGS
+   NORMALIZE PLATFORM SETTINGS
    ============================================================ */
 
 function normalizePlatformSettings(
@@ -697,6 +736,258 @@ export async function saveSystemSettings(
 }
 
 /* ============================================================
+   COMPANY SETTINGS
+   Enterprise-wide company information
+   ============================================================ */
+
+/**
+ * Get the single enterprise company settings record.
+ *
+ * The company_settings table uses singleton_key = "default"
+ * to ensure there is only one enterprise-wide settings record.
+ */
+export async function getCompanySettings(): Promise<CompanySettings | null> {
+  const supabase = await createClient();
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("company_settings")
+    .select(`
+      id,
+      company_name,
+      tagline,
+      description,
+      logo_url,
+      phone,
+      whatsapp,
+      email,
+      address,
+      city,
+      country,
+      website,
+      currency,
+      timezone,
+      active,
+      singleton_key,
+      created_at,
+      updated_at
+    `)
+    .eq("singleton_key", "default")
+    .maybeSingle();
+
+  if (error) {
+    throwSupabaseError(
+      "loading company settings",
+      error
+    );
+  }
+
+  return data as CompanySettings | null;
+}
+
+/**
+ * Save enterprise company settings.
+ *
+ * This updates the existing singleton record when available.
+ * If the record does not exist, it creates the default record.
+ *
+ * Phone, WhatsApp and email are intentionally stored here so
+ * the customer app can always use the latest AEOS contact details.
+ */
+export async function saveCompanySettings(
+  values: Partial<
+    Pick<
+      CompanySettings,
+      | "company_name"
+      | "tagline"
+      | "description"
+      | "logo_url"
+      | "phone"
+      | "whatsapp"
+      | "email"
+      | "address"
+      | "city"
+      | "country"
+      | "website"
+      | "currency"
+      | "timezone"
+      | "active"
+    >
+  >
+): Promise<CompanySettings> {
+  const supabase = await createClient();
+
+  const current =
+    await getCompanySettings();
+
+  /* ==========================================================
+     CREATE DEFAULT COMPANY SETTINGS
+     ========================================================== */
+
+  if (!current) {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("company_settings")
+      .insert({
+        company_name:
+          values.company_name ??
+          "Alessandro Enterprises",
+
+        tagline:
+          values.tagline ?? null,
+
+        description:
+          values.description ?? null,
+
+        logo_url:
+          values.logo_url ?? null,
+
+        phone:
+          values.phone ?? null,
+
+        whatsapp:
+          values.whatsapp ?? null,
+
+        email:
+          values.email ?? null,
+
+        address:
+          values.address ?? null,
+
+        city:
+          values.city ?? null,
+
+        country:
+          values.country ?? "Zambia",
+
+        website:
+          values.website ?? null,
+
+        currency:
+          values.currency ?? "ZMW",
+
+        timezone:
+          values.timezone ?? "Africa/Lusaka",
+
+        active:
+          values.active ?? true,
+
+        singleton_key: "default",
+      })
+      .select(`
+        id,
+        company_name,
+        tagline,
+        description,
+        logo_url,
+        phone,
+        whatsapp,
+        email,
+        address,
+        city,
+        country,
+        website,
+        currency,
+        timezone,
+        active,
+        singleton_key,
+        created_at,
+        updated_at
+      `)
+      .single();
+
+    if (error) {
+      throwSupabaseError(
+        "creating company settings",
+        error
+      );
+    }
+
+    return data as CompanySettings;
+  }
+
+  /* ==========================================================
+     UPDATE EXISTING COMPANY SETTINGS
+     ========================================================== */
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("company_settings")
+    .update({
+      ...values,
+
+      updated_at:
+        new Date().toISOString(),
+    })
+    .eq("id", current.id)
+    .select(`
+      id,
+      company_name,
+      tagline,
+      description,
+      logo_url,
+      phone,
+      whatsapp,
+      email,
+      address,
+      city,
+      country,
+      website,
+      currency,
+      timezone,
+      active,
+      singleton_key,
+      created_at,
+      updated_at
+    `)
+    .single();
+
+  if (error) {
+    throwSupabaseError(
+      "updating company settings",
+      error
+    );
+  }
+
+  return data as CompanySettings;
+}
+
+/* ============================================================
+   SAVE AEOS CUSTOMER SUPPORT CONTACTS
+   ============================================================ */
+
+/**
+ * Convenience function specifically for AEOS customer support.
+ *
+ * These values are stored in company_settings so every client
+ * that reads company settings receives the latest contacts.
+ */
+export async function saveCustomerSupportSettings(
+  values: {
+    phone?: string | null;
+    whatsapp?: string | null;
+    email?: string | null;
+  }
+): Promise<CompanySettings> {
+  return saveCompanySettings({
+    phone:
+      values.phone ?? undefined,
+
+    whatsapp:
+      values.whatsapp ?? undefined,
+
+    email:
+      values.email ?? undefined,
+  });
+}
+
+/* ============================================================
    GENERIC GET CONFIGURATION
    ============================================================ */
 
@@ -742,8 +1033,10 @@ export async function createConfiguration(
 
   console.log("RLS CREATE DIAGNOSTIC:", {
     table,
-    userId: userData.user?.id ?? null,
-    userError: userError?.message ?? null,
+    userId:
+      userData.user?.id ?? null,
+    userError:
+      userError?.message ?? null,
   });
 
   const {
@@ -756,17 +1049,32 @@ export async function createConfiguration(
     .single();
 
   if (error) {
-    console.error("RLS INSERT FAILED:", {
-      table,
-      userId: userData.user?.id ?? null,
-      userError: userError?.message ?? null,
-      error: {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-      },
-    });
+    console.error(
+      "RLS INSERT FAILED:",
+      {
+        table,
+
+        userId:
+          userData.user?.id ?? null,
+
+        userError:
+          userError?.message ?? null,
+
+        error: {
+          message:
+            error.message,
+
+          details:
+            error.details,
+
+          hint:
+            error.hint,
+
+          code:
+            error.code,
+        },
+      }
+    );
 
     throwSupabaseError(
       `creating configuration in ${table}`,
@@ -776,6 +1084,7 @@ export async function createConfiguration(
 
   return data;
 }
+
 /* ============================================================
    GENERIC UPDATE CONFIGURATION
    ============================================================ */

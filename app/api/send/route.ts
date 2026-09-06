@@ -15,7 +15,6 @@ type EmailAction =
 
 interface SendEmailRequest {
   emailId?: string;
-
   action?: EmailAction;
 
   businessId?: string | null;
@@ -34,19 +33,42 @@ interface SendEmailRequest {
   recipientName?: string;
 }
 
+type CustomerRecord = {
+  id: string;
+  full_name: string;
+  email: string | null;
+};
+
+function normalizeEmail(
+  value: string | null | undefined
+): string {
+  if (!value) {
+    return "";
+  }
+
+  const angleMatch = value.match(/<([^>]+)>/);
+
+  return (
+    angleMatch?.[1] ??
+    value
+  )
+    .trim()
+    .toLowerCase();
+}
+
 function parseRecipients(
   value?: string
-) {
+): string[] | undefined {
   if (!value) {
     return undefined;
   }
 
   const recipients = value
     .split(",")
-    .map((email) => email.trim())
+    .map((item) => item.trim())
     .filter(Boolean);
 
-  return recipients.length > 0
+  return recipients.length
     ? recipients
     : undefined;
 }
@@ -58,14 +80,6 @@ function getAction(
     return payload.action;
   }
 
-  /*
-   * Backwards compatibility:
-   *
-   * Existing replies already send parentEmailId,
-   * so treat those as replies.
-   *
-   * Normal compose messages remain compose.
-   */
   if (payload.parentEmailId) {
     return "reply";
   }
@@ -81,17 +95,17 @@ export async function POST(
       await createClient();
 
     /*
-     * ---------------------------------------------------------
-     * AUTHENTICATION
-     * ---------------------------------------------------------
+     * =========================================================
+     * AUTH
+     * =========================================================
      */
 
     const {
       data: { user },
-    } =
-      await supabase.auth.getUser();
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json(
         {
           error: "Unauthorized.",
@@ -102,22 +116,43 @@ export async function POST(
       );
     }
 
+    console.log(
+      "SEND EMAIL AUTH USER:",
+      {
+        id: user.id,
+        email: user.email,
+      }
+    );
+
     /*
-     * ---------------------------------------------------------
-     * REQUEST
-     * ---------------------------------------------------------
+     * =========================================================
+     * PAYLOAD
+     * =========================================================
      */
 
     const payload =
       (await request.json()) as SendEmailRequest;
 
+    console.log(
+      "SEND EMAIL PAYLOAD:",
+      {
+        action: payload.action,
+        emailId: payload.emailId,
+        customerId: payload.customerId,
+        parentEmailId:
+          payload.parentEmailId,
+        to: payload.to,
+        subject: payload.subject,
+      }
+    );
+
     const action =
       getAction(payload);
 
     /*
-     * ---------------------------------------------------------
-     * VALIDATION
-     * ---------------------------------------------------------
+     * =========================================================
+     * BASIC VALIDATION
+     * =========================================================
      */
 
     if (!payload.to?.trim()) {
@@ -145,14 +180,446 @@ export async function POST(
     }
 
     /*
-     * ---------------------------------------------------------
-     * EMAIL DATA
-     * ---------------------------------------------------------
+     * =========================================================
+     * DETERMINE WHETHER USER IS A CUSTOMER
+     * =========================================================
      */
 
-    const subject =
-      payload.subject?.trim() ||
-      "Message from Alessandro Enterprises";
+    const {
+      data: authenticatedCustomer,
+      error: authenticatedCustomerError,
+    } = await supabase
+      .from("customers")
+      .select(
+        "id, full_name, email"
+      )
+      .eq(
+        "auth_user_id",
+        user.id
+      )
+      .maybeSingle();
+
+    if (authenticatedCustomerError) {
+      console.error(
+        "Authenticated customer lookup failed:",
+        authenticatedCustomerError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to identify the current account.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const isCustomer =
+      authenticatedCustomer !== null;
+
+    console.log(
+      "SEND EMAIL ACCOUNT TYPE:",
+      {
+        isCustomer,
+        customerId:
+          authenticatedCustomer?.id ??
+          null,
+      }
+    );
+
+    /*
+     * =========================================================
+     * RESOLVE CUSTOMER
+     * =========================================================
+     */
+
+    let customer:
+      | CustomerRecord
+      | null =
+      authenticatedCustomer ?? null;
+
+    let resolutionMethod:
+      | "authenticated_customer"
+      | "parent_email"
+      | "customer_id"
+      | "recipient_email"
+      | null =
+      isCustomer
+        ? "authenticated_customer"
+        : null;
+
+    /*
+     * =========================================================
+     * CUSTOMER SENDING EMAIL
+     * =========================================================
+     */
+
+    if (isCustomer) {
+      if (!authenticatedCustomer) {
+        return NextResponse.json(
+          {
+            error:
+              "Customer account could not be identified.",
+          },
+          {
+            status: 404,
+          }
+        );
+      }
+
+      customer =
+        authenticatedCustomer;
+    }
+
+    /*
+     * =========================================================
+     * AEOS / ADMIN SENDING EMAIL
+     * =========================================================
+     */
+
+    if (!isCustomer) {
+      /*
+       * -------------------------------------------------------
+       * 1. PARENT EMAIL
+       * -------------------------------------------------------
+       *
+       * For replies, the parent email is the most reliable
+       * source of the customer ID.
+       */
+
+      if (payload.parentEmailId) {
+        console.log(
+          "LOOKING UP PARENT EMAIL:",
+          payload.parentEmailId
+        );
+
+        const {
+          data: parentEmail,
+          error: parentEmailError,
+        } = await supabase
+          .from("emails")
+          .select(
+            "id, customer_id, recipient_email, sender_email"
+          )
+          .eq(
+            "id",
+            payload.parentEmailId
+          )
+          .maybeSingle();
+
+        if (parentEmailError) {
+          console.error(
+            "Parent email lookup failed:",
+            parentEmailError
+          );
+
+          return NextResponse.json(
+            {
+              error:
+                "Unable to load the original email conversation.",
+            },
+            {
+              status: 500,
+            }
+          );
+        }
+
+        console.log(
+          "PARENT EMAIL RESULT:",
+          parentEmail
+        );
+
+        if (parentEmail?.customer_id) {
+          const {
+            data: parentCustomer,
+            error:
+              parentCustomerError,
+          } = await supabase
+            .from("customers")
+            .select(
+              "id, full_name, email"
+            )
+            .eq(
+              "id",
+              parentEmail.customer_id
+            )
+            .maybeSingle();
+
+          if (parentCustomerError) {
+            console.error(
+              "Parent customer lookup failed:",
+              parentCustomerError
+            );
+
+            return NextResponse.json(
+              {
+                error:
+                  "Unable to identify the customer from the original conversation.",
+              },
+              {
+                status: 500,
+              }
+            );
+          }
+
+          if (parentCustomer) {
+            customer =
+              parentCustomer;
+
+            resolutionMethod =
+              "parent_email";
+          }
+        }
+      }
+
+      /*
+       * -------------------------------------------------------
+       * 2. EXPLICIT CUSTOMER ID
+       * -------------------------------------------------------
+       */
+
+      if (
+        !customer &&
+        payload.customerId
+      ) {
+        console.log(
+          "LOOKING UP CUSTOMER BY ID:",
+          payload.customerId
+        );
+
+        const {
+          data: customerById,
+          error: customerByIdError,
+        } = await supabase
+          .from("customers")
+          .select(
+            "id, full_name, email"
+          )
+          .eq(
+            "id",
+            payload.customerId
+          )
+          .maybeSingle();
+
+        if (customerByIdError) {
+          console.error(
+            "Customer ID lookup failed:",
+            customerByIdError
+          );
+
+          return NextResponse.json(
+            {
+              error:
+                "Unable to identify the selected customer.",
+            },
+            {
+              status: 500,
+            }
+          );
+        }
+
+        if (customerById) {
+          customer =
+            customerById;
+
+          resolutionMethod =
+            "customer_id";
+        }
+      }
+
+      /*
+       * -------------------------------------------------------
+       * 3. RECIPIENT EMAIL
+       * -------------------------------------------------------
+       *
+       * This is the final fallback for composing a new
+       * AEOS email directly to a customer.
+       */
+
+      if (!customer) {
+        const recipientEmail =
+          normalizeEmail(
+            payload.to
+          );
+
+        console.log(
+          "LOOKING UP CUSTOMER BY RECIPIENT:",
+          recipientEmail
+        );
+
+        if (recipientEmail) {
+          const {
+            data: customerByEmail,
+            error:
+              customerByEmailError,
+          } = await supabase
+            .from("customers")
+            .select(
+              "id, full_name, email"
+            )
+            .ilike(
+              "email",
+              recipientEmail
+            )
+            .maybeSingle();
+
+          if (customerByEmailError) {
+            console.error(
+              "Recipient customer lookup failed:",
+              customerByEmailError
+            );
+
+            return NextResponse.json(
+              {
+                error:
+                  "Unable to identify the recipient customer.",
+              },
+              {
+                status: 500,
+              }
+            );
+          }
+
+          if (customerByEmail) {
+            customer =
+              customerByEmail;
+
+            resolutionMethod =
+              "recipient_email";
+          }
+        }
+      }
+    }
+
+    /*
+     * =========================================================
+     * FINAL CUSTOMER VALIDATION
+     * =========================================================
+     */
+
+    if (!customer) {
+      console.error(
+        "CUSTOMER RESOLUTION FAILED:",
+        {
+          userId: user.id,
+          userEmail: user.email,
+          action,
+          customerId:
+            payload.customerId ??
+            null,
+          parentEmailId:
+            payload.parentEmailId ??
+            null,
+          recipient:
+            payload.to,
+        }
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Customer could not be identified.",
+          details:
+            "For a reply, the original email must contain a customer_id. For a new email, provide customerId or use the customer's email address.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    /*
+     * =========================================================
+     * CUSTOMER EMAIL
+     * =========================================================
+     */
+
+    const customerEmail =
+      customer.email
+        ?.trim()
+        .toLowerCase();
+
+    if (!customerEmail) {
+      return NextResponse.json(
+        {
+          error:
+            "The customer account does not have an email address.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    console.log(
+      "CUSTOMER RESOLVED:",
+      {
+        customerId:
+          customer.id,
+        customerName:
+          customer.full_name,
+        customerEmail,
+        resolutionMethod,
+      }
+    );
+
+    /*
+     * =========================================================
+     * SENDER
+     * =========================================================
+     */
+
+    const authenticatedEmail =
+      normalizeEmail(
+        user.email
+      );
+
+    const configuredAeosEmail =
+      normalizeEmail(
+        emailAddress
+      );
+
+    const senderEmail =
+      isCustomer
+        ? customerEmail
+        : configuredAeosEmail ||
+          authenticatedEmail;
+
+    if (!senderEmail) {
+      return NextResponse.json(
+        {
+          error:
+            "Unable to determine the sender email address.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const senderName =
+      isCustomer
+        ? customer.full_name
+        : "Alessandro Enterprises";
+
+    /*
+     * =========================================================
+     * RECIPIENT
+     * =========================================================
+     */
+
+    const recipientEmail =
+      payload.to
+        .trim()
+        .toLowerCase();
+
+    /*
+     * =========================================================
+     * SEND EMAIL
+     * =========================================================
+     */
 
     const cc =
       parseRecipients(
@@ -164,35 +631,33 @@ export async function POST(
         payload.bcc
       );
 
-    /*
-     * ---------------------------------------------------------
-     * SEND THROUGH GMAIL
-     * ---------------------------------------------------------
-     */
+    const subject =
+      payload.subject?.trim() ||
+      "Message from Alessandro Enterprises";
+
+    console.log(
+      "SENDING EMAIL:",
+      {
+        senderEmail,
+        recipientEmail,
+        subject,
+        action,
+      }
+    );
 
     const result =
       await sendServerEmail({
         to: payload.to.trim(),
-
         cc,
-
         bcc,
-
         subject,
-
-        text:
-          payload.body.trim(),
+        text: payload.body.trim(),
       });
 
     /*
-     * ---------------------------------------------------------
-     * DETERMINE DATABASE STATUS
-     * ---------------------------------------------------------
-     *
-     * Compose  -> Sent
-     * Reply    -> Replied
-     * Forward  -> Sent
-     * Resend   -> Sent
+     * =========================================================
+     * SAVE CONVERSATION
+     * =========================================================
      */
 
     const isReply =
@@ -206,15 +671,9 @@ export async function POST(
         ? "Replied"
         : "Sent";
 
-    /*
-     * ---------------------------------------------------------
-     * SAVE OUTGOING EMAIL
-     * ---------------------------------------------------------
-     */
-
     const {
       data: savedEmail,
-      error,
+      error: saveError,
     } = await supabase
       .from("emails")
       .insert({
@@ -223,33 +682,28 @@ export async function POST(
           null,
 
         customer_id:
-          payload.customerId ??
-          null,
+          customer.id,
 
         assigned_to:
           payload.assignedTo ??
           null,
 
-        /*
-         * Only replies belong directly to
-         * the selected parent email.
-         *
-         * Forward and resend are standalone
-         * outgoing messages unless the client
-         * explicitly provides a parent.
-         */
         parent_email_id:
           payload.parentEmailId ??
           null,
 
+        gmail_message_id:
+          result.messageId ??
+          null,
+
         sender_name:
-          "Alessandro Enterprises",
+          senderName,
 
         sender_email:
-          emailAddress,
+          senderEmail,
 
         recipient_email:
-          payload.to.trim(),
+          recipientEmail,
 
         cc:
           payload.cc?.trim() ||
@@ -272,13 +726,6 @@ export async function POST(
         priority:
           "Normal",
 
-        /*
-         * Only replies should receive
-         * replied_at.
-         *
-         * Compose, forward and resend
-         * are simply Sent.
-         */
         replied_at:
           isReply
             ? new Date().toISOString()
@@ -287,25 +734,17 @@ export async function POST(
       .select()
       .single();
 
-    /*
-     * ---------------------------------------------------------
-     * DATABASE SAVE FAILURE
-     * ---------------------------------------------------------
-     *
-     * Gmail already accepted the message.
-     */
-
-    if (error) {
+    if (saveError) {
       console.error(
         "Saving outbound email failed:",
-        error
+        saveError
       );
 
       return NextResponse.json({
         success: true,
 
         warning:
-          "Email was sent, but the conversation record could not be saved.",
+          "The email was sent successfully, but the conversation record could not be saved.",
 
         messageId:
           result.messageId ??
@@ -314,46 +753,67 @@ export async function POST(
         action,
 
         status,
+
+        customerId:
+          customer.id,
       });
     }
 
     /*
-     * ---------------------------------------------------------
-     * UPDATE ORIGINAL EMAIL FOR REPLIES
-     * ---------------------------------------------------------
+     * =========================================================
+     * UPDATE PARENT EMAIL
+     * =========================================================
      */
 
-    if (isReply) {
+    if (
+      isReply &&
+      payload.parentEmailId
+    ) {
       const {
         error:
-          updateError,
+          parentUpdateError,
       } = await supabase
         .from("emails")
         .update({
-          status:
-            "Replied",
+          status: "Replied",
 
           replied_at:
             new Date().toISOString(),
         })
         .eq(
           "id",
-          payload.parentEmailId!
+          payload.parentEmailId
+        )
+        .eq(
+          "customer_id",
+          customer.id
         );
 
-      if (updateError) {
+      if (parentUpdateError) {
         console.error(
           "Unable to update original email:",
-          updateError
+          parentUpdateError
         );
       }
     }
 
     /*
-     * ---------------------------------------------------------
-     * RESPONSE
-     * ---------------------------------------------------------
+     * =========================================================
+     * SUCCESS
+     * =========================================================
      */
+
+    console.log(
+      "EMAIL SENT SUCCESSFULLY:",
+      {
+        emailId:
+          savedEmail.id,
+        customerId:
+          customer.id,
+        action,
+        resolutionMethod,
+      }
+    );
 
     return NextResponse.json({
       success: true,
@@ -368,6 +828,9 @@ export async function POST(
       action,
 
       status,
+
+      customerId:
+        customer.id,
     });
   } catch (error) {
     console.error(

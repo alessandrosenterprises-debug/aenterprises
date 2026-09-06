@@ -60,6 +60,52 @@ export async function syncInboxEmails() {
     }
 
     /*
+     * Match the incoming sender to a registered
+     * customer using the customer's email address.
+     *
+     * We normalize whitespace and casing so that:
+     *
+     * Customer@Example.com
+     *
+     * matches:
+     *
+     * customer@example.com
+     */
+    let customerId: string | null = null;
+
+    const senderEmail =
+      message.sender_email?.trim();
+
+    if (senderEmail) {
+      const {
+        data: customer,
+        error: customerLookupError,
+      } = await supabase
+        .from("customers")
+        .select("id")
+        .ilike(
+          "email",
+          senderEmail
+        )
+        .maybeSingle();
+
+      if (customerLookupError) {
+        console.error(
+          "Customer email lookup failed:",
+          JSON.stringify(
+            customerLookupError,
+            null,
+            2
+          )
+        );
+      } else {
+        customerId =
+          customer?.id ??
+          null;
+      }
+    }
+
+    /*
      * Determine the parent using the Gmail thread.
      *
      * We intentionally do NOT use:
@@ -133,7 +179,13 @@ export async function syncInboxEmails() {
       .insert({
         business_id: null,
 
-        customer_id: null,
+        /*
+         * This is now the matched customer ID.
+         * It remains null when the sender is not
+         * a registered customer.
+         */
+        customer_id:
+          customerId,
 
         assigned_to: null,
 
@@ -241,14 +293,10 @@ export async function syncInboxEmails() {
 
   return {
     success: true,
-
     checked:
       messages.length,
-
     imported,
-
     skipped,
-
     failed,
   };
 }

@@ -16,6 +16,10 @@ import {
   getConfigurationLoanProducts,
 } from "@/modules/loans/services/loan-products.service";
 
+import {
+  getCompanySettings,
+} from "../services/configuration.service";
+
 interface ConfigurationPageProps {
   type: string;
 }
@@ -41,9 +45,11 @@ export default async function ConfigurationPage({
      ========================================================== */
 
   const rows =
-    await getConfiguration(
-      baseSchema.table
-    );
+    baseSchema.table === "company_settings"
+      ? await loadCompanySettings()
+      : await getConfiguration(
+          baseSchema.table
+        );
 
   /* ==========================================================
      LOAD BUSINESSES
@@ -159,6 +165,7 @@ export default async function ConfigurationPage({
        * Replace the raw foreign-key column with
        * the friendly loan product name.
        */
+
       if (
         baseSchema.table ===
           "loan_product_terms" &&
@@ -201,4 +208,23 @@ export default async function ConfigurationPage({
       />
     </div>
   );
+}
+
+/* ==========================================================
+   COMPANY SETTINGS
+   ========================================================== */
+
+async function loadCompanySettings() {
+  const settings =
+    await getCompanySettings();
+
+  /*
+   * ConfigurationManager expects configuration-style
+   * rows. Keep the company settings object inside an
+   * array without changing the existing configuration
+   * row handling, especially loan_product_id.
+   */
+  return settings
+    ? [settings as Record<string, any>]
+    : [];
 }
