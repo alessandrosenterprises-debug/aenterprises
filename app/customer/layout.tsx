@@ -8,10 +8,24 @@ export default async function CustomerLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const preferences = await getCustomerPreferences();
+  let appearance: "system" | "light" | "dark" = "system";
+
+  try {
+    const preferences = await getCustomerPreferences();
+
+    if (
+      preferences.appearance === "light" ||
+      preferences.appearance === "dark" ||
+      preferences.appearance === "system"
+    ) {
+      appearance = preferences.appearance;
+    }
+  } catch (error) {
+    console.error("Customer preferences unavailable:", error);
+  }
 
   return (
-    <CustomerThemeProvider appearance={preferences.appearance}>
+    <CustomerThemeProvider appearance={appearance}>
       {children}
     </CustomerThemeProvider>
   );
