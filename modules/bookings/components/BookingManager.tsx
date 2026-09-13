@@ -5,26 +5,25 @@ import {
   useMemo,
   useRef,
   useState,
+  type FormEvent,
 } from "react";
-
 import { createPortal } from "react-dom";
-
 import {
   CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
-  CircleX,
   Clock,
   Edit3,
   Eye,
   Loader2,
+  MoreVertical,
   Plus,
   RefreshCw,
   Trash2,
   X,
+  CircleX,
 } from "lucide-react";
-
 import { useRouter } from "next/navigation";
 
 import {
@@ -44,11 +43,7 @@ interface BookingManagerProps {
   formData: BookingFormData;
 }
 
-type ModalMode =
-  | "create"
-  | "view"
-  | "edit"
-  | null;
+type ModalMode = "create" | "view" | "edit" | null;
 
 type ActionType =
   | "confirm"
@@ -58,107 +53,116 @@ type ActionType =
   | "delete"
   | null;
 
-interface MenuPosition {
-  top: number;
-  left: number;
-}
-
-const inputClass =
-  "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
-
-const statusClass: Record<
-  Booking["status"],
-  string
-> = {
-  Pending:
-    "bg-yellow-100 text-yellow-700",
-  Confirmed:
-    "bg-blue-100 text-blue-700",
-  Completed:
-    "bg-green-100 text-green-700",
-  Cancelled:
-    "bg-red-100 text-red-700",
+const statusClass: Record<Booking["status"], string> = {
+  Pending: "bg-amber-100 text-amber-700",
+  Confirmed: "bg-blue-100 text-blue-700",
+  Completed: "bg-emerald-100 text-emerald-700",
+  Cancelled: "bg-slate-200 text-slate-600",
 };
 
 const paymentClass: Record<
   Booking["payment_status"],
   string
 > = {
-  Pending:
-    "bg-yellow-100 text-yellow-700",
-  Partial:
-    "bg-blue-100 text-blue-700",
-  Paid:
-    "bg-green-100 text-green-700",
-  Refunded:
-    "bg-red-100 text-red-700",
+  Pending: "bg-amber-100 text-amber-700",
+  Partial: "bg-blue-100 text-blue-700",
+  Paid: "bg-emerald-100 text-emerald-700",
+  Refunded: "bg-red-100 text-red-700",
 };
 
-function formatDate(date: string) {
-  return new Date(
-    `${date}T00:00:00`
-  ).toLocaleDateString("en-ZM", {
-    day: "numeric",
+const statusOptions: Booking["status"][] = [
+  "Pending",
+  "Confirmed",
+  "Completed",
+  "Cancelled",
+];
+
+const paymentOptions: Booking["payment_status"][] = [
+  "Pending",
+  "Partial",
+  "Paid",
+  "Refunded",
+];
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-ZM", {
+    style: "currency",
+    currency: "ZMW",
+    minimumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatDate(value: string) {
+  if (!value) return "—";
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-ZM", {
+    day: "2-digit",
     month: "short",
     year: "numeric",
-  });
+  }).format(date);
 }
 
-function formatMoney(amount: number) {
-  return `ZMW ${amount.toFixed(2)}`;
+function formatTime(value: string | null) {
+  if (!value) return "";
+
+  const parts = value.split(":");
+
+  if (parts.length < 2) {
+    return value;
+  }
+
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return value;
+  }
+
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+
+  return new Intl.DateTimeFormat("en-ZM", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
 }
 
-function formatTime(time: string | null) {
-  if (!time) return "";
-
-  return time.slice(0, 5);
-}
-
-function getActionLabel(
-  action: ActionType
-) {
+function getActionLabel(action: Exclude<ActionType, null>) {
   switch (action) {
     case "confirm":
       return "Confirm Booking";
-
     case "complete":
-      return "Mark Booking as Complete";
-
+      return "Complete Booking";
     case "reject":
       return "Reject Booking";
-
     case "cancel":
       return "Cancel Booking";
-
     case "delete":
       return "Delete Booking";
-
-    default:
-      return "";
   }
 }
 
 function getActionDescription(
-  action: ActionType
+  action: Exclude<ActionType, null>
 ) {
   switch (action) {
     case "confirm":
-      return "This will confirm the booking and make it ready for the scheduled appointment.";
-
+      return "This will mark the booking as confirmed.";
     case "complete":
       return "This will mark the booking as completed.";
-
     case "reject":
-      return "This will reject the pending booking and mark it as cancelled.";
-
+      return "This will cancel the booking.";
     case "cancel":
       return "This will cancel the booking.";
-
     case "delete":
-      return "This permanently removes the booking record. This action cannot be undone.";
-
-    default:
-      return "";
+      return "This will permanently remove the booking record.";
   }
 }
 
@@ -168,23 +172,11 @@ export default function BookingManager({
 }: BookingManagerProps) {
   const router = useRouter();
 
-  /*
-   * ---------------------------------------------------------
-   * CREATE / EDIT MODAL
-   * ---------------------------------------------------------
-   */
-
   const [modalMode, setModalMode] =
     useState<ModalMode>(null);
 
   const [selectedBooking, setSelectedBooking] =
     useState<Booking | null>(null);
-
-  /*
-   * ---------------------------------------------------------
-   * ACTION CONFIRMATION
-   * ---------------------------------------------------------
-   */
 
   const [action, setAction] =
     useState<ActionType>(null);
@@ -192,14 +184,16 @@ export default function BookingManager({
   const [actionBooking, setActionBooking] =
     useState<Booking | null>(null);
 
+  const [openMenuId, setOpenMenuId] =
+    useState<string | null>(null);
+    
+    const actionMenuRef = useRef<HTMLDivElement | null>(null);
+
   const [processing, setProcessing] =
     useState(false);
 
-  /*
-   * ---------------------------------------------------------
-   * FORM
-   * ---------------------------------------------------------
-   */
+  const [error, setError] =
+    useState<string | null>(null);
 
   const [businessId, setBusinessId] =
     useState("");
@@ -226,69 +220,46 @@ export default function BookingManager({
     useState("");
 
   const [status, setStatus] =
-    useState<BookingPayload["status"]>(
-      "Pending"
-    );
+    useState<Booking["status"]>("Pending");
 
   const [paymentStatus, setPaymentStatus] =
-    useState<
-      BookingPayload["payment_status"]
-    >("Pending");
+    useState<Booking["payment_status"]>("Pending");
 
   const [notes, setNotes] =
     useState("");
 
-  const [saving, setSaving] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  /*
-   * ---------------------------------------------------------
-   * ACTION MENU
-   * ---------------------------------------------------------
-   */
-
-  const [openMenuId, setOpenMenuId] =
-    useState<string | null>(null);
+  const menuButtonRefs =
+    useRef<Record<string, HTMLButtonElement | null>>(
+      {}
+    );
 
   const [menuPosition, setMenuPosition] =
-    useState<MenuPosition | null>(null);
-
-  const menuButtonRefs =
-    useRef<
-      Record<
-        string,
-        HTMLButtonElement | null
-      >
-    >({});
-
-  const menuRef =
-    useRef<HTMLDivElement | null>(null);
-
-  const [mounted, setMounted] =
-    useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+    useState({
+      top: 0,
+      left: 0,
+    });
 
   /*
    * ---------------------------------------------------------
-   * FILTER FORM DATA BY BUSINESS
+   * FORM DATA FILTERING
    * ---------------------------------------------------------
    */
 
+  const businesses = useMemo(
+    () => formData.businesses,
+    [formData.businesses]
+  );
+
+  /*
+   * IMPORTANT:
+   *
+   * Customers are ENTERPRISE-WIDE.
+   *
+   * Do NOT filter customers by business_id.
+   */
   const customers = useMemo(
-    () =>
-      formData.customers.filter(
-        (customer) =>
-          !businessId ||
-          customer.business_id ===
-            businessId
-      ),
-    [formData.customers, businessId]
+    () => formData.customers,
+    [formData.customers]
   );
 
   const employees = useMemo(
@@ -296,8 +267,7 @@ export default function BookingManager({
       formData.employees.filter(
         (employee) =>
           !businessId ||
-          employee.business_id ===
-            businessId
+          employee.business_id === businessId
       ),
     [formData.employees, businessId]
   );
@@ -307,26 +277,35 @@ export default function BookingManager({
       formData.branches.filter(
         (branch) =>
           !businessId ||
-          branch.business_id ===
-            businessId
+          branch.business_id === businessId
       ),
     [formData.branches, businessId]
   );
 
-  const catalogItems = useMemo(
+  /*
+   * SERVICES ARE BUSINESS-SPECIFIC.
+   *
+   * booking.service.ts already guarantees that these
+   * catalog items are:
+   *
+   * - Active
+   * - item_type = Service
+   *
+   * Here we additionally restrict them to the selected
+   * business.
+   */
+  const services = useMemo(
     () =>
       formData.catalogItems.filter(
         (item) =>
-          !businessId ||
-          item.business_id ===
-            businessId
+          item.business_id === businessId
       ),
     [formData.catalogItems, businessId]
   );
 
   /*
    * ---------------------------------------------------------
-   * RESET FORM
+   * FORM RESET
    * ---------------------------------------------------------
    */
 
@@ -342,7 +321,7 @@ export default function BookingManager({
     setStatus("Pending");
     setPaymentStatus("Pending");
     setNotes("");
-    setError("");
+    setError(null);
   }
 
   /*
@@ -351,114 +330,55 @@ export default function BookingManager({
    * ---------------------------------------------------------
    */
 
-  function loadBookingIntoForm(
-    booking: Booking
-  ) {
-    setBusinessId(
-      booking.business_id ?? ""
-    );
-
-    setCustomerId(
-      booking.customer_id ?? ""
-    );
-
-    setEmployeeId(
-      booking.employee_id ?? ""
-    );
-
-    setBranchId(
-      booking.branch_id ?? ""
-    );
-
+  function loadBookingIntoForm(booking: Booking) {
+    setBusinessId(booking.business_id ?? "");
+    setCustomerId(booking.customer_id ?? "");
+    setEmployeeId(booking.employee_id ?? "");
+    setBranchId(booking.branch_id ?? "");
     setCatalogItemId(
       booking.catalog_item_id ?? ""
     );
-
-    setBookingDate(
-      booking.booking_date ?? ""
-    );
-
-    setBookingTime(
-      booking.booking_time
-        ? booking.booking_time.slice(
-            0,
-            5
-          )
-        : ""
-    );
-
+    setBookingDate(booking.booking_date ?? "");
+    setBookingTime(booking.booking_time ?? "");
     setAmount(
-      Number(
-        booking.amount ?? 0
-      ).toFixed(2)
+      String(Number(booking.amount ?? 0))
     );
-
     setStatus(booking.status);
-
-    setPaymentStatus(
-      booking.payment_status
-    );
-
-    setNotes(
-      booking.notes ?? ""
-    );
-
-    setError("");
+    setPaymentStatus(booking.payment_status);
+    setNotes(booking.notes ?? "");
+    setError(null);
   }
 
   /*
    * ---------------------------------------------------------
-   * OPEN CREATE
+   * MODAL CONTROLS
    * ---------------------------------------------------------
    */
 
   function openCreate() {
+    setOpenMenuId(null);
     setSelectedBooking(null);
     resetForm();
     setModalMode("create");
   }
 
-  /*
-   * ---------------------------------------------------------
-   * OPEN VIEW
-   * ---------------------------------------------------------
-   */
-
-  function openView(
-    booking: Booking
-  ) {
+  function openView(booking: Booking) {
+    setOpenMenuId(null);
     setSelectedBooking(booking);
     setModalMode("view");
-    setOpenMenuId(null);
   }
 
-  /*
-   * ---------------------------------------------------------
-   * OPEN EDIT
-   * ---------------------------------------------------------
-   */
-
-  function openEdit(
-    booking: Booking
-  ) {
+  function openEdit(booking: Booking) {
+    setOpenMenuId(null);
     setSelectedBooking(booking);
     loadBookingIntoForm(booking);
     setModalMode("edit");
-    setOpenMenuId(null);
   }
 
-  /*
-   * ---------------------------------------------------------
-   * CLOSE MODAL
-   * ---------------------------------------------------------
-   */
-
   function closeModal() {
-    if (saving) return;
-
     setModalMode(null);
     setSelectedBooking(null);
-    resetForm();
+    setError(null);
   }
 
   /*
@@ -467,11 +387,18 @@ export default function BookingManager({
    * ---------------------------------------------------------
    */
 
-  function handleBusinessChange(
-    value: string
-  ) {
+  function handleBusinessChange(value: string) {
     setBusinessId(value);
-    setCustomerId("");
+
+    /*
+     * Customer stays selected because customers are
+     * enterprise-wide.
+     */
+
+    /*
+     * These records belong to the selected business,
+     * so clear them when the business changes.
+     */
     setEmployeeId("");
     setBranchId("");
     setCatalogItemId("");
@@ -480,26 +407,25 @@ export default function BookingManager({
 
   /*
    * ---------------------------------------------------------
-   * CATALOG CHANGE
+   * SERVICE CHANGE
    * ---------------------------------------------------------
    */
 
-  function handleCatalogChange(
-    value: string
-  ) {
+  function handleCatalogChange(value: string) {
     setCatalogItemId(value);
 
-    const item =
+    const selectedService =
       formData.catalogItems.find(
-        (catalogItem) =>
-          catalogItem.id === value
+        (item) => item.id === value
       );
 
-    if (item) {
+    if (selectedService) {
       setAmount(
-        Number(
-          item.base_price ?? 0
-        ).toFixed(2)
+        String(
+          Number(
+            selectedService.base_price ?? 0
+          )
+        )
       );
     } else {
       setAmount("");
@@ -508,18 +434,59 @@ export default function BookingManager({
 
   /*
    * ---------------------------------------------------------
-   * SAVE BOOKING
+   * EMPLOYEE CHANGE
+   * ---------------------------------------------------------
+   */
+
+  function handleEmployeeChange(value: string) {
+    setEmployeeId(value);
+
+    const employee =
+      formData.employees.find(
+        (item) => item.id === value
+      );
+
+    if (
+      employee?.branch_id &&
+      branches.some(
+        (branch) =>
+          branch.id === employee.branch_id
+      )
+    ) {
+      setBranchId(employee.branch_id);
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * SUBMIT
    * ---------------------------------------------------------
    */
 
   async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
+    setError(null);
+
     if (!businessId) {
       setError(
-        "Please select a business."
+        "Please select the business receiving this booking."
+      );
+      return;
+    }
+
+    if (!customerId) {
+      setError(
+        "Please select a customer."
+      );
+      return;
+    }
+
+    if (!catalogItemId) {
+      setError(
+        "Please select a service."
       );
       return;
     }
@@ -531,33 +498,37 @@ export default function BookingManager({
       return;
     }
 
-    setSaving(true);
-    setError("");
+    const selectedService =
+      formData.catalogItems.find(
+        (item) => item.id === catalogItemId
+      );
+
+    if (
+      !selectedService ||
+      selectedService.business_id !== businessId
+    ) {
+      setError(
+        "The selected service does not belong to the selected business."
+      );
+      return;
+    }
+
+    const payload: BookingPayload = {
+      business_id: businessId,
+      customer_id: customerId || null,
+      employee_id: employeeId || null,
+      branch_id: branchId || null,
+      catalog_item_id: catalogItemId || null,
+      booking_date: bookingDate,
+      booking_time: bookingTime || null,
+      status,
+      payment_status: paymentStatus,
+      amount: Number(amount || 0),
+      notes: notes.trim() || null,
+    };
 
     try {
-      const payload: BookingPayload = {
-        business_id: businessId,
-        customer_id:
-          customerId || null,
-        employee_id:
-          employeeId || null,
-        branch_id:
-          branchId || null,
-        catalog_item_id:
-          catalogItemId || null,
-        booking_date:
-          bookingDate,
-        booking_time:
-          bookingTime || null,
-        status,
-        payment_status:
-          paymentStatus,
-        amount: Number(
-          amount || 0
-        ),
-        notes:
-          notes.trim() || null,
-      };
+      setProcessing(true);
 
       if (
         modalMode === "edit" &&
@@ -568,51 +539,72 @@ export default function BookingManager({
           payload
         );
       } else {
-        await createBooking(
-          payload
-        );
+        await createBooking(payload);
       }
 
       closeModal();
-
       router.refresh();
     } catch (err) {
+      console.error(
+        "Booking save error:",
+        err
+      );
+
       setError(
         err instanceof Error
           ? err.message
           : "Unable to save booking."
       );
     } finally {
-      setSaving(false);
+      setProcessing(false);
     }
   }
 
   /*
    * ---------------------------------------------------------
-   * OPEN ACTION CONFIRMATION
+   * ACTION MENU
    * ---------------------------------------------------------
    */
+
+  function toggleMenu(id: string) {
+    if (openMenuId === id) {
+      setOpenMenuId(null);
+      return;
+    }
+
+    const button =
+      menuButtonRefs.current[id];
+
+    if (button) {
+      const rect =
+        button.getBoundingClientRect();
+
+      setMenuPosition({
+        top: rect.bottom + 8,
+        left: Math.max(
+          12,
+          rect.right - 210
+        ),
+      });
+    }
+
+    setOpenMenuId(id);
+  }
+
+  function closeAction() {
+    setAction(null);
+    setActionBooking(null);
+    setError(null);
+  }
 
   function openAction(
     booking: Booking,
-    nextAction: ActionType
+    actionType: Exclude<ActionType, null>
   ) {
     setOpenMenuId(null);
     setActionBooking(booking);
-    setAction(nextAction);
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * CLOSE ACTION CONFIRMATION
-   * ---------------------------------------------------------
-   */
-
-  function closeAction() {
-    if (processing) return;
-
-    setAction(null);
-    setActionBooking(null);
+    setAction(actionType);
+    setError(null);
   }
 
   /*
@@ -622,75 +614,82 @@ export default function BookingManager({
    */
 
   async function executeAction() {
-    if (
-      !action ||
-      !actionBooking
-    ) {
+    if (!action || !actionBooking) {
       return;
     }
 
-    setProcessing(true);
-
     try {
-      switch (action) {
-        case "confirm":
+      setProcessing(true);
+      setError(null);
+
+      if (action === "delete") {
+        await deleteBooking(
+          actionBooking.id
+        );
+      } else {
+        let nextStatus:
+          | Booking["status"]
+          | undefined;
+
+        if (action === "confirm") {
+          nextStatus = "Confirmed";
+        }
+
+        if (action === "complete") {
+          nextStatus = "Completed";
+        }
+
+        if (
+          action === "cancel" ||
+          action === "reject"
+        ) {
+          nextStatus = "Cancelled";
+        }
+
+        if (nextStatus) {
           await updateBooking(
             actionBooking.id,
             {
-              status:
-                "Confirmed",
+              business_id:
+                actionBooking.business_id,
+              customer_id:
+                actionBooking.customer_id,
+              employee_id:
+                actionBooking.employee_id,
+              branch_id:
+                actionBooking.branch_id,
+              catalog_item_id:
+                actionBooking.catalog_item_id,
+              booking_date:
+                actionBooking.booking_date,
+              booking_time:
+                actionBooking.booking_time,
+              status: nextStatus,
+              payment_status:
+                actionBooking.payment_status,
+              amount: Number(
+                actionBooking.amount ?? 0
+              ),
+              notes:
+                actionBooking.notes,
             }
           );
-          break;
-
-        case "complete":
-          await updateBooking(
-            actionBooking.id,
-            {
-              status:
-                "Completed",
-            }
-          );
-          break;
-
-        case "reject":
-          await updateBooking(
-            actionBooking.id,
-            {
-              status:
-                "Cancelled",
-            }
-          );
-          break;
-
-        case "cancel":
-          await updateBooking(
-            actionBooking.id,
-            {
-              status:
-                "Cancelled",
-            }
-          );
-          break;
-
-        case "delete":
-          await deleteBooking(
-            actionBooking.id
-          );
-          break;
+        }
       }
 
       closeAction();
-
       router.refresh();
     } catch (err) {
+      console.error(
+        "Booking action error:",
+        err
+      );
+
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to complete booking action."
+          : "Unable to complete this action."
       );
-
-      closeAction();
     } finally {
       setProcessing(false);
     }
@@ -698,165 +697,40 @@ export default function BookingManager({
 
   /*
    * ---------------------------------------------------------
-   * MENU POSITION
+   * OUTSIDE CLICK / ESCAPE
    * ---------------------------------------------------------
    */
 
-  function updateMenuPosition(
-    bookingId: string
-  ) {
-    const button =
-      menuButtonRefs.current[
-        bookingId
-      ];
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+  const target = event.target as Node;
 
-    if (!button) return;
-
-    const rect =
-      button.getBoundingClientRect();
-
-    const menuWidth = 250;
-    const menuHeight = 430;
-    const gap = 8;
-    const padding = 12;
-
-    let left =
-      rect.right - menuWidth;
-
-    if (left < padding) {
-      left = padding;
-    }
-
-    if (
-      left + menuWidth >
-      window.innerWidth - padding
-    ) {
-      left =
-        window.innerWidth -
-        menuWidth -
-        padding;
-    }
-
-    let top =
-      rect.bottom + gap;
-
-    if (
-      top + menuHeight >
-      window.innerHeight - padding
-    ) {
-      top =
-        rect.top -
-        menuHeight -
-        gap;
-    }
-
-    if (top < padding) {
-      top = padding;
-    }
-
-    setMenuPosition({
-      top,
-      left,
-    });
+  if (!openMenuId) {
+    return;
   }
 
-  /*
-   * ---------------------------------------------------------
-   * MENU EFFECTS
-   * ---------------------------------------------------------
-   */
+  const clickedButton =
+    menuButtonRefs.current[openMenuId]?.contains(target);
 
-  useEffect(() => {
-    if (!openMenuId) return;
+  const clickedMenu =
+    actionMenuRef.current?.contains(target);
 
-    updateMenuPosition(
-      openMenuId
-    );
-
-    function handleResize() {
-      if (openMenuId) {
-        updateMenuPosition(
-          openMenuId
-        );
-      }
-    }
-
-    function handleScroll() {
-      if (openMenuId) {
-        updateMenuPosition(
-          openMenuId
-        );
-      }
-    }
-
-    window.addEventListener(
-      "resize",
-      handleResize
-    );
-
-    window.addEventListener(
-      "scroll",
-      handleScroll,
-      true
-    );
-
-    return () => {
-      window.removeEventListener(
-        "resize",
-        handleResize
-      );
-
-      window.removeEventListener(
-        "scroll",
-        handleScroll,
-        true
-      );
-    };
-  }, [openMenuId]);
-
-  useEffect(() => {
-    if (!openMenuId) return;
-
-    function handleOutsideClick(
-      event: MouseEvent
-    ) {
-      const target =
-        event.target as Node;
-
-      if (
-        menuRef.current?.contains(
-          target
-        )
-      ) {
-        return;
-      }
-
-      const button =
-  openMenuId
-    ? menuButtonRefs.current[openMenuId]
-    : null;
-      if (
-        button?.contains(target)
-      ) {
-        return;
-      }
-
-      setOpenMenuId(null);
-      setMenuPosition(null);
-    }
+  if (!clickedButton && !clickedMenu) {
+    setOpenMenuId(null);
+  }
+}
 
     function handleEscape(
       event: KeyboardEvent
     ) {
       if (event.key === "Escape") {
         setOpenMenuId(null);
-        setMenuPosition(null);
       }
     }
 
     document.addEventListener(
       "mousedown",
-      handleOutsideClick
+      handleClick
     );
 
     document.addEventListener(
@@ -867,7 +741,7 @@ export default function BookingManager({
     return () => {
       document.removeEventListener(
         "mousedown",
-        handleOutsideClick
+        handleClick
       );
 
       document.removeEventListener(
@@ -879,102 +753,36 @@ export default function BookingManager({
 
   /*
    * ---------------------------------------------------------
-   * TOGGLE MENU
-   * ---------------------------------------------------------
-   */
-
-  function toggleMenu(
-    bookingId: string
-  ) {
-    if (
-      openMenuId === bookingId
-    ) {
-      setOpenMenuId(null);
-      setMenuPosition(null);
-      return;
-    }
-
-    setOpenMenuId(bookingId);
-
-    requestAnimationFrame(() => {
-      updateMenuPosition(
-        bookingId
-      );
-    });
-  }
-
-  /*
-   * ---------------------------------------------------------
-   * RENDER ACTION MENU
+   * ACTION MENU RENDER
    * ---------------------------------------------------------
    */
 
   function renderActionMenu(
     booking: Booking
   ) {
-    if (
-      !mounted ||
-      openMenuId !== booking.id ||
-      !menuPosition
-    ) {
+    if (openMenuId !== booking.id) {
       return null;
     }
 
     return createPortal(
       <div
-        ref={menuRef}
-        className="
-          fixed
-          z-[9999]
-          w-[250px]
-          overflow-hidden
-          rounded-2xl
-          border
-          border-slate-200
-          bg-white
-          shadow-2xl
-          ring-1
-          ring-black/5
-        "
+  ref={actionMenuRef}
+  className="fixed z-[9500] w-[210px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
         style={{
           top: menuPosition.top,
           left: menuPosition.left,
         }}
+        role="menu"
       >
-        <div className="border-b border-slate-100 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Booking Actions
-          </p>
-
-          <p className="mt-1 truncate text-sm font-semibold text-[#03162F]">
-            {booking.customers
-              ?.full_name ??
-              "Walk-in / Unknown"}
-          </p>
-        </div>
-
         <button
           type="button"
           onClick={() =>
             openView(booking)
           }
-          className="
-            flex
-            w-full
-            items-center
-            gap-3
-            px-4
-            py-3
-            text-left
-            text-sm
-            font-medium
-            text-slate-700
-            transition
-            hover:bg-slate-50
-          "
+          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
           <Eye className="h-4 w-4" />
-          View Booking
+          View Details
         </button>
 
         <button
@@ -982,88 +790,29 @@ export default function BookingManager({
           onClick={() =>
             openEdit(booking)
           }
-          className="
-            flex
-            w-full
-            items-center
-            gap-3
-            px-4
-            py-3
-            text-left
-            text-sm
-            font-medium
-            text-slate-700
-            transition
-            hover:bg-slate-50
-          "
+          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
           <Edit3 className="h-4 w-4" />
           Edit Booking
         </button>
 
-        <div className="border-t border-slate-100" />
-
-        {booking.status ===
-          "Pending" && (
-          <>
-            <button
-              type="button"
-              onClick={() =>
-                openAction(
-                  booking,
-                  "confirm"
-                )
-              }
-              className="
-                flex
-                w-full
-                items-center
-                gap-3
-                px-4
-                py-3
-                text-left
-                text-sm
-                font-medium
-                text-green-700
-                transition
-                hover:bg-green-50
-              "
-            >
-              <Check className="h-4 w-4" />
-              Confirm Booking
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                openAction(
-                  booking,
-                  "reject"
-                )
-              }
-              className="
-                flex
-                w-full
-                items-center
-                gap-3
-                px-4
-                py-3
-                text-left
-                text-sm
-                font-medium
-                text-orange-700
-                transition
-                hover:bg-orange-50
-              "
-            >
-              <CircleX className="h-4 w-4" />
-              Reject Booking
-            </button>
-          </>
+        {booking.status === "Pending" && (
+          <button
+            type="button"
+            onClick={() =>
+              openAction(
+                booking,
+                "confirm"
+              )
+            }
+            className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            <Check className="h-4 w-4" />
+            Confirm
+          </button>
         )}
 
-        {booking.status ===
-          "Confirmed" && (
+        {booking.status === "Confirmed" && (
           <button
             type="button"
             onClick={() =>
@@ -1072,61 +821,33 @@ export default function BookingManager({
                 "complete"
               )
             }
-            className="
-              flex
-              w-full
-              items-center
-              gap-3
-              px-4
-              py-3
-              text-left
-              text-sm
-              font-medium
-              text-blue-700
-              transition
-              hover:bg-blue-50
-            "
+            className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-emerald-700 hover:bg-emerald-50"
           >
             <CheckCircle2 className="h-4 w-4" />
-            Mark as Complete
+            Complete
           </button>
         )}
 
-        {(
-          booking.status ===
-            "Pending" ||
-          booking.status ===
-            "Confirmed"
-        ) && (
-          <button
-            type="button"
-            onClick={() =>
-              openAction(
-                booking,
-                "cancel"
-              )
-            }
-            className="
-              flex
-              w-full
-              items-center
-              gap-3
-              px-4
-              py-3
-              text-left
-              text-sm
-              font-medium
-              text-red-600
-              transition
-              hover:bg-red-50
-            "
-          >
-            <X className="h-4 w-4" />
-            Cancel Booking
-          </button>
-        )}
+        {booking.status !==
+          "Cancelled" &&
+          booking.status !==
+            "Completed" && (
+            <button
+              type="button"
+              onClick={() =>
+                openAction(
+                  booking,
+                  "cancel"
+                )
+              }
+              className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              <CircleX className="h-4 w-4" />
+              Cancel
+            </button>
+          )}
 
-        <div className="border-t border-slate-100" />
+        <div className="my-1 border-t border-slate-100" />
 
         <button
           type="button"
@@ -1136,23 +857,10 @@ export default function BookingManager({
               "delete"
             )
           }
-          className="
-            flex
-            w-full
-            items-center
-            gap-3
-            px-4
-            py-3
-            text-left
-            text-sm
-            font-semibold
-            text-red-700
-            transition
-            hover:bg-red-50
-          "
+          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50"
         >
           <Trash2 className="h-4 w-4" />
-          Delete Booking
+          Delete
         </button>
       </div>,
       document.body
@@ -1161,41 +869,45 @@ export default function BookingManager({
 
   /*
    * ---------------------------------------------------------
-   * CREATE / EDIT FORM
+   * FORM MODAL
    * ---------------------------------------------------------
    */
 
   function renderFormModal() {
-    if (!modalMode) {
+    if (
+      modalMode !== "create" &&
+      modalMode !== "edit"
+    ) {
       return null;
     }
 
-    const isEditing =
-      modalMode === "edit";
+    const selectedService =
+      formData.catalogItems.find(
+        (item) =>
+          item.id === catalogItemId
+      );
 
     return (
       <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-[#03162F]/60 p-4 backdrop-blur-sm">
-        <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
+        <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
             <div>
               <h2 className="text-xl font-bold text-[#03162F]">
-                {isEditing
+                {modalMode === "edit"
                   ? "Edit Booking"
                   : "New Booking"}
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                {isEditing
-                  ? "Update the booking information below."
-                  : "Create a new customer booking or appointment."}
+                Select the customer, business and
+                service for this booking.
               </p>
             </div>
 
             <button
               type="button"
               onClick={closeModal}
-              disabled={saving}
-              className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+              className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1211,81 +923,260 @@ export default function BookingManager({
               </div>
             )}
 
-           <div className="grid gap-5 md:grid-cols-2">
-  <label className="space-y-2">
-  <span className="text-sm font-semibold text-slate-700">
-    Booking Status
-  </span>
+            {/* CUSTOMER */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Customer
+              </label>
 
-  <select
-    value={status}
-    onChange={(event) =>
-      setStatus(
-        event.target.value as BookingPayload["status"]
-      )
-    }
-    className={inputClass}
-  >
-    <option value="Pending">
-      Pending
-    </option>
+              <select
+                value={customerId}
+                onChange={(event) =>
+                  setCustomerId(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+              >
+                <option value="">
+                  Select customer
+                </option>
 
-    <option value="Confirmed">
-      Confirmed
-    </option>
+                {customers.map(
+                  (customer) => (
+                    <option
+                      key={customer.id}
+                      value={customer.id}
+                    >
+                      {customer.full_name}
+                      {customer.phone
+                        ? ` — ${customer.phone}`
+                        : ""}
+                    </option>
+                  )
+                )}
+              </select>
 
-    <option value="Completed">
-      Completed
-    </option>
+              <p className="mt-1.5 text-xs text-slate-400">
+                Customers are shared across Alessandro
+                Enterprises.
+              </p>
+            </div>
 
-    <option value="Cancelled">
-      Cancelled
-    </option>
+            {/* BUSINESS */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Business
+              </label>
 
-    <option value="Rejected">
-      Rejected
-    </option>
-  </select>
-</label>
+              <select
+                value={businessId}
+                onChange={(event) =>
+                  handleBusinessChange(
+                    event.target.value
+                  )
+                }
+                required
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+              >
+                <option value="">
+                  Select business
+                </option>
 
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
+                {businesses.map(
+                  (business) => (
+                    <option
+                      key={business.id}
+                      value={business.id}
+                    >
+                      {business.name}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+            {/* SERVICE */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Service
+              </label>
+
+              <select
+                value={catalogItemId}
+                onChange={(event) =>
+                  handleCatalogChange(
+                    event.target.value
+                  )
+                }
+                disabled={!businessId}
+                required
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+              >
+                <option value="">
+                  {!businessId
+                    ? "Select a business first"
+                    : services.length === 0
+                    ? "No active services for this business"
+                    : "Select service"}
+                </option>
+
+                {services.map(
+                  (service) => (
+                    <option
+                      key={service.id}
+                      value={service.id}
+                    >
+                      {service.name}
+                    </option>
+                  )
+                )}
+              </select>
+
+              {selectedService && (
+                <div className="mt-2 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                  <span className="text-sm text-slate-500">
+                    Service price
+                  </span>
+
+                  <span className="font-semibold text-[#03162F]">
+                    {formatMoney(
+                      Number(
+                        selectedService.base_price ??
+                          0
+                      )
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* DATE + TIME */}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Booking Date
+                </label>
+
+                <input
+                  type="date"
+                  value={bookingDate}
+                  onChange={(event) =>
+                    setBookingDate(
+                      event.target.value
+                    )
+                  }
+                  required
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Booking Time
+                </label>
+
+                <input
+                  type="time"
+                  value={bookingTime}
+                  onChange={(event) =>
+                    setBookingTime(
+                      event.target.value
+                    )
+                  }
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                />
+              </div>
+            </div>
+
+            {/* STATUS + PAYMENT */}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Booking Status
+                </label>
+
+                <select
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(
+                      event.target.value as Booking["status"]
+                    )
+                  }
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                >
+                  {statusOptions.map(
+                    (option) => (
+                      <option
+                        key={option}
+                        value={option}
+                      >
+                        {option}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Payment Status
-                </span>
+                </label>
 
                 <select
                   value={paymentStatus}
                   onChange={(event) =>
                     setPaymentStatus(
-                      event.target
-                        .value as BookingPayload["payment_status"]
+                      event.target.value as Booking["payment_status"]
                     )
                   }
-                  className={inputClass}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
                 >
-                  <option value="Pending">
-                    Pending
-                  </option>
-
-                  <option value="Partial">
-                    Partial
-                  </option>
-
-                  <option value="Paid">
-                    Paid
-                  </option>
-
-                  <option value="Refunded">
-                    Refunded
-                  </option>
+                  {paymentOptions.map(
+                    (option) => (
+                      <option
+                        key={option}
+                        value={option}
+                      >
+                        {option}
+                      </option>
+                    )
+                  )}
                 </select>
-              </label>
+              </div>
             </div>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-700">
+            {/* AMOUNT */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Amount
+              </label>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(event) =>
+                  setAmount(
+                    event.target.value
+                  )
+                }
+                placeholder="0.00"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+              />
+
+              <p className="mt-1.5 text-xs text-slate-400">
+                Automatically populated from the selected
+                service. You can adjust it if necessary.
+              </p>
+            </div>
+
+            {/* NOTES */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Notes
-              </span>
+              </label>
 
               <textarea
                 value={notes}
@@ -1294,16 +1185,94 @@ export default function BookingManager({
                     event.target.value
                   )
                 }
-                className={`${inputClass} min-h-[110px] resize-y`}
-                placeholder="Optional booking notes..."
+                rows={4}
+                placeholder="Add any booking notes or special instructions..."
+                className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
               />
-            </label>
+            </div>
 
+            {/* INTERNAL ASSIGNMENTS */}
+            {(employees.length > 0 ||
+              branches.length > 0) && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                <p className="mb-4 text-sm font-bold text-[#03162F]">
+                  Internal Assignment
+                </p>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Employee
+                    </label>
+
+                    <select
+                      value={employeeId}
+                      onChange={(event) =>
+                        handleEmployeeChange(
+                          event.target.value
+                        )
+                      }
+                      disabled={!businessId}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition disabled:bg-slate-100 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                    >
+                      <option value="">
+                        Not assigned
+                      </option>
+
+                      {employees.map(
+                        (employee) => (
+                          <option
+                            key={employee.id}
+                            value={employee.id}
+                          >
+                            {employee.full_name}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Branch
+                    </label>
+
+                    <select
+                      value={branchId}
+                      onChange={(event) =>
+                        setBranchId(
+                          event.target.value
+                        )
+                      }
+                      disabled={!businessId}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition disabled:bg-slate-100 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                    >
+                      <option value="">
+                        Not assigned
+                      </option>
+
+                      {branches.map(
+                        (branch) => (
+                          <option
+                            key={branch.id}
+                            value={branch.id}
+                          >
+                            {branch.name}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FOOTER */}
             <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
               <button
                 type="button"
                 onClick={closeModal}
-                disabled={saving}
+                disabled={processing}
                 className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
               >
                 Cancel
@@ -1311,20 +1280,18 @@ export default function BookingManager({
 
               <button
                 type="submit"
-                disabled={saving}
+                disabled={processing}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-6 py-3 font-semibold text-white transition hover:bg-[#0A2852] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {saving && (
+                {processing && (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 )}
 
-                {saving
-                  ? isEditing
-                    ? "Saving..."
-                    : "Creating..."
-                  : isEditing
-                    ? "Save Changes"
-                    : "Create Booking"}
+                {processing
+                  ? "Saving..."
+                  : modalMode === "edit"
+                  ? "Save Changes"
+                  : "Create Booking"}
               </button>
             </div>
           </form>
@@ -1347,8 +1314,7 @@ export default function BookingManager({
       return null;
     }
 
-    const booking =
-      selectedBooking;
+    const booking = selectedBooking;
 
     return (
       <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-[#03162F]/60 p-4 backdrop-blur-sm">
@@ -1399,19 +1365,18 @@ export default function BookingManager({
                 </p>
 
                 <p className="mt-2 font-semibold text-[#03162F]">
-                  {booking.businesses
-                    ?.name ?? "—"}
+                  {booking.businesses?.name ??
+                    "—"}
                 </p>
               </div>
 
               <div className="rounded-xl bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Service / Item
+                  Service
                 </p>
 
                 <p className="mt-2 font-semibold text-[#03162F]">
-                  {booking
-                    .enterprise_catalog
+                  {booking.enterprise_catalog
                     ?.name ?? "—"}
                 </p>
               </div>
@@ -1433,8 +1398,8 @@ export default function BookingManager({
                 </p>
 
                 <p className="mt-2 font-semibold text-[#03162F]">
-                  {booking.branches
-                    ?.name ?? "—"}
+                  {booking.branches?.name ??
+                    "—"}
                 </p>
               </div>
 
@@ -1502,8 +1467,6 @@ export default function BookingManager({
                 </span>
               </div>
             </div>
-
-            
 
             {booking.notes && (
               <div className="rounded-xl border border-slate-200 p-4">
@@ -1573,14 +1536,11 @@ export default function BookingManager({
                   : "bg-blue-100 text-blue-600"
               }`}
             >
-              {action ===
-                "delete" ? (
+              {action === "delete" ? (
                 <Trash2 className="h-6 w-6" />
-              ) : action ===
-                "complete" ? (
+              ) : action === "complete" ? (
                 <CheckCircle2 className="h-6 w-6" />
-              ) : action ===
-                "confirm" ? (
+              ) : action === "confirm" ? (
                 <Check className="h-6 w-6" />
               ) : (
                 <CircleX className="h-6 w-6" />
@@ -1588,21 +1548,16 @@ export default function BookingManager({
             </div>
 
             <h2 className="mt-5 text-center text-xl font-bold text-[#03162F]">
-              {getActionLabel(
-                action
-              )}
+              {getActionLabel(action)}
             </h2>
 
             <p className="mt-3 text-center text-sm leading-6 text-slate-500">
-              {getActionDescription(
-                action
-              )}
+              {getActionDescription(action)}
             </p>
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4 text-center">
               <p className="font-semibold text-[#03162F]">
-                {actionBooking
-                  .customers
+                {actionBooking.customers
                   ?.full_name ??
                   "Walk-in / Unknown"}
               </p>
@@ -1640,24 +1595,11 @@ export default function BookingManager({
                 type="button"
                 onClick={executeAction}
                 disabled={processing}
-                className={`
-                  inline-flex
-                  items-center
-                  gap-2
-                  rounded-xl
-                  px-5
-                  py-3
-                  font-semibold
-                  text-white
-                  transition
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
-                  ${
-                    destructive
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-[#03162F] hover:bg-[#0A2852]"
-                  }
-                `}
+                className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  destructive
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-[#03162F] hover:bg-[#0A2852]"
+                }`}
               >
                 {processing && (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1683,7 +1625,6 @@ export default function BookingManager({
   return (
     <>
       <div className="space-y-6">
-        {/* Header / Quick Actions */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-[#03162F]">
@@ -1726,7 +1667,6 @@ export default function BookingManager({
             </div>
           )}
 
-        {/* Records */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="text-xl font-bold text-[#03162F]">
@@ -1750,7 +1690,8 @@ export default function BookingManager({
               </h3>
 
               <p className="mt-2 text-sm text-slate-500">
-                Customer bookings will appear here once they are created.
+                Customer bookings will appear here once
+                they are created.
               </p>
 
               <button
@@ -1780,7 +1721,7 @@ export default function BookingManager({
                     </th>
 
                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
-                      Service / Item
+                      Service
                     </th>
 
                     <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">
@@ -1822,6 +1763,7 @@ export default function BookingManager({
                           {booking.booking_time && (
                             <div className="mt-1 flex items-center gap-1 text-sm text-slate-500">
                               <Clock className="h-3.5 w-3.5" />
+
                               {formatTime(
                                 booking.booking_time
                               )}
@@ -1844,13 +1786,12 @@ export default function BookingManager({
                         </td>
 
                         <td className="px-6 py-4">
-                          {booking.businesses
-                            ?.name ?? "—"}
+                          {booking.businesses?.name ??
+                            "—"}
                         </td>
 
                         <td className="px-6 py-4">
-                          {booking
-                            .enterprise_catalog
+                          {booking.enterprise_catalog
                             ?.name ?? "—"}
                         </td>
 
@@ -1897,25 +1838,12 @@ export default function BookingManager({
                                 booking.id
                               )
                             }
-                            className={`
-                              inline-flex
-                              items-center
-                              gap-2
-                              rounded-xl
-                              border
-                              px-4
-                              py-2.5
-                              text-sm
-                              font-semibold
-                              shadow-sm
-                              transition
-                              ${
-                                openMenuId ===
-                                booking.id
-                                  ? "border-[#D4AF37] bg-[#03162F] text-white"
-                                  : "border-slate-300 bg-white text-[#03162F] hover:border-[#D4AF37] hover:bg-slate-50"
-                              }
-                            `}
+                            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition ${
+                              openMenuId ===
+                              booking.id
+                                ? "border-[#D4AF37] bg-[#03162F] text-white"
+                                : "border-slate-300 bg-white text-[#03162F] hover:border-[#D4AF37] hover:bg-slate-50"
+                            }`}
                             aria-haspopup="menu"
                             aria-expanded={
                               openMenuId ===

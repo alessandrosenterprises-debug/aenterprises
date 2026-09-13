@@ -242,12 +242,10 @@ export async function getBookingFormData(): Promise<BookingFormData> {
 
     supabase
       .from("enterprise_catalog")
-      .select(
-        "id, name, item_type, business_id, base_price"
-      )
-      .eq("status", "Active")
-      .eq("item_type", "Service")
-      .order("name"),
+.select("id, name, item_type, business_id, base_price")
+.eq("status", "active")
+.eq("item_type", "service")
+.order("name"),
   ]);
 
   /* ==========================================================

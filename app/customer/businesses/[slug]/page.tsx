@@ -16,6 +16,8 @@ import {
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import SoftLoansLoanOverview from "@/components/customer/SoftLoansLoanOverview";
+import MobileMoneyHome from "@/components/customer/MobileMoneyHome";
+import TechSolutionsHome from "@/components/customer/TechSolutionsHome";
 
 interface BusinessPageProps {
   params: Promise<{
@@ -82,9 +84,38 @@ export default async function CustomerBusinessPage({
     );
   }
 
+  
+
   const isSoftLoans =
     business.slug.toLowerCase() === "soft-loans" ||
     business.name.toLowerCase().includes("soft loans");
+
+    const isTechSolutions =
+  business.slug.toLowerCase() === "tech-solutions" ||
+  business.name.toLowerCase().includes("tech solutions");
+
+const isMobileMoney =
+  business.slug.toLowerCase() === "mobile-money" ||
+  business.name.toLowerCase().includes("mobile money");
+
+if (isMobileMoney) {
+  return (
+    <main className="min-h-screen bg-slate-50 pb-[92px]">
+      <CustomerNavigation />
+
+      <MobileMoneyHome business={business} />
+    </main>
+  );
+}
+
+if (isTechSolutions) {
+  return (
+    <main className="min-h-screen bg-slate-50 pb-[92px]">
+      <CustomerNavigation />
+      <TechSolutionsHome business={business} />
+    </main>
+  );
+}
 
   if (!isSoftLoans) {
     return (

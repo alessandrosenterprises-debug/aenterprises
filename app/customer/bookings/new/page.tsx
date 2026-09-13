@@ -143,8 +143,8 @@ export default async function NewBookingPage() {
         name
       )
     `)
-    .eq("item_type", "service")
-    .eq("status", "Active")
+    .ilike("item_type", "service")
+.ilike("status", "active")
     .order("created_at", {
       ascending: false,
     });

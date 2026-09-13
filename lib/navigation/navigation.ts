@@ -63,9 +63,9 @@ export const navigation: NavigationItem[] = [
         href: "/businesses/soft-loans",
       },
       {
-        title: "Alessandro Tech Solutions",
-        href: "/businesses/tech-solutions",
-      },
+  title: "Alessandro Tech Solutions",
+  href: "/dashboard/enterprise/tech-solutions",
+},
     ],
   },
 

@@ -56,7 +56,7 @@ export default async function CustomerServicesPage() {
       `
     )
     .eq("item_type", "service")
-    .eq("status", "Active")
+.eq("status", "active")
     .order("name", {
       ascending: true,
     });

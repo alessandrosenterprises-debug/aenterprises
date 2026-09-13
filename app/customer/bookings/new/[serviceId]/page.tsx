@@ -162,10 +162,10 @@ export default async function BookingServicePage({
           name
         )
       `)
-      .eq("id", serviceId)
-      .eq("item_type", "service")
-      .eq("status", "Active")
-      .maybeSingle();
+          .eq("id", serviceId)
+    .ilike("item_type", "service")
+    .ilike("status", "active")
+    .maybeSingle();
 
   if (serviceError) {
     console.error(
