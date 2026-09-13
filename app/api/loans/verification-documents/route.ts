@@ -5,7 +5,7 @@ import {
   createClient,
 } from "@/lib/supabase/server";
 
-const BUCKET = "loan-identity-documents";
+const BUCKET = "customer-verification";
 
 const SIGNED_URL_SECONDS = 60 * 60;
 
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
        */
       const pathParts = cleanPath.split("/");
 
-      if (pathParts.length !== 3) {
+      if (pathParts.length !== 2) {
         console.error(
           "Invalid verification document path:",
           cleanPath,

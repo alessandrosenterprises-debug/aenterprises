@@ -11,6 +11,8 @@ import {
 import SearchInput from "@/components/ui/search/SearchInput";
 import NotificationCenter from "@/components/layout/NotificationCenter";
 import UserProfile from "./UserProfile";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/browser";
 
 interface CompanySettings {
   company_name: string;
@@ -55,11 +57,47 @@ export default function Header() {
    * configuration/settings table once that schema is finalized.
    */
 
-  const company: CompanySettings = {
-    company_name: "Alessandro Enterprises",
-    tagline: "The Name That Covers All",
-    logo_url: "",
+  const [company, setCompany] = useState<CompanySettings>({
+  company_name: "Alessandro Enterprises",
+  tagline: "The Name That Covers All",
+  logo_url: "",
+});
+
+useEffect(() => {
+  let mounted = true;
+
+  async function loadCompanySettings() {
+    const supabase = createClient();
+
+    const { data, error } = await supabase
+      .from("company_settings")
+      .select("company_name, tagline, logo_url")
+      .eq("singleton_key", "default")
+      .eq("active", true)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Header company settings error:", error);
+      return;
+    }
+
+    if (data && mounted) {
+      setCompany({
+        company_name:
+          data.company_name?.trim() || "Alessandro Enterprises",
+        tagline:
+          data.tagline?.trim() || "The Name That Covers All",
+        logo_url: data.logo_url?.trim() || "",
+      });
+    }
+  }
+
+  loadCompanySettings();
+
+  return () => {
+    mounted = false;
   };
+}, []);
 
   /* ==========================================================
      BRAND NAME
