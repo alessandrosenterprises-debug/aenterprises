@@ -96,8 +96,6 @@ export async function POST(request: Request) {
 
     // ---------------------------------------------------------
     // 4. Find Alessandro Tech Solutions
-    //
-    // Use the existing business slug instead of a hard-coded UUID.
     // ---------------------------------------------------------
     const { data: business, error: businessError } = await supabase
       .from("businesses")
@@ -132,21 +130,47 @@ export async function POST(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 5. Save the consultation request
-    //
-    // This writes ONLY to:
-    // technology_consultation_requests
-    //
-    // It does NOT create:
-    // - bookings
-    // - orders
-    // - loans
-    // - HR loans/advances
-    //
-    // The request remains a Tech Solutions consultation request
-    // until AEOS staff processes it.
+    // 5. Prepare normalized customer information
     // ---------------------------------------------------------
-    const { data: consultation, error: insertError } = await supabase
+    const senderName =
+      customer.full_name?.trim() ||
+      name.trim() ||
+      "Customer";
+
+    const senderEmail =
+      email?.trim() ||
+      customer.email?.trim() ||
+      user.email ||
+      null;
+
+    const senderPhone =
+      phone?.trim() ||
+      customer.phone?.trim() ||
+      null;
+
+    const consultationSubject =
+      subject?.trim() ||
+      "Technology Consultation Request";
+
+    const consultationTypeValue =
+      consultationType?.trim() ||
+      "general";
+
+    const preferredDateValue =
+      preferredDate?.trim() ||
+      null;
+
+    const preferredTimeValue =
+      preferredTime?.trim() ||
+      "Any time";
+
+    // ---------------------------------------------------------
+    // 6. Save the authoritative Tech Solutions consultation
+    // ---------------------------------------------------------
+    const {
+      data: consultation,
+      error: insertError,
+    } = await supabase
       .from("technology_consultation_requests")
       .insert({
         customer_id: customer.id,
@@ -156,24 +180,15 @@ export async function POST(request: Request) {
 
         phone: phone.trim(),
 
-        email:
-          email?.trim() ||
-          customer.email ||
-          user.email ||
-          null,
+        email: senderEmail,
 
-        consultation_type:
-          consultationType?.trim() || "general",
+        consultation_type: consultationTypeValue,
 
-        preferred_date:
-          preferredDate?.trim() || null,
+        preferred_date: preferredDateValue,
 
-        preferred_time:
-          preferredTime?.trim() || "Any time",
+        preferred_time: preferredTimeValue,
 
-        subject:
-          subject?.trim() ||
-          "Technology Consultation Request",
+        subject: consultationSubject,
 
         message: message.trim(),
 
@@ -200,14 +215,200 @@ export async function POST(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 6. Success
+    // 7. Create the enterprise-wide AEOS message
+    //
+    // Consultation remains the authoritative Tech Solutions
+    // workflow while the message becomes part of the shared
+    // enterprise communications system.
+    // ---------------------------------------------------------
+    const messageBody = [
+      "Technology Consultation Request",
+      "",
+      `Consultation type: ${consultationTypeValue}`,
+      `Preferred date: ${
+        preferredDateValue || "Not specified"
+      }`,
+      `Preferred time: ${preferredTimeValue}`,
+      "",
+      "Customer request:",
+      message.trim(),
+      "",
+      `Consultation ID: ${consultation.id}`,
+    ].join("\n");
+
+    const {
+      data: createdMessage,
+      error: messageError,
+    } = await supabase
+      .from("messages")
+      .insert({
+        business_id: business.id,
+        customer_id: customer.id,
+
+        sender_name: senderName,
+
+        sender_email: senderEmail,
+
+        sender_phone: senderPhone,
+
+        subject: consultationSubject,
+
+        body: messageBody,
+
+        source:
+          "Customer Portal — Technology Consultation",
+
+        status: "Unread",
+
+        priority: "Normal",
+
+        parent_message_id: null,
+
+        assigned_to: null,
+      })
+      .select(
+        `
+        id,
+        business_id,
+        customer_id,
+        subject,
+        status,
+        priority,
+        source,
+        created_at
+      `
+      )
+      .single();
+
+    if (messageError) {
+      console.error(
+        "Technology consultation message creation error:",
+        messageError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Your consultation was saved, but we could not connect it to AEOS Messages. Please contact support.",
+          consultationId: consultation.id,
+        },
+        { status: 500 }
+      );
+    }
+
+    // ---------------------------------------------------------
+    // 8. Create AEOS notification
+    //
+    // This creates the notification that powers the unread
+    // notification count in the AEOS notification center.
+    // ---------------------------------------------------------
+    const notificationPreview =
+      message
+        .trim()
+        .replace(/\s+/g, " ")
+        .slice(0, 120) ||
+      consultationSubject ||
+      "New technology consultation request.";
+
+    const {
+      error: notificationError,
+    } = await supabase
+      .from("notifications")
+      .insert({
+        user_id: null,
+
+        source_id:
+          createdMessage.id,
+
+        type:
+          "message",
+
+        title:
+          "New Technology Consultation",
+
+        sender:
+          senderName,
+
+        preview:
+          notificationPreview,
+
+        message:
+          messageBody,
+
+        subject:
+          consultationSubject,
+
+        action_url:
+          "/dashboard/messages",
+
+        unread:
+          true,
+
+        is_read:
+          false,
+
+        created_at:
+          createdMessage.created_at ||
+          new Date().toISOString(),
+
+        updated_at:
+          new Date().toISOString(),
+      });
+
+    if (notificationError) {
+      console.error(
+        "Technology consultation notification creation error:",
+        JSON.stringify(
+          notificationError,
+          null,
+          2
+        )
+      );
+
+      // The consultation and message are already safely stored.
+      // Do not delete them just because notification creation failed.
+      return NextResponse.json(
+        {
+          success: true,
+
+          consultationId:
+            consultation.id,
+
+          messageId:
+            createdMessage.id,
+
+          status:
+            consultation.status,
+
+          notificationCreated:
+            false,
+
+          warning:
+            "Your consultation was submitted successfully, but the AEOS notification could not be created.",
+        }
+      );
+    }
+
+    // ---------------------------------------------------------
+    // 9. Success
     // ---------------------------------------------------------
     return NextResponse.json({
       success: true,
-      consultationId: consultation.id,
-      status: consultation.status,
+
+      consultationId:
+        consultation.id,
+
+      messageId:
+        createdMessage.id,
+
+      status:
+        consultation.status,
+
+      notificationCreated:
+        true,
+
       message:
-        "Your technology consultation request has been submitted successfully.",
+        "Your technology consultation request has been submitted successfully and sent to AEOS Messages.",
     });
   } catch (error) {
     console.error(

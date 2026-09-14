@@ -307,81 +307,132 @@ export default function NotificationCenter() {
    */
 
   useEffect(() => {
-    let active = true;
+  let active = true;
 
-    async function loadNotifications() {
-      setLoading(true);
+  async function loadNotifications() {
+    try {
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("notifications")
+        .select(`
+          id,
+          type,
+          title,
+          sender,
+          preview,
+          message,
+          business,
+          notification_date,
+          amount,
+          subject,
+          action_url,
+          unread,
+          is_read,
+          read_at,
+          created_at,
+          updated_at
+        `)
+        .order("created_at", {
+          ascending: false,
+        });
 
-      try {
-        const {
-          data,
-          error,
-        } = await supabase
-          .from("notifications")
-          .select(`
-            id,
-            type,
-            title,
-            sender,
-            preview,
-            message,
-            business,
-            notification_date,
-            amount,
-            subject,
-            action_url,
-            unread,
-            is_read,
-            read_at,
-            created_at,
-            updated_at
-          `)
-          .eq("unread", true)
-          .eq("is_read", false)
-          .order("created_at", {
-            ascending: false,
-          });
-
-        if (error) {
-          console.error(
-            "Failed to load notifications:",
-            error
-          );
-
-          return;
-        }
-
-        if (!active) {
-          return;
-        }
-
-        const loaded =
-          (data ?? []).map(
-            (notification) =>
-              mapNotification(
-                notification as NotificationRow
-              )
-          );
-
-        setNotifications(loaded);
-      } catch (error) {
+      if (error) {
         console.error(
-          "Notification loading error:",
+          "Failed to load notifications:",
           error
         );
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+
+        return;
+      }
+
+      if (!active) {
+        return;
+      }
+
+      const loaded =
+        (data ?? []).map(
+          (notification) =>
+            mapNotification(
+              notification as NotificationRow
+            )
+        );
+
+      setNotifications(loaded);
+    } catch (error) {
+      console.error(
+        "Notification loading error:",
+        error
+      );
+    } finally {
+      if (active) {
+        setLoading(false);
       }
     }
+  }
 
+  // Initial load
+  setLoading(true);
+  void loadNotifications();
+
+  // ---------------------------------------------------------
+  // Refresh when the dashboard/tab becomes active again
+  // ---------------------------------------------------------
+  function handleVisibilityChange() {
+    if (
+      document.visibilityState === "visible"
+    ) {
+      void loadNotifications();
+    }
+  }
+
+  document.addEventListener(
+    "visibilitychange",
+    handleVisibilityChange
+  );
+
+  // ---------------------------------------------------------
+  // Refresh when the browser window receives focus
+  // ---------------------------------------------------------
+  function handleWindowFocus() {
     void loadNotifications();
+  }
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  window.addEventListener(
+    "focus",
+    handleWindowFocus
+  );
+
+  // ---------------------------------------------------------
+  // Background refresh
+  //
+  // This keeps the notification count current while the
+  // dashboard remains open.
+  // ---------------------------------------------------------
+  const refreshInterval =
+    window.setInterval(() => {
+      void loadNotifications();
+    }, 15000);
+
+  return () => {
+    active = false;
+
+    document.removeEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    window.removeEventListener(
+      "focus",
+      handleWindowFocus
+    );
+
+    window.clearInterval(
+      refreshInterval
+    );
+  };
+}, []);
 
   /*
    * ---------------------------------------------------------------

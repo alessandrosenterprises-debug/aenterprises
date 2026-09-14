@@ -5,7 +5,10 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 
 import {
   Archive,
@@ -148,6 +151,7 @@ export default function EmailManager({
   stats,
 }: EmailManagerProps) {
     const searchParams = useSearchParams();
+    const router = useRouter();
   /*
    * ---------------------------------------------------------
    * STATE
@@ -197,18 +201,36 @@ export default function EmailManager({
     useState("");
 
       useEffect(() => {
-    if (searchParams.get("compose") !== "1") {
-      return;
+  if (searchParams.get("compose") !== "1") {
+    return;
+  }
+
+  const recipientEmail = searchParams.get("to");
+
+  if (!recipientEmail) {
+    return;
+  }
+
+  openCompose(recipientEmail);
+
+  const params = new URLSearchParams(
+    searchParams.toString()
+  );
+
+  params.delete("compose");
+  params.delete("to");
+
+  const query = params.toString();
+
+  router.replace(
+    query
+      ? `/dashboard/emails?${query}`
+      : "/dashboard/emails",
+    {
+      scroll: false,
     }
-
-    const recipientEmail = searchParams.get("to");
-
-    if (!recipientEmail) {
-      return;
-    }
-
-    openCompose(recipientEmail);
-  }, [searchParams]);
+  );
+}, [searchParams, router]);
 
   /*
    * ---------------------------------------------------------
