@@ -163,7 +163,7 @@ function getCategoryRoute(slug: string, category: string) {
       return `/customer/businesses/${slug}/technology/${category}/support`;
 
     case "technology-consultation":
-      return `/customer/businesses/${slug}/technology/${category}/consultation`;
+      return `/customer/technology-consultation`;
 
     case "repairs-maintenance":
       return `/customer/businesses/${slug}/technology/${category}/repair`;

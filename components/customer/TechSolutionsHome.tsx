@@ -441,7 +441,11 @@ export default function TechSolutionsHome({
               return (
                 <Link
                   key={item.id}
-                  href={`/customer/businesses/${business.slug}/technology/${item.id}`}
+                  href={
+  item.id === "technology-consultation"
+    ? "/customer/technology-consultation"
+    : `/customer/businesses/${business.slug}/technology/${item.id}`
+}
                   className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D4AF37]/60 hover:shadow-md"
                 >
                   <span className="flex min-w-0 items-center gap-2.5">

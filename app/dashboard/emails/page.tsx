@@ -13,13 +13,15 @@ export const dynamic = "force-dynamic";
 
 export default async function EmailsPage() {
   try {
-    await syncInboxEmails();
-  } catch (error) {
-    console.error(
-      "Automatic Gmail sync failed:",
-      error
-    );
-  }
+  await syncInboxEmails();
+} catch (error) {
+  console.warn(
+    "Automatic Gmail sync skipped:",
+    error instanceof Error
+      ? error.message
+      : error
+  );
+}
 
   const [emails, stats] = await Promise.all([
     getEmails(),

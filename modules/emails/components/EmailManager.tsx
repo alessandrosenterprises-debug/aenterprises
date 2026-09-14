@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useSearchParams } from "next/navigation";
 
 import {
   Archive,
@@ -33,6 +34,8 @@ import type {
   EmailRecord,
   EmailStatus,
 } from "@/modules/emails/services/email.service";
+
+
 
 /*
  * =========================================================
@@ -144,6 +147,7 @@ export default function EmailManager({
   initialEmails,
   stats,
 }: EmailManagerProps) {
+    const searchParams = useSearchParams();
   /*
    * ---------------------------------------------------------
    * STATE
@@ -191,6 +195,20 @@ export default function EmailManager({
 
   const [body, setBody] =
     useState("");
+
+      useEffect(() => {
+    if (searchParams.get("compose") !== "1") {
+      return;
+    }
+
+    const recipientEmail = searchParams.get("to");
+
+    if (!recipientEmail) {
+      return;
+    }
+
+    openCompose(recipientEmail);
+  }, [searchParams]);
 
   /*
    * ---------------------------------------------------------
@@ -500,17 +518,20 @@ export default function EmailManager({
    * ---------------------------------------------------------
    */
 
-  function openCompose() {
-    resetComposer();
+  function openCompose(
+  recipientEmail?: string,
+  customerId?: string | null
+) {
+  resetComposer();
+  setComposerMode("compose");
+  setSelectedEmail(null);
 
-    setComposerMode(
-      "compose"
-    );
-
-    setSelectedEmail(null);
-
-    setComposeOpen(true);
+  if (recipientEmail) {
+    setTo(recipientEmail);
   }
+
+  setComposeOpen(true);
+}
 
   /*
    * ---------------------------------------------------------
@@ -1033,9 +1054,7 @@ export default function EmailManager({
 
             <button
               type="button"
-              onClick={
-                openCompose
-              }
+              onClick={() => openCompose()}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
             >
               <Plus className="h-5 w-5" />

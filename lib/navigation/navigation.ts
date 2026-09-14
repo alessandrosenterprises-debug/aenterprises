@@ -1,9 +1,9 @@
+
 import {
   LayoutDashboard,
   Building2,
   Briefcase,
   Users,
-  UserCog,
   Package,
   CalendarDays,
   BarChart3,
@@ -63,9 +63,14 @@ export const navigation: NavigationItem[] = [
         href: "/businesses/soft-loans",
       },
       {
-  title: "Alessandro Tech Solutions",
-  href: "/dashboard/enterprise/tech-solutions",
-},
+        title: "Alessandro Tech Solutions",
+        href: "/dashboard/enterprise/tech-solutions",
+      },
+      {
+        title: "Tech Solutions Consultations",
+        href: "/dashboard/enterprise/tech-solutions/consultations",
+        icon: MessageCircle,
+      },
     ],
   },
 
