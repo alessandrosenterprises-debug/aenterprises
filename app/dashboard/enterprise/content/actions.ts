@@ -169,7 +169,9 @@ export async function saveBusinessContentAction(input: SaveBusinessContentInput)
     if (isBusinessScopedTable) query = query.eq("business_id", input.businessId);
     result = await query.select("*").maybeSingle();
   } else {
-    result = await supabase.from(table).insert(values).select("*").single();
+    // The table name is selected dynamically from the content section, so the
+    // generated Supabase client cannot correlate this row union with one table.
+    result = await supabase.from(table).insert(values as never).select("*").single();
   }
   if (result.error) throw new Error(result.error.message || "Could not save business content.");
   if (!result.data) throw new Error("No matching content item was updated. Refresh and try again.");
