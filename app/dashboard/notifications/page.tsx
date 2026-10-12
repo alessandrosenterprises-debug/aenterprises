@@ -7,6 +7,8 @@ import {
   CalendarDays,
   Settings,
 } from "lucide-react";
+import Link from "next/link";
+import NotificationPageRefresh from "@/modules/notifications/components/NotificationPageRefresh";
 
 import {
   getNotifications,
@@ -81,14 +83,12 @@ function getNotificationIcon(
 }
 
 export default async function NotificationsPage() {
-  const [notifications, stats] =
-    await Promise.all([
-      getNotifications(),
-      getNotificationStats(),
-    ]);
+  const notifications = await getNotifications();
+  const stats = await getNotificationStats(notifications);
 
   return (
     <div className="space-y-6">
+      <NotificationPageRefresh />
       <div>
         <h1 className="text-3xl font-bold text-[#03162F]">
           Notifications
@@ -274,6 +274,12 @@ export default async function NotificationsPage() {
                           Subject:{" "}
                           {notification.subject}
                         </p>
+                      )}
+
+                      {notification.action_url && notification.action_url.startsWith("/") && (
+                        <Link href={notification.action_url} className="mt-2 inline-flex items-center rounded-lg bg-[#03162F] px-3 py-2 text-xs font-bold text-white hover:bg-[#0A2852]">
+                          Open related page
+                        </Link>
                       )}
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">

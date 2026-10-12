@@ -63,7 +63,7 @@ const businessSections = [
     title: "Services",
     description:
       "Create and manage services offered specifically by Tech Solutions.",
-    href: "/dashboard/enterprise/tech-solutions/services",
+      href: "/dashboard/enterprise/content?business=tech-solutions&section=services",
     icon: Wrench,
     accent: "from-violet-500 to-purple-600",
     iconBg: "bg-violet-50",
@@ -73,7 +73,7 @@ const businessSections = [
     title: "Products",
     description:
       "Manage Technology Shop products, stock, pricing and availability.",
-    href: "/dashboard/enterprise/tech-solutions/products",
+      href: "/dashboard/enterprise/content?business=tech-solutions&section=products",
     icon: Package,
     accent: "from-amber-400 to-orange-500",
     iconBg: "bg-amber-50",
@@ -83,7 +83,7 @@ const businessSections = [
     title: "Gallery",
     description:
       "Manage Tech Solutions images, portfolio content and business gallery.",
-    href: "/dashboard/enterprise/tech-solutions/gallery",
+      href: "/dashboard/enterprise/content?business=tech-solutions&section=gallery",
     icon: Image,
     accent: "from-cyan-500 to-blue-600",
     iconBg: "bg-cyan-50",
@@ -93,7 +93,7 @@ const businessSections = [
     title: "Posts & Updates",
     description:
       "Publish Tech Solutions news, posts, announcements and updates.",
-    href: "/dashboard/enterprise/tech-solutions/posts",
+      href: "/dashboard/enterprise/content?business=tech-solutions&section=posts",
     icon: FileText,
     accent: "from-indigo-500 to-violet-600",
     iconBg: "bg-indigo-50",
@@ -103,7 +103,7 @@ const businessSections = [
     title: "Promotions",
     description:
       "Create and manage Tech Solutions offers, discounts and promotions.",
-    href: "/dashboard/enterprise/tech-solutions/promotions",
+      href: "/dashboard/enterprise/content?business=tech-solutions&section=promotions",
     icon: Megaphone,
     accent: "from-orange-500 to-red-500",
     iconBg: "bg-orange-50",
@@ -290,6 +290,7 @@ export default async function TechSolutionsPage() {
         <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37] backdrop-blur">
+              {business.logo_url ? <img src={business.logo_url} alt={`${business.name} logo`} className="h-8 w-8 rounded-full bg-white p-1 object-contain" /> : null}
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
               AEOS • Business Management
             </div>

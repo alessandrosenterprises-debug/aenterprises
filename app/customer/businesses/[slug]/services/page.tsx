@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
+import CustomerBusinessCatalogList from "@/modules/catalog/components/CustomerBusinessCatalogList";
+import { getActiveCustomerBusinessCatalog } from "@/modules/catalog/services/customer-business-catalog.service";
 
 type LoanProduct = {
   id: string;
@@ -96,10 +98,13 @@ function getCategoryInfo(category: string) {
 
 export default async function SoftLoansServicesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ category?: string }>;
 }) {
   const { slug } = await params;
+  const requestedCategory = (await searchParams)?.category?.trim();
 
   const supabase = await createClient();
 
@@ -139,22 +144,9 @@ export default async function SoftLoansServicesPage({
     business.name.toLowerCase().includes("soft loans");
 
   if (!isSoftLoans) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <CustomerNavigation />
-
-        <div className="mx-auto max-w-xl px-5 py-20 text-center">
-          <h1 className="text-2xl font-black text-[#03162F]">
-            Services Not Available
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Loan services are available through Alessandro
-            Soft Loans.
-          </p>
-        </div>
-      </main>
-    );
+    const allCatalogItems = await getActiveCustomerBusinessCatalog(slug, "service");
+    const catalogItems = requestedCategory ? allCatalogItems.filter((item) => item.category?.trim().toLowerCase() === requestedCategory.toLowerCase()) : allCatalogItems;
+    return <CustomerBusinessCatalogList businessName={business.name} slug={slug} items={catalogItems} itemType="service" />;
   }
 
   const { data: products, error: productsError } =

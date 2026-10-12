@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
+import { matchesTechnologyCategory } from "@/modules/catalog/utils/technology-category";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -56,43 +57,20 @@ export default async function TechnologyServicesPage({
   const categoryName =
     categoryNames[category] ?? category.replaceAll("-", " ");
 
-  const { data: services, error } = await supabase
-    .from("services")
-    .select(
-      `
-        id,
-        business_id,
-        name,
-        description,
-        base_price,
-        status,
-        image_url,
-        category
-      `,
-    )
+  const { data: catalogItems, error } = await supabase
+    .from("enterprise_catalog")
+    .select("id, business_id, item_type, name, description, base_price, status, image_url, category, quantity")
     .eq("business_id", business.id)
-    .eq("status", "active")
+    .ilike("status", "active")
+    .eq("item_type", "service")
     .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Technology services loading error:", error);
   }
 
-  const keywords = category.split("-").map((word) => word.toLowerCase());
-
-  const filteredServices =
-    services?.filter((service) => {
-      const searchable = [
-        service.name,
-        service.description,
-        service.category,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return keywords.some((keyword) => searchable.includes(keyword));
-    }) ?? [];
+  const filteredServices = (catalogItems ?? [])
+    .filter((service) => matchesTechnologyCategory(service, category));
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24 text-[#03162F]">

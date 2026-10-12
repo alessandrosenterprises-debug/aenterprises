@@ -25,6 +25,12 @@ export const businessesSchema: ConfigurationSchema = {
     },
 
     {
+      key: "logo_url",
+      label: "Business Logo",
+      type: "image",
+    },
+
+    {
       key: "status",
       label: "Status",
       type: "select",

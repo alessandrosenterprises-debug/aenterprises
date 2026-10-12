@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
+import { matchesTechnologyCategory } from "@/modules/catalog/utils/technology-category";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -60,48 +61,21 @@ export default async function TechnologyProductsPage({
   const categoryName =
     categoryNames[category] ?? category.replaceAll("-", " ");
 
-  const { data: products, error: productsError } = await supabase
-    .from("products")
-    .select(
-      `
-        id,
-        business_id,
-        name,
-        description,
-        price,
-        status,
-        image_url,
-        category
-      `,
-    )
+  const { data: catalogItems, error: productsError } = await supabase
+    .from("enterprise_catalog")
+    .select("id, business_id, item_type, name, description, base_price, status, image_url, category, quantity")
     .eq("business_id", business.id)
-    .eq("status", "active")
+    .ilike("status", "active")
+    .eq("item_type", "product")
     .order("created_at", { ascending: false });
 
   if (productsError) {
     console.error("Technology products loading error:", productsError);
   }
 
-  const keywords = category
-    .split("-")
-    .map((word) => word.toLowerCase());
-
-  const filteredProducts =
-    products?.filter((product) => {
-      const searchable = [
-        product.name,
-        product.description,
-        product.category,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return (
-        category === "accessories" ||
-        keywords.some((keyword) => searchable.includes(keyword))
-      );
-    }) ?? [];
+  const filteredProducts = (catalogItems ?? [])
+    .filter((product) => matchesTechnologyCategory(product, category))
+    .map((product) => ({ ...product, price: product.base_price }));
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24 text-[#03162F]">

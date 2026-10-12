@@ -231,20 +231,16 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    /*
-     * Authenticate using the customer's actual browser session.
-     *
-     * IMPORTANT:
-     * Do NOT use createAdminClient() for authentication.
-     * The normal server client reads the Supabase auth cookies
-     * created by the customer login.
-     */
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Accept the normal web cookie session and native app bearer sessions.
+    // The service role client is used to validate a bearer token, never to
+    // infer the customer's identity from form fields.
+    const authorization = request.headers.get("authorization");
+    const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+    const cookieClient = await createClient();
+    const admin = createAdminClient();
+    const { data: { user }, error: authError } = bearerToken
+      ? await admin.auth.getUser(bearerToken)
+      : await cookieClient.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -260,9 +256,11 @@ export async function POST(request: Request) {
      * The admin client is used only after authentication
      * for database and private storage operations.
      */
-    const admin = createAdminClient();
-
-    const formData = await request.formData();
+    // Node's FormData typings can come from the legacy form-data package in
+    // this app, so expose the standard Request.formData() get() API explicitly.
+    const formData = await request.formData() as unknown as {
+      get(name: string): FormDataEntryValue | null;
+    };
 
     const productId = String(
       formData.get("product_id") ?? "",

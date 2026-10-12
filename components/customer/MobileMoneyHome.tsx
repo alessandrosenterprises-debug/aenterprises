@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 import {
   ArrowDownToLine,
@@ -29,6 +30,13 @@ interface Business {
 
 interface MobileMoneyHomeProps {
   business: Business;
+  catalogServices?: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    category: string | null;
+    base_price: number | null;
+  }>;
 }
 
 type MobileMoneyService = {
@@ -126,17 +134,56 @@ const quickActions = [
 
 export default function MobileMoneyHome({
   business,
+  catalogServices = [],
 }: MobileMoneyHomeProps) {
   const [selectedService, setSelectedService] =
     useState<MobileMoneyService | null>(null);
+  const [currentCatalogServices, setCurrentCatalogServices] = useState(catalogServices);
+
+  useEffect(() => {
+    if (!business.id) return;
+    let active = true;
+    const loadServices = async () => {
+      const [catalogResult, configuredResult] = await Promise.all([
+        supabase.from("enterprise_catalog").select("id, name, description, category, base_price")
+          .eq("business_id", business.id).ilike("item_type", "service").ilike("status", "active").order("created_at", { ascending: false }),
+        supabase.from("mobile_money_services").select("id, name, description, service_type")
+          .eq("status", "Active").order("name", { ascending: true }),
+      ]);
+      if (!active) return;
+      if (catalogResult.error) console.error("Mobile Money catalog refresh failed:", catalogResult.error);
+      if (configuredResult.error) console.error("Mobile Money service refresh failed:", configuredResult.error);
+      setCurrentCatalogServices([
+        ...((catalogResult.data ?? []).map((service) => ({ ...service, category: service.category ?? null, base_price: service.base_price == null ? null : Number(service.base_price) }))),
+        ...((configuredResult.data ?? []).map((service) => ({ id: `configured-${service.id}`, name: service.name, description: service.description, category: service.service_type, base_price: null }))),
+      ]);
+    };
+    void loadServices();
+    const channel = supabase.channel(`mobile-money-customer-services-${business.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "enterprise_catalog", filter: `business_id=eq.${business.id}` }, () => { void loadServices(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "mobile_money_services" }, () => { void loadServices(); })
+      .subscribe();
+    const refreshInterval = window.setInterval(() => { void loadServices(); }, 15000);
+    return () => { active = false; window.clearInterval(refreshInterval); void supabase.removeChannel(channel); };
+  }, [business.id]);
 
   const businessName =
     business.name || "Alessandro Mobile Money";
 
+  const services: MobileMoneyService[] = [
+    ...currentCatalogServices.map((service) => ({
+        title: service.name,
+        description: service.description || service.category || "Mobile money service.",
+        icon: Smartphone,
+        key: `catalog-${service.id}`,
+      })),
+    ...mobileMoneyServices,
+  ];
+
   const handleServiceClick = (serviceKey: string) => {
-    const service = mobileMoneyServices.find(
+    const service = services.find(
       (item) => item.key === serviceKey,
-    );
+    ) ?? mobileMoneyServices.find((item) => item.key === serviceKey);
 
     if (!service) return;
 
@@ -209,9 +256,7 @@ export default function MobileMoneyHome({
 
     {/* Business identity — compact */}
     <div className="mt-4 flex items-center gap-2.5 border-t border-white/10 pt-3">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#D4AF37]/15">
-        <Landmark className="h-3.5 w-3.5 text-[#D4AF37]" />
-      </div>
+      {business.logo_url ? <img src={business.logo_url} alt={`${businessName} logo`} className="h-9 w-9 shrink-0 rounded-lg bg-white p-1 object-contain" /> : <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#D4AF37]/15"><Landmark className="h-3.5 w-3.5 text-[#D4AF37]" /></div>}
 
       <div className="min-w-0">
         <p className="truncate text-[10px] font-bold text-white">
@@ -327,13 +372,13 @@ export default function MobileMoneyHome({
             </div>
 
             <div className="hidden shrink-0 rounded-full bg-[#03162F]/5 px-3 py-1.5 text-[10px] font-bold text-[#03162F] sm:block">
-              {mobileMoneyServices.length} services
+              {services.length} services
             </div>
           </div>
         </div>
 
         <div className="grid gap-3">
-          {mobileMoneyServices.map((service) => {
+          {services.map((service) => {
             const Icon = service.icon;
             const isSelected =
               selectedService?.key === service.key;

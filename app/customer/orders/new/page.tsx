@@ -17,6 +17,7 @@ export interface CatalogItem {
   business_id: string;
   status: string | null;
   image_url: string | null;
+  businesses?: { name: string } | null;
 }
 
 export default async function NewOrderPage() {
@@ -80,9 +81,11 @@ export default async function NewOrderPage() {
         base_price,
         business_id,
         status,
-        image_url
+        image_url,
+        businesses!inner (name, active)
       `
     )
+    .eq("businesses.active", true)
     .order("name", { ascending: true });
 
   if (catalogError) {
@@ -98,6 +101,7 @@ export default async function NewOrderPage() {
     business_id: item.business_id,
     status: item.status,
     image_url: item.image_url,
+    businesses: item.businesses as unknown as CatalogItem["businesses"],
   }));
 
   const orderableItems = catalogItems.filter((item) => {

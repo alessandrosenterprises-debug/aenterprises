@@ -24,13 +24,15 @@ import { BusinessCatalogSchema } from "../types/catalog";
 interface Business {
   id: string;
   name: string;
+  slug?: string;
 }
 
 interface EnterpriseCatalogFormProps {
   businesses: Business[];
   mode?: "create" | "edit";
   item?: any;
-  onSuccess?: () => void;
+  lockedBusinessId?: string;
+  onSuccess?: (savedItemId: string) => void;
 }
 
 interface CatalogFormData {
@@ -49,6 +51,7 @@ export default function EnterpriseCatalogForm({
   businesses,
   mode = "create",
   item,
+  lockedBusinessId,
   onSuccess,
 }: EnterpriseCatalogFormProps) {
   const router = useRouter();
@@ -64,7 +67,8 @@ export default function EnterpriseCatalogForm({
     formState: { isSubmitting },
   } = useForm<CatalogFormData>({
     defaultValues: {
-      business_id: item?.business_id ?? "",
+      ...((item?.attributes && typeof item.attributes === "object") ? item.attributes : {}),
+      business_id: item?.business_id ?? lockedBusinessId ?? "",
       item_type: item?.item_type ?? "",
       category: item?.category ?? "",
       name: item?.name ?? "",
@@ -89,7 +93,7 @@ export default function EnterpriseCatalogForm({
     }
 
     const resolvedSchema =
-      resolveCatalogSchema(business.name);
+      resolveCatalogSchema(business.slug ?? business.name);
 
     setSchema(resolvedSchema);
 
@@ -115,13 +119,16 @@ export default function EnterpriseCatalogForm({
     schema
   );
 
+    let savedItemId = item?.id as string | undefined;
     if (mode === "create") {
-      await createEnterpriseCatalogItem(payload);
+      const createdItem = await createEnterpriseCatalogItem(payload);
+      savedItemId = createdItem.id;
     } else if (item?.id) {
-      await updateEnterpriseCatalogItem(
+      const updatedItem = await updateEnterpriseCatalogItem(
         item.id,
         payload
       );
+      savedItemId = updatedItem.id;
     }
 
     toast.success(
@@ -132,7 +139,7 @@ export default function EnterpriseCatalogForm({
 
     router.refresh();
 
-    onSuccess?.();
+    if (savedItemId) onSuccess?.(savedItemId);
   } catch (error) {
     console.error(error);
 
@@ -150,12 +157,22 @@ export default function EnterpriseCatalogForm({
       className="space-y-8"
     >
       <div className="grid gap-6 md:grid-cols-2">
-        <Select
-          label="Business"
-          placeholder="Select Business"
-          options={businessOptions}
-          {...register("business_id")}
-        />
+        {lockedBusinessId ? (
+          <div>
+            <p className="mb-2 text-sm font-semibold text-slate-700">Business</p>
+            <div className="flex min-h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-[#03162F]">
+              {businesses.find((business) => business.id === lockedBusinessId)?.name ?? "Selected business"}
+            </div>
+            <input type="hidden" {...register("business_id")} />
+          </div>
+        ) : (
+          <Select
+            label="Business"
+            placeholder="Select Business"
+            options={businessOptions}
+            {...register("business_id")}
+          />
+        )}
 
         <Input
           label="Item Type"
@@ -184,14 +201,14 @@ export default function EnterpriseCatalogForm({
           })}
         />
 
-        <Input
+        {schema?.itemType === "product" && <Input
           type="number"
           label="Quantity"
           placeholder="0"
           {...register("quantity", {
             valueAsNumber: true,
           })}
-        />
+        />}
 
         <Input
           label="Status"
@@ -201,7 +218,7 @@ export default function EnterpriseCatalogForm({
 
         <div className="md:col-span-2">
   <label className="mb-2 block text-sm font-semibold text-slate-700">
-    Product Image
+    {schema?.itemType === "service" ? "Service Image" : schema?.itemType === "financial" ? "Loan Product Image" : "Product Image"}
   </label>
 
   <ImageUpload

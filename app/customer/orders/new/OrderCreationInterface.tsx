@@ -26,7 +26,7 @@ interface CatalogItem {
   is_active?: boolean | null;
   image_url?: string | null;
   businesses?: {
-    id: string;
+    id?: string;
     name: string;
   } | null;
 }
@@ -94,6 +94,12 @@ export default function OrderCreationInterface({
   }, [cart]);
 
   function addToCart(item: CatalogItem) {
+    setErrorMessage("");
+    if (cart.length > 0 && cart[0].business_id !== item.business_id) {
+      setErrorMessage(`Orders must be placed one business at a time. Complete or clear your ${cart[0].business_name} order before adding items from another business.`);
+      return;
+    }
+
     const existing = cart.find(
       (cartItem: CartItem) => cartItem.id === item.id
     );
@@ -207,6 +213,7 @@ export default function OrderCreationInterface({
             notes: notes.trim() || null,
             subtotal,
             totalAmount: subtotal,
+            businessId: cart[0]?.business_id,
             items: cart.map(
               (item: CartItem) => ({
                 catalogItemId: item.id,

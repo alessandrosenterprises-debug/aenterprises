@@ -272,6 +272,7 @@ export async function updateConfigurationAction(
    * Verify the authenticated configuration administrator first.
    */
   const {
+    supabase,
     user,
     roleName,
   } = await requireConfigurationAdmin();
@@ -286,21 +287,14 @@ export async function updateConfigurationAction(
     }
   );
 
-  /*
-   * Server-only admin client.
-   */
-  const supabaseAdmin =
-    createAdminClient();
-
   const {
     data,
     error,
-  } = await supabaseAdmin
+  } = await supabase
     .from(table)
     .update(values)
     .eq("id", id)
-    .select()
-    .single();
+    .select("id");
 
   if (error) {
     throwActionError(
@@ -310,7 +304,21 @@ export async function updateConfigurationAction(
     );
   }
 
-  return data;
+  const updatedIds = data ?? [];
+
+  if (updatedIds.length === 0) {
+    throw new Error(
+      `No ${table} record was updated. Refresh the page and try again.`
+    );
+  }
+
+  if (updatedIds.length > 1) {
+    throw new Error(
+      `More than one ${table} record matched this update. No single record can be returned safely.`
+    );
+  }
+
+  return { id: updatedIds[0].id };
 }
 
 /* ============================================================

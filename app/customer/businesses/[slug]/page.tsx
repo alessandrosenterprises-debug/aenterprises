@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import SoftLoansLoanOverview from "@/components/customer/SoftLoansLoanOverview";
 import MobileMoneyHome from "@/components/customer/MobileMoneyHome";
 import TechSolutionsHome from "@/components/customer/TechSolutionsHome";
+import CustomerBusinessHome from "@/components/customer/CustomerBusinessHome";
 
 interface BusinessPageProps {
   params: Promise<{
@@ -99,11 +100,40 @@ const isMobileMoney =
   business.name.toLowerCase().includes("mobile money");
 
 if (isMobileMoney) {
+  const [mobileMoneyCatalogResult, mobileServicesResult] = await Promise.all([
+    supabase.from("enterprise_catalog")
+      .select("id, name, description, category, base_price")
+      .eq("business_id", business.id)
+      .ilike("item_type", "service")
+      .ilike("status", "active")
+      .order("created_at", { ascending: false }),
+    supabase.from("mobile_money_services")
+      .select("id, name, description, service_type")
+      .eq("status", "Active")
+      .order("name", { ascending: true }),
+  ]);
+
+  if (mobileMoneyCatalogResult.error) {
+    console.error("Customer Mobile Money catalog error:", mobileMoneyCatalogResult.error);
+  }
+  if (mobileServicesResult.error) console.error("Customer Mobile Money services error:", mobileServicesResult.error);
+
+  const catalogServices = [
+    ...(mobileMoneyCatalogResult.data ?? []),
+    ...(mobileServicesResult.data ?? []).map((service) => ({
+      id: `configured-${service.id}`,
+      name: service.name,
+      description: service.description,
+      category: service.service_type,
+      base_price: null,
+    })),
+  ];
+
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
       <CustomerNavigation />
 
-      <MobileMoneyHome business={business} />
+      <MobileMoneyHome business={business} catalogServices={catalogServices} />
     </main>
   );
 }
@@ -121,35 +151,7 @@ if (isTechSolutions) {
     return (
       <main className="min-h-screen bg-slate-50 pb-[92px]">
         <CustomerNavigation />
-
-        <div className="mx-auto flex min-h-[70vh] w-full max-w-[720px] items-center justify-center px-5">
-          <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#03162F] text-[#D4AF37]">
-              <Landmark className="h-8 w-8" />
-            </div>
-
-            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">
-              Alessandro Enterprises
-            </p>
-
-            <h1 className="mt-2 text-xl font-black text-[#03162F]">
-              {business.name}
-            </h1>
-
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              {business.description ||
-                "This business experience is being prepared."}
-            </p>
-
-            <Link
-              href="/customer/businesses"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-5 py-3 text-sm font-bold text-white transition-all duration-300 hover:bg-[#08264D] hover:shadow-lg"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Businesses
-            </Link>
-          </div>
-        </div>
+        <CustomerBusinessHome business={business} />
       </main>
     );
   }

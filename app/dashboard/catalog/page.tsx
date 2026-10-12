@@ -1,11 +1,17 @@
 import CatalogTable from "@/modules/catalog/components/CatalogTable";
 import { getEnterpriseCatalog } from "@/modules/catalog/services/enterprise-catalog.service";
 import { getBusinesses } from "@/modules/catalog/services/business.service";
-export default async function CatalogPage() {
+interface CatalogPageProps {
+  searchParams?: Promise<{ business?: string }>;
+}
+
+export default async function CatalogPage({ searchParams }: CatalogPageProps) {
+  const { business: businessSlug } = (await searchParams) ?? {};
   const [items, businesses] = await Promise.all([
   getEnterpriseCatalog(),
   getBusinesses(),
-]);
+  ]);
+  const selectedBusiness = businesses.find((business) => business.slug === businessSlug);
 
   const totalItems = items.length;
 
@@ -80,9 +86,10 @@ export default async function CatalogPage() {
         />
       </div>
 
-      <CatalogTable
+  <CatalogTable
   items={items}
   businesses={businesses}
+  initialBusinessFilter={selectedBusiness?.name ?? ""}
 />
     </div>
   );

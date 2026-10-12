@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Alessandro Enterprises",
+    "slug": "alessandro-enterprises-customer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "icon": "./assets/app-icon.png",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "package": "com.alessandroenterprises.customer",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#03162F"
+      }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Alessandro Enterprises to choose your profile photo.",
+          "cameraPermission": "Allow Alessandro Enterprises to capture the documents needed for your loan application."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-logo.png",
+          "imageWidth": 290,
+          "resizeMode": "contain",
+          "backgroundColor": "#03162F"
+        }
+      ]
+    ]
+  }
+}

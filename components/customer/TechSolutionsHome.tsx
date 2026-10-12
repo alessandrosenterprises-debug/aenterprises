@@ -29,6 +29,7 @@ import {
 import Link from "next/link";
 
 import { supabase } from "@/lib/supabase/client";
+import { matchesTechnologyCategory } from "@/modules/catalog/utils/technology-category";
 
 interface Business {
   id: string;
@@ -262,18 +263,7 @@ function matchesCategory(
   item: CatalogItem,
   category: TechnologyCategory
 ) {
-  const categoryText = [
-    item.category,
-    item.name,
-    item.description,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return category.keywords.some((keyword) =>
-    categoryText.includes(keyword.toLowerCase())
-  );
+  return matchesTechnologyCategory(item, category.id);
 }
 
 function formatPrice(price: number | null) {
@@ -411,8 +401,8 @@ export default function TechSolutionsHome({
     {/* Hero content */}
     <div>
       <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-200 backdrop-blur">
-        <Sparkles className="h-3.5 w-3.5" />
-        Alessandro Tech Solutions
+        {business.logo_url ? <img src={business.logo_url} alt={`${business.name} logo`} className="h-7 w-7 rounded-full bg-white p-1 object-contain" /> : <Sparkles className="h-3.5 w-3.5" />}
+        {business.name}
       </div>
 
       <h1 className="max-w-2xl text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-[2.7rem]">

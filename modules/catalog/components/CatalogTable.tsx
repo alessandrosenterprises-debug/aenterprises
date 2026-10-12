@@ -23,21 +23,24 @@ import CatalogModal from "./CatalogModal";
 interface Business {
   id: string;
   name: string;
+  slug?: string;
 }
 
 interface CatalogTableProps {
   items: EnterpriseCatalogItem[];
   businesses: Business[];
+  initialBusinessFilter?: string;
 }
 
 export default function CatalogTable({
   items,
   businesses,
+  initialBusinessFilter = "",
 }: CatalogTableProps) {
   const [search, setSearch] = useState("");
 
   const [businessFilter, setBusinessFilter] =
-  useState("");
+  useState(initialBusinessFilter);
 
 const [categoryFilter, setCategoryFilter] =
   useState("");

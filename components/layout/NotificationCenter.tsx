@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import {
   Bell,
@@ -31,6 +32,7 @@ interface NotificationDetails {
   amount?: string;
   subject?: string;
   message: string;
+  actionUrl?: string;
 }
 
 interface Notification {
@@ -197,6 +199,7 @@ function mapNotification(
 
       message:
         notification.message,
+      actionUrl: notification.action_url ?? undefined,
     },
   };
 }
@@ -266,6 +269,7 @@ function getIconContainerClass(
 */
 
 export default function NotificationCenter() {
+  const router = useRouter();
   /*
    * ---------------------------------------------------------------
    * STATE
@@ -376,6 +380,14 @@ export default function NotificationCenter() {
   setLoading(true);
   void loadNotifications();
 
+  const notificationChannel = supabase
+    .channel("dashboard-notification-feed")
+    .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
+      void loadNotifications();
+      router.refresh();
+    })
+    .subscribe();
+
   // ---------------------------------------------------------
   // Refresh when the dashboard/tab becomes active again
   // ---------------------------------------------------------
@@ -431,8 +443,10 @@ export default function NotificationCenter() {
     window.clearInterval(
       refreshInterval
     );
+
+    void supabase.removeChannel(notificationChannel);
   };
-}, []);
+}, [router]);
 
   /*
    * ---------------------------------------------------------------
@@ -507,6 +521,7 @@ export default function NotificationCenter() {
               notification.id !== id
           )
       );
+      router.refresh();
 
       /*
        * Close the detail popup.
@@ -570,6 +585,7 @@ export default function NotificationCenter() {
        */
 
       setNotifications([]);
+      router.refresh();
 
       /*
        * Close any open notification detail.
@@ -1236,11 +1252,11 @@ export default function NotificationCenter() {
 
     <a
       href={
-        selected.type === "booking"
+        selected.details.actionUrl || (selected.type === "booking"
           ? "/dashboard/bookings"
           : selected.type === "message"
             ? "/dashboard/messages"
-            : "/dashboard/notifications"
+            : "/dashboard/notifications")
       }
       onClick={closeDetails}
       className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-[#03162F] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0A2852]"

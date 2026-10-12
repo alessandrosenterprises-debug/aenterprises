@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 interface OrderItemInput {
-  catalog_item_id: string;
+  catalog_item_id?: string;
+  catalogItemId?: string;
   quantity: number;
 }
 
 interface CreateOrderRequest {
-  business_id: string;
+  business_id?: string;
+  businessId?: string;
   fulfillment_method?: "Pickup" | "Delivery";
+  fulfillmentMethod?: "Pickup" | "Delivery";
   delivery_address?: string | null;
+  deliveryAddress?: string | null;
   notes?: string | null;
   items: OrderItemInput[];
 }
@@ -84,60 +88,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const {
-      business_id,
-      fulfillment_method = "Pickup",
-      delivery_address = null,
-      notes = null,
-      items,
-    } = body;
-
-    // ============================================================
-    // VALIDATE BUSINESS
-    // ============================================================
-
-    if (!business_id) {
-      return NextResponse.json(
-        {
-          error: "Business is required.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const { data: business, error: businessError } = await supabase
-      .from("businesses")
-      .select("id, name")
-      .eq("id", business_id)
-      .maybeSingle();
-
-    if (businessError) {
-      console.error("Business lookup error:", businessError);
-
-      return NextResponse.json(
-        {
-          error: "Unable to verify the selected business.",
-        },
-        { status: 500 }
-      );
-    }
-
-    if (!business) {
-      return NextResponse.json(
-        {
-          error: "The selected business could not be found.",
-        },
-        { status: 404 }
-      );
-    }
+    const fulfillmentMethod = body.fulfillmentMethod ?? body.fulfillment_method ?? "Pickup";
+    const deliveryAddress = body.deliveryAddress ?? body.delivery_address ?? null;
+    const notes = body.notes ?? null;
+    const items = body.items;
 
     // ============================================================
     // VALIDATE FULFILLMENT
     // ============================================================
 
     if (
-      fulfillment_method !== "Pickup" &&
-      fulfillment_method !== "Delivery"
+      fulfillmentMethod !== "Pickup" &&
+      fulfillmentMethod !== "Delivery"
     ) {
       return NextResponse.json(
         {
@@ -148,8 +110,8 @@ export async function POST(request: Request) {
     }
 
     if (
-      fulfillment_method === "Delivery" &&
-      !delivery_address?.trim()
+      fulfillmentMethod === "Delivery" &&
+      !deliveryAddress?.trim()
     ) {
       return NextResponse.json(
         {
@@ -176,7 +138,8 @@ export async function POST(request: Request) {
     const itemMap = new Map<string, number>();
 
     for (const item of items) {
-      if (!item?.catalog_item_id) {
+      const catalogItemId = item?.catalogItemId ?? item?.catalog_item_id;
+      if (!catalogItemId) {
         return NextResponse.json(
           {
             error: "Every order item must have a catalog item ID.",
@@ -197,10 +160,10 @@ export async function POST(request: Request) {
       }
 
       const currentQuantity =
-        itemMap.get(item.catalog_item_id) ?? 0;
+        itemMap.get(catalogItemId) ?? 0;
 
       itemMap.set(
-        item.catalog_item_id,
+        catalogItemId,
         currentQuantity + quantity
       );
     }
@@ -220,8 +183,8 @@ export async function POST(request: Request) {
             name,
             business_id,
             item_type,
-            price,
-            amount
+            base_price,
+            status
           `
         )
         .in("id", catalogItemIds);
@@ -248,21 +211,42 @@ export async function POST(request: Request) {
     }
 
     // ============================================================
-    // VERIFY ITEMS BELONG TO BUSINESS
+    // VERIFY ITEMS ARE ORDERABLE AND BELONG TO ONE ACTIVE BUSINESS
     // ============================================================
 
-    const invalidBusinessItem = catalogItems.find(
-      (item) => item.business_id !== business_id
-    );
+    const orderableTypes = new Set(["", "product", "goods", "item", "order", "retail"]);
+    const unavailableItem = catalogItems.find((item) => {
+      const type = (item.item_type ?? "").trim().toLowerCase();
+      const status = (item.status ?? "").trim().toLowerCase();
+      return !orderableTypes.has(type) || ["inactive", "disabled", "ended", "archived", "deleted"].includes(status);
+    });
 
-    if (invalidBusinessItem) {
-      return NextResponse.json(
-        {
-          error:
-            "Your cart contains an item from a different business.",
-        },
-        { status: 400 }
-      );
+    if (unavailableItem) {
+      return NextResponse.json({ error: "One or more items are no longer available to order." }, { status: 400 });
+    }
+
+    const businessIds = new Set(catalogItems.map((item) => item.business_id));
+    if (businessIds.size !== 1) {
+      return NextResponse.json({ error: "Please place a separate order for each business." }, { status: 400 });
+    }
+    const business_id = Array.from(businessIds)[0];
+    const requestedBusinessId = body.businessId ?? body.business_id;
+    if (requestedBusinessId && requestedBusinessId !== business_id) {
+      return NextResponse.json({ error: "The selected business does not match the items in this order." }, { status: 400 });
+    }
+
+    const { data: business, error: businessError } = await supabase
+      .from("businesses")
+      .select("id, name, active")
+      .eq("id", business_id)
+      .maybeSingle();
+
+    if (businessError) {
+      console.error("Business lookup error:", businessError);
+      return NextResponse.json({ error: "Unable to verify the selected business." }, { status: 500 });
+    }
+    if (!business || !business.active) {
+      return NextResponse.json({ error: "The selected business is unavailable." }, { status: 400 });
     }
 
     // ============================================================
@@ -272,16 +256,7 @@ export async function POST(request: Request) {
     let subtotal = 0;
 
     const orderItems = catalogItems.map((catalogItem) => {
-      /*
-       * Different projects sometimes store the catalog price
-       * under either `price` or `amount`.
-       *
-       * We support both here without changing your database.
-       */
-      const rawPrice =
-        catalogItem.price ?? catalogItem.amount ?? 0;
-
-      const unitPrice = Number(rawPrice);
+      const unitPrice = Number(catalogItem.base_price ?? 0);
       const quantity =
         itemMap.get(catalogItem.id) ?? 1;
 
@@ -320,10 +295,10 @@ export async function POST(request: Request) {
         customer_id: customer.id,
         status: "Pending",
         payment_status: "Pending",
-        fulfillment_method,
+        fulfillment_method: fulfillmentMethod,
         delivery_address:
-          fulfillment_method === "Delivery"
-            ? delivery_address?.trim() || null
+          fulfillmentMethod === "Delivery"
+            ? deliveryAddress?.trim() || null
             : null,
         notes: notes?.trim() || null,
         subtotal,
@@ -419,6 +394,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
+        orderId: order.id,
 
         message: "Order created successfully.",
 

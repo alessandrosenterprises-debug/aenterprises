@@ -3,6 +3,7 @@ import {
   Users,
   Package,
   BarChart3,
+  ListTree,
 } from "lucide-react";
 
 const enterpriseSections = [
@@ -26,6 +27,12 @@ const enterpriseSections = [
       "Manage products and services across the enterprise.",
     icon: Package,
     href: "/dashboard/products",
+  },
+  {
+    title: "Business Content Manager",
+    description: "Update services, products, promotions, gallery images and posts for every active business.",
+    icon: ListTree,
+    href: "/dashboard/enterprise/content",
   },
   {
     title: "Reports",

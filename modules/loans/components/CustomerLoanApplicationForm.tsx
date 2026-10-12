@@ -1645,8 +1645,7 @@ export default function CustomerLoanApplicationForm({
             {activeLoanTerms.length ===
               0 && (
               <p className="mt-2 text-xs text-red-600">
-                No active loan terms were
-                supplied to this form.
+                No active loan terms are configured, so a loan cannot be created yet. Add an active term in <a href="/dashboard/configuration/loanTerms" className="font-semibold underline">Loan Terms settings</a>.
               </p>
             )}
           </div>

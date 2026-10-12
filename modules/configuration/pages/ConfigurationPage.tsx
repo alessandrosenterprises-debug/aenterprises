@@ -158,7 +158,8 @@ export default async function ConfigurationPage({
   const columns = schema.fields
     .filter(
       (field) =>
-        field.type !== "image"
+        field.type !== "image" ||
+        (schema.table === "businesses" && field.key === "logo_url")
     )
     .map((field) => {
       /*

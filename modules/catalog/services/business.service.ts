@@ -5,7 +5,7 @@ export async function getBusinesses() {
 
   const { data, error } = await supabase
     .from("businesses")
-    .select("id, name")
+    .select("id, name, slug")
     .order("name");
 
   if (error) {

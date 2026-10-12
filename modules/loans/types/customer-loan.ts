@@ -128,4 +128,18 @@ export interface CustomerLoanApplicationInput {
   selfie_path?: string | null;
 
   notes?: string | null;
+
+  status?: CustomerLoanApplicationStatus;
+
+  amount_paid?: number;
+
+  approved_amount?: number | null;
+
+  rejection_reason?: string | null;
+
+  approved_by?: string | null;
+
+  approved_at?: string | null;
+
+  application_number?: string | null;
 }

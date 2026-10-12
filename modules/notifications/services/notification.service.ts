@@ -119,39 +119,41 @@ export async function getNotifications(): Promise<Notification[]> {
   }));
 }
 
-export async function getNotificationStats() {
-  const notifications = await getNotifications();
+export async function getNotificationStats(
+  notifications?: Notification[]
+) {
+  const rows = notifications ?? await getNotifications();
 
   return {
-    total: notifications.length,
+    total: rows.length,
 
-    unread: notifications.filter(
+    unread: rows.filter(
       (notification) =>
         notification.unread === true &&
         notification.is_read !== true
     ).length,
 
-    read: notifications.filter(
+    read: rows.filter(
       (notification) =>
         notification.is_read === true
     ).length,
 
-    bookings: notifications.filter(
+    bookings: rows.filter(
       (notification) =>
         notification.type === "booking"
     ).length,
 
-    messages: notifications.filter(
+    messages: rows.filter(
       (notification) =>
         notification.type === "message"
     ).length,
 
-    issues: notifications.filter(
+    issues: rows.filter(
       (notification) =>
         notification.type === "issue"
     ).length,
 
-    system: notifications.filter(
+    system: rows.filter(
       (notification) =>
         notification.type === "system"
     ).length,

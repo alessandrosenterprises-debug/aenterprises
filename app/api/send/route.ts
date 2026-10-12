@@ -6,6 +6,7 @@ import {
 } from "@/modules/emails/services/email.server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 type EmailAction =
   | "compose"
@@ -91,8 +92,20 @@ export async function POST(
   request: Request
 ) {
   try {
-    const supabase =
-      await createClient();
+    const authorization = request.headers.get("authorization");
+    const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+    const cookieClient = await createClient();
+    const nativeClient = bearerToken
+      ? createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+          {
+            global: { headers: { Authorization: `Bearer ${bearerToken}` } },
+            auth: { autoRefreshToken: false, persistSession: false },
+          },
+        )
+      : null;
+    const supabase = nativeClient ?? cookieClient;
 
     /*
      * =========================================================
@@ -103,7 +116,9 @@ export async function POST(
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = nativeClient
+      ? await nativeClient.auth.getUser(bearerToken!)
+      : await cookieClient.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(

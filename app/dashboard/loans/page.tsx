@@ -3,10 +3,40 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import CustomerLoanApplicationForm from "@/modules/loans/components/CustomerLoanApplicationForm";
 import CustomerLoansTable from "@/modules/loans/components/CustomerLoansTable";
+import LoanMonthPicker from "@/modules/loans/components/LoanMonthPicker";
 
-export default async function LoansPage() {
+interface LoansPageProps {
+  searchParams?: Promise<{ month?: string }>;
+}
+
+function getMonthKey(date: Date) {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Africa/Lusaka",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  return `${year}-${month}`;
+}
+
+export default async function LoansPage({ searchParams }: LoansPageProps) {
   const supabase = await createClient();
   const adminSupabase = createAdminClient();
+  const requestedMonth = (await searchParams)?.month;
+  const currentMonth = getMonthKey(new Date());
+  const selectedMonth =
+    requestedMonth && /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) && requestedMonth <= currentMonth
+      ? requestedMonth
+      : currentMonth;
+  const [selectedYear, selectedMonthNumber] = selectedMonth.split("-").map(Number);
+  const monthStart = `${selectedMonth}-01`;
+  const nextMonthStart = new Date(Date.UTC(selectedYear, selectedMonthNumber, 1))
+    .toISOString()
+    .slice(0, 10);
+  const selectedMonthLabel = new Intl.DateTimeFormat("en-ZM", {
+    month: "long", year: "numeric", timeZone: "UTC",
+  }).format(new Date(Date.UTC(selectedYear, selectedMonthNumber - 1, 1, 12)));
 
   /*
    * ==========================================================
@@ -244,26 +274,26 @@ export default async function LoansPage() {
    * ==========================================================
    */
 
-  const totalLoans =
-    loans.length;
+  const monthlyLoans = loans.filter((loan) => {
+    const applicationDate = loan.application_date;
+    return applicationDate >= monthStart && applicationDate < nextMonthStart;
+  });
+
+  const totalLoans = monthlyLoans.length;
 
   const pendingLoans =
-    loans.filter(
+    monthlyLoans.filter(
       (loan) =>
         loan.status === "Pending"
     ).length;
 
-  const partialLoans =
-    loans.filter(
-      (loan) =>
-        loan.status === "Partial"
+  const inProgressLoans =
+    monthlyLoans.filter((loan) =>
+      ["Under Review", "Approved", "Active"].includes(loan.status)
     ).length;
 
-  const clearedLoans =
-    loans.filter(
-      (loan) =>
-        loan.status === "Cleared"
-    ).length;
+  const completedLoans =
+    monthlyLoans.filter((loan) => loan.status === "Completed").length;
 
   /*
    * ==========================================================
@@ -272,12 +302,8 @@ export default async function LoansPage() {
    */
 
   const totalPrincipal =
-    loans.reduce(
-      (total, loan) =>
-        total +
-        Number(
-          loan.requested_amount || 0
-        ),
+    monthlyLoans.reduce(
+      (total, loan) => total + Number(loan.approved_amount ?? loan.requested_amount ?? 0),
       0
     );
 
@@ -288,14 +314,32 @@ export default async function LoansPage() {
    */
 
   const totalOutstanding =
-    loans.reduce(
-      (total, loan) =>
-        total +
-        Number(
-          loan.outstanding_balance || 0
-        ),
+    monthlyLoans
+      .filter((loan) => loan.status !== "Completed")
+      .reduce(
+      (total, loan) => total + Number(loan.outstanding_balance || 0),
       0
+      );
+
+  const revenueLoans = monthlyLoans.filter((loan) =>
+    ["Approved", "Active", "Completed"].includes(loan.status)
+  );
+
+  const totalRevenue = revenueLoans.reduce((total, loan) => {
+    const principal = Number(loan.approved_amount ?? loan.requested_amount ?? 0);
+    const expectedRevenue = Number(
+      loan.total_payable ?? principal + principal * (Number(loan.interest_rate ?? 0) / 100)
     );
+    return total + expectedRevenue;
+  }, 0);
+
+  const totalProfit = revenueLoans.reduce((total, loan) => {
+    const principal = Number(loan.approved_amount ?? loan.requested_amount ?? 0);
+    const expectedRevenue = Number(
+      loan.total_payable ?? principal + principal * (Number(loan.interest_rate ?? 0) / 100)
+    );
+    return total + Math.max(expectedRevenue - principal, 0);
+  }, 0);
 
   /*
    * ==========================================================
@@ -340,6 +384,7 @@ export default async function LoansPage() {
             collateral and outstanding balances.
           </p>
         </div>
+        <LoanMonthPicker value={selectedMonth} currentMonth={currentMonth} label={selectedMonthLabel} />
       </div>
 
       {/* ======================================================
@@ -372,27 +417,27 @@ export default async function LoansPage() {
           </p>
         </div>
 
-        {/* PARTIAL */}
+        {/* IN PROGRESS */}
 
         <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-sm">
           <p className="text-sm font-medium text-amber-700">
-            Partial
+            In Progress
           </p>
 
           <p className="mt-2 text-3xl font-bold text-amber-800">
-            {partialLoans}
+            {inProgressLoans}
           </p>
         </div>
 
-        {/* CLEARED */}
+        {/* COMPLETED */}
 
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
           <p className="text-sm font-medium text-emerald-700">
-            Cleared
+            Completed
           </p>
 
           <p className="mt-2 text-3xl font-bold text-emerald-800">
-            {clearedLoans}
+            {completedLoans}
           </p>
         </div>
 
@@ -411,11 +456,15 @@ export default async function LoansPage() {
         </div>
       </section>
 
+      <p className="-mt-4 text-sm text-slate-500">
+        Summary for {selectedMonthLabel}. The loan list below continues to show all applications.
+      </p>
+
       {/* ======================================================
           FINANCIAL SUMMARY
           ====================================================== */}
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
         {/* PRINCIPAL */}
 
@@ -451,6 +500,18 @@ export default async function LoansPage() {
           <p className="mt-2 text-sm text-slate-500">
             Amount currently owed by customers.
           </p>
+        </div>
+
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-6 shadow-sm">
+          <p className="text-sm font-medium text-blue-700">Total Revenue</p>
+          <p className="mt-2 text-3xl font-bold text-blue-900">{formatMoney(totalRevenue)}</p>
+          <p className="mt-2 text-sm text-blue-800">Expected repayments for issued loans in {selectedMonthLabel}.</p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-6 shadow-sm">
+          <p className="text-sm font-medium text-amber-700">Total Profit</p>
+          <p className="mt-2 text-3xl font-bold text-amber-900">{formatMoney(totalProfit)}</p>
+          <p className="mt-2 text-sm text-amber-800">Expected interest before expenses.</p>
         </div>
       </section>
 
@@ -492,6 +553,9 @@ export default async function LoansPage() {
       <section>
         <CustomerLoansTable
           loans={loans}
+          customers={customers}
+          collaterals={collaterals}
+          operators={operators}
         />
       </section>
 

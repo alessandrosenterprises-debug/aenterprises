@@ -23,6 +23,7 @@ import type { Booking } from "@/modules/bookings/services/booking.service";
 
 interface OperationsCenterProps {
   bookings: Booking[];
+  selectedDate: string;
 }
 
 function formatMoney(amount: number) {
@@ -46,15 +47,6 @@ function formatTime(time: string | null) {
   return time.slice(0, 5);
 }
 
-function getToday() {
-  return new Date().toLocaleDateString(
-    "en-CA",
-    {
-      timeZone: "Africa/Lusaka",
-    }
-  );
-}
-
 function statusClass(status: string) {
   switch (status) {
     case "Completed":
@@ -73,6 +65,7 @@ function statusClass(status: string) {
 
 export default function OperationsCenter({
   bookings,
+  selectedDate,
 }: OperationsCenterProps) {
   const router = useRouter();
 
@@ -83,8 +76,6 @@ export default function OperationsCenter({
 
   const [error, setError] = useState("");
 
-  const today = getToday();
-
   const pendingBookings = useMemo(
     () =>
       bookings.filter(
@@ -94,12 +85,12 @@ export default function OperationsCenter({
     [bookings]
   );
 
-  const todaysBookings = useMemo(
+  const selectedDateBookings = useMemo(
     () =>
       bookings
         .filter(
           (booking) =>
-            booking.booking_date === today &&
+            booking.booking_date === selectedDate &&
             booking.status !== "Cancelled"
         )
         .sort((a, b) =>
@@ -107,7 +98,7 @@ export default function OperationsCenter({
             b.booking_time ?? ""
           )
         ),
-    [bookings, today]
+    [bookings, selectedDate]
   );
 
   async function changeStatus(
@@ -209,11 +200,11 @@ export default function OperationsCenter({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">
-                  Today's Bookings
+                  Selected Date Bookings
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#03162F]">
-                  {todaysBookings.length}
+                  {selectedDateBookings.length}
                 </p>
               </div>
 
@@ -375,11 +366,11 @@ export default function OperationsCenter({
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-[#03162F]">
-                  Today's Schedule
+                  Schedule for {formatDate(selectedDate)}
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Appointments and bookings for today.
+                  Appointments and bookings for the selected date.
                 </p>
               </div>
 
@@ -392,20 +383,20 @@ export default function OperationsCenter({
             </div>
 
             <div className="space-y-3">
-              {todaysBookings.length === 0 ? (
+              {selectedDateBookings.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-200 px-5 py-10 text-center">
                   <CalendarDays className="mx-auto h-10 w-10 text-slate-300" />
 
                   <p className="mt-3 font-semibold text-[#03162F]">
-                    No bookings today
+                    No bookings for this date
                   </p>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Today's schedule is clear.
+                    There are no bookings on the selected date.
                   </p>
                 </div>
               ) : (
-                todaysBookings
+                selectedDateBookings
                   .slice(0, 5)
                   .map((booking) => (
                     <button

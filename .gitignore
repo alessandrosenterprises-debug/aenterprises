@@ -2,6 +2,11 @@
 
 # dependencies
 /node_modules
+/mobile/customer-preview/node_modules/
+/mobile/customer-preview/.expo/
+/mobile/customer-preview/.expo-parity-check/
+/mobile/customer-preview/dist/
+/mobile/customer-preview/.env
 /.pnp
 .pnp.*
 .yarn/*

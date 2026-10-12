@@ -385,9 +385,9 @@ export default function ConfigurationManager({
                     </p>
 
                     <div className="whitespace-pre-wrap break-words text-sm font-medium text-slate-900">
-                      {formatValue(
-                        viewingRow[column.key]
-                      )}
+                      {column.key === "logo_url" && viewingRow[column.key] ? (
+                        <img src={String(viewingRow[column.key])} alt={`${viewingRow.name ?? "Business"} logo`} className="h-20 w-20 rounded-xl border border-slate-200 bg-white object-contain p-2" />
+                      ) : formatValue(viewingRow[column.key])}
                     </div>
                   </div>
                 ))}

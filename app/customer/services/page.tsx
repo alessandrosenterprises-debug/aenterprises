@@ -48,15 +48,17 @@ export default async function CustomerServicesPage() {
         base_price,
         status,
         image_url,
-        businesses (
+        businesses!inner (
           id,
           name,
-          slug
+          slug,
+          active
         )
       `
     )
-    .eq("item_type", "service")
-.eq("status", "active")
+    .ilike("item_type", "service")
+    .ilike("status", "active")
+    .eq("businesses.active", true)
     .order("name", {
       ascending: true,
     });
@@ -122,14 +124,10 @@ export default async function CustomerServicesPage() {
                   ? service.businesses[0]
                   : service.businesses;
 
-                const businessHome = business?.slug
-                  ? `/customer/businesses/${business.slug}`
-                  : "/customer/businesses";
-
                 return (
                   <Link
                     key={service.id}
-                    href={businessHome}
+                    href={`/customer/services/${service.id}`}
                     className="group block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-[#D4AF37]/40 hover:shadow-lg"
                   >
                     <div className="flex gap-4">
@@ -193,10 +191,10 @@ export default async function CustomerServicesPage() {
                             )}
                         </div>
 
-                        {/* BUSINESS HOME INDICATOR */}
+                        {/* DETAIL INDICATOR */}
                         {business?.name && (
                           <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-slate-400 transition group-hover:text-[#03162F]">
-                            Visit {business.name}
+                            View service details
                             <ArrowRight className="h-3 w-3 transition duration-300 group-hover:translate-x-1" />
                           </div>
                         )}

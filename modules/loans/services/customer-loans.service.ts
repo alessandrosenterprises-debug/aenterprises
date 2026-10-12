@@ -850,6 +850,10 @@ export async function updateCustomerLoanApplication(
       input.application_date;
   }
 
+  if (input.application_number !== undefined) {
+    updateData.application_number = input.application_number?.trim() || null;
+  }
+
   if (
     input.loan_type !== undefined
   ) {
@@ -875,6 +879,18 @@ export async function updateCustomerLoanApplication(
 
     updateData.requested_amount =
       amount;
+  }
+
+  if (input.approved_amount !== undefined) {
+    if (input.approved_amount !== null) {
+      const approvedAmount = Number(input.approved_amount);
+      if (!Number.isFinite(approvedAmount) || approvedAmount <= 0) {
+        throw new Error("Approved amount must be greater than zero.");
+      }
+      updateData.approved_amount = approvedAmount;
+    } else {
+      updateData.approved_amount = null;
+    }
   }
 
   if (
@@ -1014,16 +1030,44 @@ export async function updateCustomerLoanApplication(
       null;
   }
 
+  if (input.status !== undefined) {
+    updateData.status = input.status;
+  }
+
+  if (input.approved_by !== undefined) {
+    updateData.approved_by = input.approved_by;
+  }
+
+  if (input.approved_at !== undefined) {
+    updateData.approved_at = input.approved_at;
+  }
+
+  if (input.rejection_reason !== undefined) {
+    updateData.rejection_reason = input.rejection_reason?.trim() || null;
+  }
+
+  if (input.amount_paid !== undefined) {
+    const amountPaid = Number(input.amount_paid);
+
+    if (!Number.isFinite(amountPaid) || amountPaid < 0) {
+      throw new Error("Repaid amount cannot be negative.");
+    }
+
+    updateData.amount_paid = amountPaid;
+  }
+
   /**
    * If any calculation inputs change,
    * recalculate the saved figures.
    */
   const shouldRecalculate =
     input.requested_amount !== undefined ||
+    input.approved_amount !== undefined ||
     input.interest_rate !== undefined ||
     input.repayment_period !== undefined ||
     input.loan_product_id !== undefined ||
-    input.loan_type !== undefined;
+    input.loan_type !== undefined ||
+    input.amount_paid !== undefined;
 
   if (shouldRecalculate) {
     /**
@@ -1082,7 +1126,11 @@ export async function updateCustomerLoanApplication(
     }
 
     const approvedAmount =
-      existingLoan.approved_amount !== null
+      input.approved_amount !== undefined
+        ? input.approved_amount !== null
+          ? Number(input.approved_amount)
+          : null
+        : existingLoan.approved_amount !== null
         ? Number(
             existingLoan.approved_amount
           )
@@ -1254,9 +1302,9 @@ export async function updateCustomerLoanApplication(
         frequency,
 
         amountPaid:
-          Number(
-            existingLoan.amount_paid ?? 0
-          ),
+          input.amount_paid !== undefined
+            ? Number(input.amount_paid)
+            : Number(existingLoan.amount_paid ?? 0),
       });
 
     updateData.total_payable =

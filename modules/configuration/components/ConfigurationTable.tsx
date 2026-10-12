@@ -111,9 +111,9 @@ export default function ConfigurationTable({
                   key={column.key}
                   className="px-6 py-4"
                 >
-                  {String(
-                    row[column.key] ?? "-"
-                  )}
+                  {column.key === "logo_url" && row[column.key] ? (
+                    <img src={String(row[column.key])} alt={`${row.name ?? "Business"} logo`} className="h-10 w-10 rounded-lg border border-slate-200 bg-white object-contain p-1" />
+                  ) : String(row[column.key] ?? "-")}
                 </td>
               ))}
 

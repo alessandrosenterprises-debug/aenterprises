@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
+import CustomerBusinessCatalogList from "@/modules/catalog/components/CustomerBusinessCatalogList";
+import { getActiveCustomerBusinessCatalog } from "@/modules/catalog/services/customer-business-catalog.service";
 import {
   getCustomerLoanProducts,
   getLoanProductTerms,
@@ -18,6 +20,7 @@ interface ProductsPageProps {
   params: Promise<{
     slug: string;
   }>;
+  searchParams?: Promise<{ category?: string }>;
 }
 
 function formatZMW(value: number | null | undefined) {
@@ -33,36 +36,20 @@ function formatZMW(value: number | null | undefined) {
 
 export default async function CustomerLoanProductsPage({
   params,
+  searchParams,
 }: ProductsPageProps) {
   const { slug } = await params;
+  const category = (await searchParams)?.category?.trim();
 
   const isSoftLoans =
     slug.toLowerCase() === "soft-loans" ||
     slug.toLowerCase().includes("soft-loan");
 
   if (!isSoftLoans) {
-    return (
-      <main className="min-h-screen bg-[#071426] text-white">
-        <CustomerNavigation />
-
-        <div className="mx-auto max-w-5xl px-4 pb-28 pt-8">
-          <Link
-            href={`/customer/businesses/${slug}`}
-            className="mb-6 inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to business
-          </Link>
-
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center">
-            <h1 className="text-2xl font-bold">Products</h1>
-            <p className="mt-2 text-sm text-white/60">
-              Products for this business are not configured yet.
-            </p>
-          </div>
-        </div>
-      </main>
-    );
+    const catalogItems = await getActiveCustomerBusinessCatalog(slug, "product");
+    const items = category ? catalogItems.filter((item) => item.category?.trim().toLowerCase() === category.toLowerCase()) : catalogItems;
+    const businessName = slug === "elite-fashion" ? "Alessandro Elite Fashion" : slug === "classic-barbershop" ? "Alessandro Classic Barbershop" : "Alessandro Mobile Money";
+    return <CustomerBusinessCatalogList businessName={businessName} slug={slug} items={items} itemType="product" />;
   }
 
   const products = await getCustomerLoanProducts();

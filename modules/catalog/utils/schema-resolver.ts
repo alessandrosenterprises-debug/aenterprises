@@ -10,5 +10,6 @@ export function resolveCatalogSchema(
     .trim()
     .replace(/\s+/g, "-");
 
-  return getCatalogSchema(normalized);
+  const schemaKey = normalized === "elite-fashion" ? "fashion" : normalized;
+  return getCatalogSchema(schemaKey);
 }

@@ -1,115 +1,163 @@
 import { createClient } from "@/lib/supabase/server";
 
-export async function getDashboardStats() {
+const BUSINESS_TIME_ZONE = "Africa/Lusaka";
+
+function dateInLusaka(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function addDays(date: string, amount: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day + amount));
+  return value.toISOString().slice(0, 10);
+}
+
+function startOfLusakaDay(date: string) {
+  return new Date(`${date}T00:00:00+02:00`).toISOString();
+}
+
+function countByBusiness<T extends { business_id?: string | null }>(
+  rows: T[],
+  businessId: string,
+) {
+  return rows.filter((row) => row.business_id === businessId).length;
+}
+
+function recordError(label: string, error: unknown) {
+  if (error) console.error(`Dashboard ${label} error:`, error);
+}
+
+export async function getDashboardStats(requestedDate?: string) {
   const supabase = await createClient();
+  const currentDate = dateInLusaka(new Date());
+  const isValidDate = Boolean(requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) && !Number.isNaN(Date.parse(`${requestedDate}T00:00:00Z`)));
+  const selectedDate = isValidDate && requestedDate! <= currentDate ? requestedDate! : currentDate;
+  const firstDay = addDays(selectedDate, -6);
+  const selectedDayStart = startOfLusakaDay(selectedDate);
+  const nextDayStart = startOfLusakaDay(addDays(selectedDate, 1));
+  const weekStart = startOfLusakaDay(firstDay);
 
   const [
     businessesResult,
-    employeesResult,
-    customersResult,
     bookingsResult,
-    revenueResult,
+    pendingBookingsResult,
+    consultationResult,
+    ordersResult,
+    loanRequestsResult,
+    employeesResult,
+    catalogResult,
+    customersResult,
   ] = await Promise.all([
-    supabase
-      .from("businesses")
-      .select("id", {
-        count: "exact",
-        head: true,
-      }),
-
-    supabase
-      .from("employees")
-      .select("id", {
-        count: "exact",
-        head: true,
-      }),
-
-    supabase
-      .from("customers")
-      .select("id", {
-        count: "exact",
-        head: true,
-      }),
-
-    supabase
-      .from("bookings")
-      .select("id", {
-        count: "exact",
-        head: true,
-      }),
-
-    supabase
-      .from("bookings")
-      .select("amount")
-      .eq("status", "Completed")
-      .eq("payment_status", "Paid"),
+    supabase.from("businesses").select("id, name, slug, logo_url, active").order("name"),
+    supabase.from("bookings").select("id, business_id, booking_date, status, amount, payment_status, created_at").gte("booking_date", firstDay).lte("booking_date", selectedDate),
+    supabase.from("bookings").select("id, business_id, status").eq("status", "Pending"),
+    supabase.from("technology_consultation_requests").select("id, business_id, status, created_at").gte("created_at", weekStart).lt("created_at", nextDayStart),
+    supabase.from("orders").select("id, business_id, status, total_amount, payment_status, created_at").gte("created_at", weekStart).lt("created_at", nextDayStart),
+    supabase.from("customer_loan_applications").select("id, status, created_at").gte("created_at", weekStart).lt("created_at", nextDayStart),
+    supabase.from("employees").select("id, business_id, status, is_active, created_at"),
+    supabase.from("enterprise_catalog").select("id, business_id, name, item_type, quantity, status"),
+    supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", selectedDayStart).lt("created_at", nextDayStart),
   ]);
 
-  if (businessesResult.error) {
-    console.error(
-      "Dashboard businesses error:",
-      businessesResult.error
-    );
-  }
+  recordError("businesses", businessesResult.error);
+  recordError("bookings", bookingsResult.error);
+  recordError("pending bookings", pendingBookingsResult.error);
+  recordError("consultations", consultationResult.error);
+  recordError("orders", ordersResult.error);
+  recordError("loan requests", loanRequestsResult.error);
+  recordError("employees", employeesResult.error);
+  recordError("catalog stock", catalogResult.error);
+  recordError("new customers", customersResult.error);
 
-  if (employeesResult.error) {
-    console.error(
-      "Dashboard employees error:",
-      employeesResult.error
-    );
-  }
+  const businesses = businessesResult.data ?? [];
+  const bookings = bookingsResult.data ?? [];
+  const selectedDayBookings = bookings.filter((booking) => booking.booking_date === selectedDate);
+  const allConsultations = consultationResult.data ?? [];
+  const allOrders = ordersResult.data ?? [];
+  const allLoanRequests = loanRequestsResult.data ?? [];
+  const selectedDayConsultations = allConsultations.filter((request) => dateInLusaka(new Date(request.created_at)) === selectedDate);
+  const selectedDayOrders = allOrders.filter((order) => dateInLusaka(new Date(order.created_at)) === selectedDate);
+  const selectedDayLoanRequests = allLoanRequests.filter((request) => dateInLusaka(new Date(request.created_at)) === selectedDate);
+  const pendingBookings = pendingBookingsResult.data ?? [];
+  const employees = employeesResult.data ?? [];
+  const catalog = catalogResult.data ?? [];
 
-  if (customersResult.error) {
-    console.error(
-      "Dashboard customers error:",
-      customersResult.error
-    );
-  }
+  const dailyActivity = Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(firstDay, index);
+    const dayBookings = bookings.filter((booking) => booking.booking_date === date);
+    const dayOrders = allOrders.filter((order) => dateInLusaka(new Date(order.created_at)) === date);
+    const dayConsultations = allConsultations.filter((request) => dateInLusaka(new Date(request.created_at)) === date);
+    const dayLoanRequests = allLoanRequests.filter((request) => dateInLusaka(new Date(request.created_at)) === date);
+    return {
+      date,
+      label: new Intl.DateTimeFormat("en-ZM", { timeZone: BUSINESS_TIME_ZONE, weekday: "short" }).format(new Date(`${date}T12:00:00+02:00`)),
+      bookings: dayBookings.length,
+      requests: dayOrders.length + dayConsultations.length + dayLoanRequests.length,
+      revenue: dayBookings.filter((booking) => booking.status === "Completed" && booking.payment_status === "Paid").reduce((sum, booking) => sum + Number(booking.amount ?? 0), 0)
+        + dayOrders.filter((order) => order.payment_status === "Paid").reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0),
+    };
+  });
 
-  if (bookingsResult.error) {
-    console.error(
-      "Dashboard bookings error:",
-      bookingsResult.error
+  const businessCards = businesses.map((business) => {
+    const businessEmployees = employees.filter((employee) => employee.business_id === business.id);
+    const businessCatalog = catalog.filter((item) => item.business_id === business.id);
+    const lowStockItems = businessCatalog.filter((item) =>
+      String(item.item_type ?? "").toLowerCase() === "product"
+      && item.quantity !== null
+      && Number(item.quantity) <= 5
+      && String(item.status ?? "").toLowerCase() === "active",
     );
-  }
+    const businessPendingStaff = businessEmployees.filter((employee) =>
+      String(employee.status ?? "").toLowerCase() === "pending",
+    ).length;
+    const businessRequests = selectedDayOrders.filter((order) => order.business_id === business.id);
+    const isSoftLoans = business.slug === "soft-loans";
+    const businessLoanRequests = isSoftLoans ? selectedDayLoanRequests : [];
+    const businessConsultations = selectedDayConsultations.filter((request) => request.business_id === business.id);
+    const businessBookings = selectedDayBookings.filter((booking) => booking.business_id === business.id);
 
-  if (revenueResult.error) {
-    console.error(
-      "Dashboard revenue error:",
-      revenueResult.error
-    );
-  }
+    return {
+      id: business.id,
+      name: business.name,
+      slug: business.slug,
+      logo_url: business.logo_url,
+      active: business.active,
+      bookingsToday: businessBookings.length,
+      pendingBookings: countByBusiness(pendingBookings, business.id),
+      consultationsToday: businessConsultations.length,
+      pendingConsultations: businessConsultations.filter((request) => request.status === "Pending").length,
+      requestsToday: businessRequests.length + businessLoanRequests.length,
+      pendingRequests: businessRequests.filter((request) => request.status === "Pending").length
+        + businessLoanRequests.filter((request) => request.status === "Pending" || request.status === "Under Review").length,
+      pendingStaff: businessPendingStaff,
+      lowStock: lowStockItems.length,
+      lowStockItems: lowStockItems.slice(0, 3).map((item) => ({ name: item.name, quantity: Number(item.quantity) })),
+    };
+  });
 
-  const revenue = (revenueResult.data ?? []).reduce(
-    (total, booking) =>
-      total + Number(booking.amount ?? 0),
-    0
-  );
+  const selectedDayRevenue = selectedDayBookings
+    .filter((booking) => booking.status === "Completed" && booking.payment_status === "Paid")
+    .reduce((sum, booking) => sum + Number(booking.amount ?? 0), 0)
+    + selectedDayOrders
+      .filter((order) => order.payment_status === "Paid")
+      .reduce((sum, order) => sum + Number(order.total_amount ?? 0), 0);
 
   return {
-    businesses:
-      businessesResult.error
-        ? 0
-        : businessesResult.count ?? 0,
-
-    employees:
-      employeesResult.error
-        ? 0
-        : employeesResult.count ?? 0,
-
-    customers:
-      customersResult.error
-        ? 0
-        : customersResult.count ?? 0,
-
-    bookings:
-      bookingsResult.error
-        ? 0
-        : bookingsResult.count ?? 0,
-
-    revenue:
-      revenueResult.error
-        ? 0
-        : revenue,
+    date: selectedDate,
+    currentDate,
+    businesses: businesses.filter((business) => business.active !== false).length,
+    employees: employees.filter((employee) => employee.is_active !== false).length,
+    newCustomers: customersResult.count ?? 0,
+    bookingsToday: selectedDayBookings.length,
+    requestsToday: selectedDayOrders.length + selectedDayConsultations.length + selectedDayLoanRequests.length,
+    pendingBookings: pendingBookings.length,
+    todayRevenue: selectedDayRevenue,
+    businessCards,
+    dailyActivity,
   };
 }

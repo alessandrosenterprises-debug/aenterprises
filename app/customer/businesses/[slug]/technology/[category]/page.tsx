@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
+import TechnologyCategoryItems from "@/modules/catalog/components/TechnologyCategoryItems";
+import type { BusinessCatalogRecord } from "@/modules/catalog/services/business-catalog-admin.service";
+import { matchesTechnologyCategory } from "@/modules/catalog/utils/technology-category";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -168,9 +171,6 @@ function getCategoryRoute(slug: string, category: string) {
     case "repairs-maintenance":
       return `/customer/businesses/${slug}/technology/${category}/repair`;
 
-    case "accessories":
-      return `/customer/businesses/${slug}/technology/${category}/products`;
-
     default:
       return null;
   }
@@ -218,9 +218,19 @@ if (!categoryDefinition) {
 
 const specialCategoryRoute = getCategoryRoute(slug, category);
 
-if (specialCategoryRoute) {
-  redirect(specialCategoryRoute);
+const { data: catalogData, error: catalogError } = await supabase
+  .from("enterprise_catalog")
+  .select("id, business_id, item_type, category, name, description, base_price, quantity, status, image_url, attributes, created_at")
+  .eq("business_id", business.id)
+  .ilike("status", "active")
+  .order("created_at", { ascending: false });
+
+if (catalogError) {
+  console.error("Technology category catalog loading error:", catalogError);
 }
+
+const categoryItems = ((catalogData ?? []) as BusinessCatalogRecord[])
+  .filter((item) => matchesTechnologyCategory(item, category));
 
   const Icon = categoryDefinition.icon;
 
@@ -309,8 +319,23 @@ if (specialCategoryRoute) {
               description="View our technology work and projects."
               badge="VIEW"
             />
+            {specialCategoryRoute && (
+              <CategoryLink
+                href={specialCategoryRoute}
+                icon={category === "repairs-maintenance" ? Wrench : Sparkles}
+                title={category === "repairs-maintenance" ? "Request a Repair" : category === "it-support" ? "Request IT Support" : "Request a Consultation"}
+                description="Send a request to the Tech Solutions team."
+                badge="REQUEST"
+              />
+            )}
           </div>
         </section>
+
+        <TechnologyCategoryItems
+          items={categoryItems}
+          slug={slug}
+          categoryName={categoryDefinition.name}
+        />
 
         {/* Small information strip */}
         <section className="mt-6">
