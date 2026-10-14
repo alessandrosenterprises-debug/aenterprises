@@ -18,6 +18,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -35,8 +36,8 @@ export default function App() {
     if (!loading || hasLoaded) return;
     const timeout = setTimeout(() => {
       setLoading(false);
-      setFailed(true);
-    }, 15_000);
+      setTimedOut(true);
+    }, 8_000);
     return () => clearTimeout(timeout);
   }, [loading, hasLoaded]);
 
@@ -73,7 +74,13 @@ export default function App() {
           style={styles.webView}
           onNavigationStateChange={handleNavigationChange}
           onShouldStartLoadWithRequest={handleNavigationRequest}
-          onLoadStart={() => { if (!hasLoaded) setLoading(true); setFailed(false); }}
+          onLoadStart={() => {
+            if (!hasLoaded) {
+              setLoading(true);
+              setTimedOut(false);
+            }
+            setFailed(false);
+          }}
           onLoadProgress={({ nativeEvent }) => {
             // Show the customer page as soon as the main document is underway,
             // rather than keeping the launch screen up while every asset settles.
@@ -81,12 +88,17 @@ export default function App() {
               setHasLoaded(true);
               setLoading(false);
               setFailed(false);
+              setTimedOut(false);
             }
           }}
-          onLoadEnd={() => { setHasLoaded(true); setLoading(false); }}
-          onError={() => { setLoading(false); setFailed(true); }}
+          onLoadEnd={() => { setHasLoaded(true); setLoading(false); setFailed(false); setTimedOut(false); }}
+          onError={() => { setLoading(false); setFailed(true); setTimedOut(false); }}
           onHttpError={(event) => {
-            if (event.nativeEvent.url === CUSTOMER_URL && event.nativeEvent.statusCode >= 500) setFailed(true);
+            if (event.nativeEvent.url === CUSTOMER_URL && event.nativeEvent.statusCode >= 500) {
+              setLoading(false);
+              setFailed(true);
+              setTimedOut(false);
+            }
           }}
           javaScriptEnabled
           domStorageEnabled
@@ -114,8 +126,25 @@ export default function App() {
           <View style={styles.errorOverlay}>
             <Text style={styles.errorTitle}>The customer hub is taking too long to respond</Text>
             <Text style={styles.errorMessage}>Check your connection and try loading the sign-in page again.</Text>
-            <Pressable style={styles.retryButton} onPress={() => { setFailed(false); setLoading(true); webView.current?.reload(); }}>
+            <Pressable style={styles.retryButton} onPress={() => { setFailed(false); setTimedOut(false); setLoading(true); setHasLoaded(false); webView.current?.reload(); }}>
               <Text style={styles.retryText}>Try again</Text>
+            </Pressable>
+          </View>
+        )}
+        {timedOut && !hasLoaded && !failed && (
+          <View style={styles.slowLoadNotice}>
+            <ActivityIndicator size="small" color="#D4AF37" />
+            <Text style={styles.slowLoadText}>Still connecting. The customer page can keep loading.</Text>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.slowRetryButton}
+              onPress={() => {
+                setTimedOut(false);
+                setLoading(true);
+                webView.current?.reload();
+              }}
+            >
+              <Text style={styles.slowRetryText}>Retry</Text>
             </Pressable>
           </View>
         )}
@@ -133,6 +162,10 @@ const styles = StyleSheet.create({
   loadingLogo: { width: 140, height: 140 },
   loadingText: { color: "#E2E8F0", fontSize: 13, fontWeight: "600", letterSpacing: 0.2 },
   errorOverlay: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", padding: 28, backgroundColor: "#F4F6FA" },
+  slowLoadNotice: { position: "absolute", top: 12, left: 14, right: 14, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#FFFFFF", paddingHorizontal: 14, paddingVertical: 12, elevation: 5 },
+  slowLoadText: { flex: 1, color: "#475569", fontSize: 12, lineHeight: 17 },
+  slowRetryButton: { borderRadius: 9, backgroundColor: "#03162F", paddingHorizontal: 12, paddingVertical: 8 },
+  slowRetryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   errorTitle: { color: "#03162F", fontSize: 20, fontWeight: "800", textAlign: "center" },
   errorMessage: { marginTop: 8, color: "#64748B", fontSize: 14, lineHeight: 21, textAlign: "center" },
   retryButton: { marginTop: 20, minWidth: 140, alignItems: "center", borderRadius: 12, backgroundColor: "#03162F", paddingHorizontal: 22, paddingVertical: 13 },
