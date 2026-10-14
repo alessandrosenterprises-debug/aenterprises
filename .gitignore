@@ -7,6 +7,11 @@
 /mobile/customer-preview/.expo-parity-check/
 /mobile/customer-preview/dist/
 /mobile/customer-preview/.env
+/mobile/customer-app/node_modules/
+/mobile/customer-app/.expo/
+/mobile/customer-app/dist/
+/mobile/customer-app/.env*
+/artifacts/
 /.pnp
 .pnp.*
 .yarn/*

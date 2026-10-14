@@ -30,6 +30,7 @@ interface Company {
 }
 
 interface Profile {
+  id: string;
   first_name: string | null;
   last_name: string | null;
   display_name: string | null;
@@ -72,6 +73,7 @@ export default function CustomerNavigationClient() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   const [companyName, setCompanyName] = useState(
     "Alessandro Enterprises"
@@ -87,6 +89,21 @@ export default function CustomerNavigationClient() {
 
   useEffect(() => {
     let mounted = true;
+    let profileId: string | null = null;
+    let countInterval: number | undefined;
+
+    async function refreshUnreadCount() {
+      if (!profileId) return;
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", profileId)
+        .eq("unread", true);
+
+      if (mounted && !error) {
+        setUnreadNotificationCount(count ?? 0);
+      }
+    }
 
     async function loadNavigationData() {
       try {
@@ -120,6 +137,7 @@ export default function CustomerNavigationClient() {
         const user = userResult.data.user;
 
         if (!user) {
+          setUnreadNotificationCount(0);
           return;
         }
 
@@ -128,6 +146,7 @@ export default function CustomerNavigationClient() {
             .from("profiles")
             .select(
               `
+                id,
                 first_name,
                 last_name,
                 display_name,
@@ -144,6 +163,7 @@ export default function CustomerNavigationClient() {
         if (profileData) {
           const profile =
             profileData as Profile;
+          profileId = profile.id;
 
           const firstName =
             profile.first_name?.trim() ||
@@ -157,6 +177,14 @@ export default function CustomerNavigationClient() {
           setCustomerAvatarUrl(
             profile.avatar_url?.trim() || ""
           );
+
+          await refreshUnreadCount();
+          countInterval = window.setInterval(
+            () => void refreshUnreadCount(),
+            30_000
+          );
+        } else {
+          setUnreadNotificationCount(0);
         }
       } catch (error) {
         console.error(
@@ -167,11 +195,17 @@ export default function CustomerNavigationClient() {
     }
 
     void loadNavigationData();
+    const handleWindowFocus = () => void refreshUnreadCount();
+    window.addEventListener("focus", handleWindowFocus);
 
     return () => {
       mounted = false;
+      window.removeEventListener("focus", handleWindowFocus);
+      if (countInterval !== undefined) {
+        window.clearInterval(countInterval);
+      }
     };
-  }, []);
+  }, [pathname]);
 
   const isActive = (href: string) => {
     if (href === "/customer") {
@@ -245,8 +279,8 @@ export default function CustomerNavigationClient() {
           TOP NAVIGATION
       ========================================================= */}
 
-      <header className="sticky top-0 z-[100] border-b border-white/10 bg-[#03162F]/95 text-white shadow-[0_4px_25px_rgba(3,22,47,0.22)] backdrop-blur-2xl">
-        <div className="mx-auto flex h-[72px] w-full max-w-[760px] items-center justify-between px-3 sm:h-[78px] sm:px-5">
+      <header className="customer-mobile-header sticky top-0 z-[100] border-b border-white/10 bg-[#03162F] text-white shadow-[0_4px_20px_rgba(3,22,47,0.2)]">
+        <div className="mx-auto flex h-16 w-full max-w-[760px] items-center justify-between gap-1 px-2 min-[390px]:h-[72px] min-[390px]:px-3 sm:h-[78px] sm:gap-2 sm:px-5">
 
           {/* BRAND */}
 
@@ -256,7 +290,7 @@ export default function CustomerNavigationClient() {
             className="group flex min-w-0 items-center gap-2.5"
             aria-label={`${companyName} Home`}
           >
-            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#D4AF37]/60 bg-white shadow-[0_5px_15px_rgba(0,0,0,0.22)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:scale-105 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.3)] sm:h-14 sm:w-14">
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#D4AF37]/60 bg-white sm:h-12 sm:w-12 lg:h-14 lg:w-14">
               {logoUrl ? (
                 <img
                   src={logoUrl}
@@ -273,12 +307,12 @@ export default function CustomerNavigationClient() {
             </div>
 
             <div className="min-w-0 leading-none">
-              <p className="max-w-[150px] truncate text-[11px] font-black uppercase tracking-[0.16em] text-[#D4AF37] sm:max-w-[220px] sm:text-[13px]">
+              <p className="max-w-[105px] truncate text-[9px] font-black uppercase tracking-[0.12em] text-[#D4AF37] min-[390px]:max-w-[140px] min-[390px]:text-[11px] sm:max-w-[220px] sm:text-[13px] sm:tracking-[0.16em]">
                 {companyPrimary}
               </p>
 
               {companySecondary && (
-                <p className="mt-1 max-w-[150px] truncate text-[11px] font-semibold text-white sm:max-w-[220px] sm:text-[13px]">
+                <p className="mt-1 max-w-[105px] truncate text-[10px] font-semibold text-white min-[390px]:max-w-[140px] min-[390px]:text-[11px] sm:max-w-[220px] sm:text-[13px]">
                   {companySecondary}
                 </p>
               )}
@@ -287,13 +321,13 @@ export default function CustomerNavigationClient() {
 
           {/* RIGHT SIDE */}
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1 min-[390px]:gap-2 sm:gap-3">
 
             {/* NOTIFICATIONS */}
 
             <Link
               href="/customer/notifications"
-              aria-label="Notifications"
+              aria-label={unreadNotificationCount > 0 ? `Notifications, ${unreadNotificationCount} unread` : "Notifications"}
               className={`group relative flex h-11 w-11 items-center justify-center rounded-full border transition-all duration-300 active:scale-90 sm:h-12 sm:w-12 ${
                 pathname.startsWith(
                   "/customer/notifications"
@@ -302,9 +336,13 @@ export default function CustomerNavigationClient() {
                   : "border-white/10 bg-white/10 text-white shadow-inner hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/15"
               }`}
             >
-              <Bell className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 sm:h-[21px] sm:w-[21px]" />
+              <Bell className="h-5 w-5 sm:h-[21px] sm:w-[21px]" />
 
-              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full border-2 border-[#03162F] bg-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.8)]" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[#03162F] bg-rose-500 px-1 text-[9px] font-black leading-none text-white shadow-md">
+                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                </span>
+              )}
             </Link>
 
             {/* PROFILE BUTTON */}
@@ -316,14 +354,14 @@ export default function CustomerNavigationClient() {
               }
               aria-label="Customer account menu"
               aria-expanded={menuOpen}
-              className={`group flex items-center gap-2 rounded-full px-1.5 py-1 transition-all duration-300 active:scale-[0.97] ${
+              className={`group flex items-center gap-1 rounded-full px-1 py-1 min-[390px]:gap-2 min-[390px]:px-1.5 ${
                 menuOpen || profileActive
                   ? "bg-white/10 shadow-inner"
                   : "hover:bg-white/10"
               }`}
             >
               <div
-                className={`relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 transition-all duration-300 sm:h-12 sm:w-12 ${
+                className={`relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 sm:h-11 sm:w-11 ${
                   menuOpen || profileActive
                     ? "border-[#D4AF37] shadow-[0_0_0_3px_rgba(212,175,55,0.12)]"
                     : "border-white/25 group-hover:border-[#D4AF37]"
@@ -346,12 +384,12 @@ export default function CustomerNavigationClient() {
                 )}
               </div>
 
-              <span className="max-w-[105px] truncate text-[11px] font-bold text-white sm:max-w-[130px] sm:text-sm">
+              <span className="hidden max-w-[72px] truncate text-[11px] font-bold text-white min-[390px]:block min-[390px]:max-w-[90px] sm:max-w-[130px] sm:text-sm">
                 {customerFirstName || "Customer"}
               </span>
 
               <ChevronDown
-                className={`mr-0.5 h-4 w-4 shrink-0 text-slate-300 transition-transform duration-300 ${
+                className={`mr-0.5 h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform duration-300 sm:h-4 sm:w-4 ${
                   menuOpen ? "rotate-180" : ""
                 }`}
               />
@@ -369,10 +407,10 @@ export default function CustomerNavigationClient() {
               type="button"
               aria-label="Close account menu"
               onClick={closeMenu}
-              className="fixed inset-0 top-[72px] z-[-1] h-screen w-screen bg-black/20 backdrop-blur-[2px] sm:top-[78px]"
+              className="fixed inset-0 top-16 z-[-1] h-screen w-screen bg-black/20 backdrop-blur-[2px] min-[390px]:top-[72px] sm:top-[78px]"
             />
 
-            <div className="absolute right-3 top-[78px] w-[calc(100%-24px)] max-w-[370px] origin-top overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-[0_25px_70px_rgba(15,23,42,0.32)] animate-[menuIn_180ms_ease-out]">
+            <div className="absolute right-3 top-16 w-[calc(100%-24px)] max-w-[370px] origin-top overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-[0_25px_70px_rgba(15,23,42,0.32)] animate-[menuIn_180ms_ease-out] min-[390px]:top-[72px] sm:top-[78px]">
 
               {/* ACCOUNT HEADER */}
 
@@ -517,7 +555,7 @@ export default function CustomerNavigationClient() {
 
       <nav
         aria-label="Customer navigation"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-[90]"
+        className="customer-mobile-bottom-nav pointer-events-none fixed inset-x-0 bottom-0 z-[90]"
       >
         <div className="mx-auto w-full max-w-[760px] px-2 pb-2 sm:px-3 sm:pb-3">
           <div className="pointer-events-auto relative overflow-hidden rounded-[22px] border border-white/10 bg-[#03162F] shadow-[0_-8px_30px_rgba(3,22,47,0.22)]">
@@ -544,7 +582,7 @@ export default function CustomerNavigationClient() {
                     className="group relative flex min-w-0 items-center justify-center"
                   >
                     <div
-                      className={`relative flex min-w-[54px] flex-col items-center justify-center rounded-2xl px-2 py-2 transition-colors duration-200 ${
+                      className={`relative flex w-full min-w-0 flex-col items-center justify-center rounded-2xl px-0 py-2 transition-colors duration-200 ${
                         active
                           ? "text-[#D4AF37]"
                           : "text-white/65 hover:text-white"

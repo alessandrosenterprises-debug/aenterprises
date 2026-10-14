@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../hooks/useAuth";
+import { supabase } from "@/lib/supabase/client";
 
 export default function CustomerLoginForm() {
   const router = useRouter();
@@ -22,6 +23,40 @@ export default function CustomerLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function restoreCustomerSession() {
+      try {
+        // Read the persisted WebView session locally first; getUser() adds an
+        // avoidable Auth network round trip before the customer lookup.
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const user = session?.user;
+        if (sessionError || !user || !mounted) return;
+
+        const { data: customer, error: customerError } = await supabase
+          .from("customers")
+          .select("is_active, status")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+
+        if (!mounted || customerError) return;
+
+        if (customer?.is_active === true && customer.status?.toLowerCase() === "active") {
+          router.replace("/customer");
+          router.refresh();
+        }
+      } catch (sessionError) {
+        console.error("Customer session restore error:", sessionError);
+      }
+    }
+
+    void restoreCustomerSession();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement>

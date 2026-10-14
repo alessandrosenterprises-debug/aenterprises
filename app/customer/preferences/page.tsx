@@ -1,5 +1,4 @@
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
-import CustomerThemeProvider from "@/components/customer/CustomerThemeProvider";
 import { getCustomerPreferences } from "@/modules/customers/services/customer-preferences.service";
 import PreferencesClient from "./PreferencesClient";
 
@@ -9,8 +8,7 @@ export default async function CustomerPreferencesPage() {
   const preferences = await getCustomerPreferences();
 
   return (
-    <CustomerThemeProvider appearance={preferences.appearance}>
-      <div className="min-h-screen bg-slate-50 pb-24 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 pb-24 dark:bg-slate-950">
         <CustomerNavigation />
 
         <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
@@ -31,7 +29,6 @@ export default async function CustomerPreferencesPage() {
 
           <PreferencesClient initialPreferences={preferences} />
         </main>
-      </div>
-    </CustomerThemeProvider>
+    </div>
   );
 }
