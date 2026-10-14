@@ -14,7 +14,6 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { supabase } from "@/lib/supabase/client";
 
 type LoanProduct = {
@@ -307,7 +306,7 @@ export default function LoanHistoryPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-28 text-[#03162F]">
-      <CustomerNavigation />
+
 
       {/* HEADER */}
       <section className="overflow-hidden bg-[#03162F] text-white">

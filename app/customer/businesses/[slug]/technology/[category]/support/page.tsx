@@ -1,7 +1,6 @@
 
 import Link from "next/link";
 import {
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Clock3,
@@ -14,7 +13,6 @@ import {
   Wrench,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +63,7 @@ export default async function ITSupportPage({
 
   return (
     <div className="min-h-screen bg-[#061426] text-white">
-      <CustomerNavigation />
+
 
       <main className="pb-28">
         {/* HERO */}
@@ -76,14 +74,6 @@ export default async function ITSupportPage({
           <div className="absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-[#d4af37]/10 blur-3xl" />
 
           <div className="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10 lg:py-14">
-            <Link
-              href={`/customer/businesses/${businessSlug}/technology`}
-              className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white/80 backdrop-blur transition hover:border-[#d4af37]/40 hover:text-[#d4af37]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Tech Solutions
-            </Link>
-
             <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
               <div className="max-w-3xl">
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#d4af37]/25 bg-[#d4af37]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#f0d477]">

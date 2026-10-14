@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/ui/submit-button";
 import ImageUpload from "@/components/ui/image-upload/ImageUpload";
+import DeliveryLocationPicker from "@/components/customer/DeliveryLocationPicker";
 
 import { ConfigurationSchema } from "../types/configuration";
 
@@ -164,6 +165,27 @@ export default function ConfigurationForm({
              */
             case "number":
             case "currency":
+              if (schema.table === "branches" && field.key === "longitude") return null;
+              if (schema.table === "branches" && field.key === "latitude") {
+                const latitude = values.latitude === "" || values.latitude == null ? null : Number(values.latitude);
+                const longitude = values.longitude === "" || values.longitude == null ? null : Number(values.longitude);
+                return (
+                  <div key="branch-location-picker" className="md:col-span-2">
+                    <DeliveryLocationPicker
+                      theme="light"
+                      title="Store location"
+                      description="Tap the map to place the branch pin, or use your device location."
+                      compact
+                      latitude={latitude !== null && Number.isFinite(latitude) ? latitude : null}
+                      longitude={longitude !== null && Number.isFinite(longitude) ? longitude : null}
+                      onChange={(nextLatitude, nextLongitude) => {
+                        setValue("latitude", nextLatitude, { shouldDirty: true, shouldValidate: true });
+                        setValue("longitude", nextLongitude, { shouldDirty: true, shouldValidate: true });
+                      }}
+                    />
+                  </div>
+                );
+              }
               return (
                 <Input
                   key={field.key}
@@ -294,7 +316,7 @@ export default function ConfigurationForm({
         })}
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-slate-200 pt-6">
+      <div className="sticky bottom-0 z-10 -mx-5 flex justify-end gap-3 border-t border-slate-200 bg-white px-5 pb-1 pt-4 sm:-mx-6 sm:px-6">
         <SubmitButton loading={isSubmitting}>
           Save {schema.title}
         </SubmitButton>

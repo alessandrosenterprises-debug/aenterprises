@@ -18,8 +18,11 @@ interface Department {
 interface EmployeeModalProps {
   businesses: Business[];
   departments: Department[];
+  accountOptions?: { auth_user_id: string; display_name: string; email: string }[];
 
   mode?: "create" | "edit";
+  buttonLabel?: string;
+  initialPosition?: string;
 
   employee?: any;
   open?: boolean;
@@ -29,7 +32,10 @@ interface EmployeeModalProps {
 export default function EmployeeModal({
   businesses,
   departments,
+  accountOptions,
   mode = "create",
+  buttonLabel = "+ Add Employee",
+  initialPosition,
   employee,
   open,
   onClose,
@@ -54,7 +60,7 @@ export default function EmployeeModal({
           onClick={() => setInternalOpen(true)}
           className="rounded-xl bg-[#03162F] px-5 py-3 font-semibold text-white transition hover:bg-[#0A2852]"
         >
-          + Add Employee
+          {buttonLabel}
         </button>
       )}
 
@@ -70,7 +76,9 @@ export default function EmployeeModal({
         <EmployeeForm
           businesses={businesses}
           departments={departments}
+          accountOptions={accountOptions}
           mode={mode}
+          initialPosition={initialPosition}
           employee={employee}
           onSuccess={handleClose}
         />

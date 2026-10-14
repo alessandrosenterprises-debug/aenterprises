@@ -1,4 +1,3 @@
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import CustomerProfileSettings from "@/components/customer/CustomerProfileSettings";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,7 +19,7 @@ export default async function CustomerProfilePage({
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <CustomerNavigation />
+
 
         <section className="mx-auto max-w-3xl px-5 py-12">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
@@ -65,7 +64,7 @@ export default async function CustomerProfilePage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       {/* HEADER */}
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 
 type Appearance = "system" | "light" | "dark";
 
@@ -14,7 +13,6 @@ export default function CustomerThemeProvider({
   appearance: initialAppearance,
   children,
 }: CustomerThemeProviderProps) {
-  const pathname = usePathname();
   const [appearance, setAppearance] =
     useState<Appearance>(initialAppearance);
 
@@ -259,7 +257,7 @@ export default function CustomerThemeProvider({
   }, []);
 
   return (
-    <div key={pathname} className="customer-app-shell">
+    <div className="customer-app-shell">
       {children}
     </div>
   );

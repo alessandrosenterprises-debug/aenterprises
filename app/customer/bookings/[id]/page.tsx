@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
+import CustomerLiveTracking from "@/components/customer/CustomerLiveTracking";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +30,7 @@ interface Booking {
   payment_status: string;
   amount: number;
   notes: string | null;
+  updated_at: string;
 
   businesses?: {
     id: string;
@@ -136,7 +137,7 @@ export default async function BookingDetailsPage({
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <section className="mx-auto max-w-3xl px-5 py-12">
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -217,6 +218,7 @@ export default async function BookingDetailsPage({
       payment_status,
       amount,
       notes,
+      updated_at,
 
       businesses (
         id,
@@ -251,7 +253,7 @@ export default async function BookingDetailsPage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       <section className="bg-[#03162F] px-5 pb-10 pt-7 text-white">
         <div className="mx-auto max-w-4xl">
@@ -287,6 +289,15 @@ export default async function BookingDetailsPage({
       </section>
 
       <section className="mx-auto max-w-4xl px-5 py-8">
+
+        <div className="mb-5">
+          <CustomerLiveTracking
+            kind="booking"
+            recordId={booking.id}
+            initialStatus={booking.status}
+            updatedAt={booking.updated_at}
+          />
+        </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 

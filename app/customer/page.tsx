@@ -1,5 +1,4 @@
 import CustomerHomeClient from "./CustomerHomeClient";
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +33,7 @@ export default async function CustomerHomePage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-[96px]">
-      <CustomerNavigation />
+
 
       <CustomerHomeClient
         businesses={(businesses ?? []) as CustomerHomeBusiness[]}

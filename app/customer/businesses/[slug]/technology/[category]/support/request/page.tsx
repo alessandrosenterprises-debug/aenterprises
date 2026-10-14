@@ -2,7 +2,6 @@
 
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle2,
   Clock3,
   Laptop,
@@ -21,7 +20,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { supabase } from "@/lib/supabase/client";
 import { createMessage } from "@/modules/messages/services/message.client";
 
@@ -387,7 +385,7 @@ export default function ITSupportRequestPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#061426] pb-28 text-white">
-        <CustomerNavigation />
+
 
         <section className="mx-auto flex min-h-[70vh] max-w-3xl items-center justify-center px-5">
           <div className="text-center">
@@ -411,7 +409,7 @@ export default function ITSupportRequestPage() {
 
   return (
     <main className="min-h-screen bg-[#061426] pb-28 text-white">
-      <CustomerNavigation />
+
 
       {/* HERO */}
       <section className="relative overflow-hidden border-b border-white/10">
@@ -421,15 +419,7 @@ export default function ITSupportRequestPage() {
         <div className="absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-[#d4af37]/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-5xl px-5 py-7 sm:px-8 lg:px-10 lg:py-10">
-          <Link
-            href={`/customer/businesses/${slug}/technology/${category}/support`}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-semibold text-slate-300 backdrop-blur transition hover:border-[#d4af37]/40 hover:text-[#f0d477]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to IT Support
-          </Link>
-
-          <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
+          <div className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[#d4af37]/25 bg-[#d4af37]/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#f0d477]">
                 <Sparkles className="h-3.5 w-3.5" />

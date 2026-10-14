@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import BookingForm from "./BookingForm";
 import {
@@ -270,7 +269,7 @@ export default async function BookingServicePage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       {/* ======================================================
           HEADER

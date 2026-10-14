@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, FileText, Mail, MessageCircle, ShoppingBag } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +75,7 @@ export default async function CustomerRequestsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
       <section className="bg-[#03162F] px-4 pb-8 pt-7 text-white sm:px-6">
         <div className="mx-auto max-w-5xl">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">Customer account</p>

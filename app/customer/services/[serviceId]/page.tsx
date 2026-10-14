@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock3, Wrench } from "lucide-react";
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import SaveCustomerServiceButton from "./SaveCustomerServiceButton";
 
@@ -43,7 +42,7 @@ export default async function CustomerServiceDetailsPage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24 text-[#03162F]">
-      <CustomerNavigation />
+
       <div className="mx-auto max-w-5xl px-5 py-7 sm:px-6">
         <Link href="/customer/services" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#03162F]">
           <ArrowLeft className="h-4 w-4" /> All services

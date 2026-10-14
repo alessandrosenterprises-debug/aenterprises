@@ -1,13 +1,11 @@
 import Link from "next/link";
 import {
-  ArrowLeft,
   ArrowRight,
   Package,
   ShoppingCart,
   Sparkles,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { matchesTechnologyCategory, technologyCategoryCapabilities } from "@/modules/catalog/utils/technology-category";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -82,17 +80,9 @@ export default async function TechnologyProductsPage({
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24 text-[#03162F]">
-      <CustomerNavigation />
+
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        <Link
-          href={`/customer/businesses/${slug}/technology/${category}`}
-          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-[#03162F]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to {categoryName}
-        </Link>
-
         <section className="overflow-hidden rounded-3xl bg-[#03162F] shadow-sm">
           <div className="relative p-6 sm:p-8">
             <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#D4AF37]/20 blur-3xl" />

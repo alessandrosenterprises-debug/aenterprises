@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase/client";
 export interface CreateEmployeeInput {
   business_id: string | null;
   department_id: string | null;
+  user_id?: string | null;
 
   full_name: string;
   phone: string;
@@ -31,6 +32,7 @@ export async function createEmployee(
     .insert({
       business_id: employee.business_id,
       department_id: employee.department_id,
+      user_id: employee.user_id || null,
 
       full_name: employee.full_name,
       phone: employee.phone,
@@ -82,6 +84,7 @@ export async function updateEmployee(
     .update({
       business_id: employee.business_id,
       department_id: employee.department_id,
+      user_id: employee.user_id || null,
 
       full_name: employee.full_name,
       phone: employee.phone,

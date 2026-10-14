@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
@@ -18,7 +17,6 @@ import {
   Wrench,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import TechnologyCategoryItems from "@/modules/catalog/components/TechnologyCategoryItems";
 import type { BusinessCatalogRecord } from "@/modules/catalog/services/business-catalog-admin.service";
 import { matchesTechnologyCategory, technologyCategoryCapabilities } from "@/modules/catalog/utils/technology-category";
@@ -241,20 +239,9 @@ const serviceCount = categoryItems.filter((item) => item.item_type?.toLowerCase(
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-[#03162F]">
-      <CustomerNavigation />
+
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        {/* Back */}
-        <div className="mb-5">
-          <Link
-            href={basePath.replace(`/technology/${category}`, "")}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-[#03162F]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to {business.name}
-          </Link>
-        </div>
-
         {/* Hero */}
         <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#03162F] via-[#092544] to-[#0d3550] shadow-lg">
           <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[#D4AF37]/15 blur-3xl" />

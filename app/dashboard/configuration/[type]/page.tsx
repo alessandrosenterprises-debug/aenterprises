@@ -7,6 +7,8 @@ import {
   ConfigurationType,
 } from "@/modules/configuration/schemas";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{
     type: string;

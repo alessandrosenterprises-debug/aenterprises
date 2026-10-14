@@ -1,6 +1,5 @@
 "use client";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import DeliveryLocationPicker from "@/components/customer/DeliveryLocationPicker";
 
 interface CatalogItem {
   id: string;
@@ -57,6 +57,8 @@ export default function OrderCreationInterface({
   const [fulfillment, setFulfillment] =
     useState<"Pickup" | "Delivery">("Pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryLatitude, setDeliveryLatitude] = useState<number | null>(null);
+  const [deliveryLongitude, setDeliveryLongitude] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -185,10 +187,11 @@ export default function OrderCreationInterface({
 
     if (
       fulfillment === "Delivery" &&
-      !deliveryAddress.trim()
+      !deliveryAddress.trim() &&
+      (deliveryLatitude === null || deliveryLongitude === null)
     ) {
       setErrorMessage(
-        "Please enter your delivery address."
+        "Add a delivery address or pin your location on the map."
       );
       return;
     }
@@ -208,8 +211,12 @@ export default function OrderCreationInterface({
             fulfillmentMethod: fulfillment,
             deliveryAddress:
               fulfillment === "Delivery"
-                ? deliveryAddress.trim()
+                ? deliveryAddress.trim() || (deliveryLatitude !== null && deliveryLongitude !== null
+                  ? `Pinned location: ${deliveryLatitude.toFixed(6)}, ${deliveryLongitude.toFixed(6)}`
+                  : null)
                 : null,
+            deliveryLatitude: fulfillment === "Delivery" ? deliveryLatitude : null,
+            deliveryLongitude: fulfillment === "Delivery" ? deliveryLongitude : null,
             notes: notes.trim() || null,
             subtotal,
             totalAmount: subtotal,
@@ -253,7 +260,7 @@ export default function OrderCreationInterface({
 
   return (
     <div className="min-h-screen bg-[#06142f] text-white">
-      <CustomerNavigation />
+
 
       <main className="mx-auto max-w-7xl px-4 py-6 pb-16 sm:px-6 lg:px-8">
         {/* Header */}
@@ -710,8 +717,16 @@ export default function OrderCreationInterface({
                     {fulfillment ===
                       "Delivery" && (
                       <div className="mt-4">
+                        <DeliveryLocationPicker
+                          latitude={deliveryLatitude}
+                          longitude={deliveryLongitude}
+                          onChange={(latitude, longitude) => {
+                            setDeliveryLatitude(latitude);
+                            setDeliveryLongitude(longitude);
+                          }}
+                        />
                         <label className="mb-2 block text-sm font-medium">
-                          Delivery Address
+                          Nearby address or landmark <span className="font-normal text-white/50">(optional if pinned)</span>
                         </label>
 
                         <textarea
@@ -722,7 +737,7 @@ export default function OrderCreationInterface({
                             )
                           }
                           rows={3}
-                          placeholder="Enter your delivery address..."
+                          placeholder="House number, road, area or nearby landmark..."
                           className="w-full resize-none rounded-xl border border-white/10 bg-[#081a3b] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-blue-500/60"
                         />
                       </div>

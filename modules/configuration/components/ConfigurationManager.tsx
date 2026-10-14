@@ -341,7 +341,7 @@ export default function ConfigurationManager({
 
       {viewingRow && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-black/50 px-3 pb-4 pt-[88px] sm:px-4 sm:pt-[112px]"
           onMouseDown={(event) => {
             if (
               event.target ===
@@ -436,10 +436,10 @@ export default function ConfigurationManager({
             }
           }}
         >
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
+          <div className="flex max-h-[70dvh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="z-10 flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-4 sm:px-6 sm:py-5">
               <div>
-                <h2 className="text-2xl font-bold text-[#03162F]">
+                <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
                   {editingRow
                     ? `Edit ${schema.title}`
                     : `Add ${schema.title}`}
@@ -460,7 +460,7 @@ export default function ConfigurationManager({
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
               <ConfigurationForm
                 schema={formSchema}
                 defaultValues={

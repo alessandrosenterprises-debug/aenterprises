@@ -32,7 +32,12 @@ export async function getConfiguration(
     );
   }
 
-  const supabase = createAdminClient();
+  // Branches are created through the signed-in admin session. Read them
+  // through that same session so the branches RLS policy can expose the
+  // administrator's rows even when the optional service key is misconfigured.
+  const supabase = table === "branches"
+    ? userSupabase
+    : createAdminClient();
 
   const {
     data,

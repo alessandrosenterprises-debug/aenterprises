@@ -8,7 +8,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import CustomerBusinessCatalogList from "@/modules/catalog/components/CustomerBusinessCatalogList";
 import { getActiveCustomerBusinessCatalog } from "@/modules/catalog/services/customer-business-catalog.service";
 import {
@@ -67,7 +66,7 @@ export default async function CustomerLoanProductsPage({
 
   return (
     <main className="min-h-screen bg-[#071426] text-white">
-      <CustomerNavigation />
+
 
       <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
         {/* Back */}

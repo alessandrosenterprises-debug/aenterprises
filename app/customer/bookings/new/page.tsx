@@ -1,5 +1,4 @@
 import Link from "next/link";
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   ArrowLeft,
@@ -48,7 +47,7 @@ export default async function NewBookingPage() {
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <section className="mx-auto max-w-3xl px-5 py-12">
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -157,7 +156,7 @@ export default async function NewBookingPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       {/* =====================================================
           HEADER

@@ -5,7 +5,6 @@ import {
   Wrench,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 
 type Service = {
@@ -74,7 +73,7 @@ export default async function CustomerServicesPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
-      <CustomerNavigation />
+
 
       <div className="mx-auto w-full max-w-[720px]">
         {/* =========================================================

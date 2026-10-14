@@ -29,6 +29,7 @@ import {
   Store,
   ShoppingBag,
   ListTree,
+  Bike,
   type LucideIcon,
 } from "lucide-react";
 
@@ -75,6 +76,7 @@ export const navigation: NavigationItem[] = [
     children: [
       { title: "HR Overview", href: "/dashboard/hr", icon: UsersRound },
       { title: "Employees", href: "/dashboard/hr/employees", icon: UserCog },
+      { title: "Rider Management", href: "/dashboard/hr/riders", icon: Bike },
       { title: "Departments", href: "/dashboard/hr/departments", icon: Building2 },
       { title: "Leave & Attendance", href: "/dashboard/hr/leave-attendance", icon: CalendarCheck },
       { title: "Employee Documents", href: "/dashboard/hr/documents", icon: FolderOpen },
@@ -99,6 +101,7 @@ export const navigation: NavigationItem[] = [
       { title: "Products Catalog", href: "/dashboard/catalog", icon: Package },
       { title: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
       { title: "Customer Orders", href: "/dashboard/orders", icon: ShoppingBag },
+      { title: "My Deliveries", href: "/dashboard/orders/my-deliveries", icon: Bike },
       { title: "Reports", href: "/dashboard/reports", icon: BarChart3 },
     ],
   },

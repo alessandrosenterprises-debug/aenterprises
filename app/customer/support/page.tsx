@@ -1,4 +1,3 @@
-import CustomerNavigationClient from "@/components/customer/CustomerNavigationClient";
 import {
   Mail,
   MessageCircle,
@@ -37,9 +36,6 @@ export default async function CustomerSupportPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-28">
-      {/* Customer navigation stays at the top */}
-      <CustomerNavigationClient />
-
       {/* Support content */}
       <div className="mx-auto w-full max-w-[720px] px-4 pb-10 pt-5 sm:px-5 sm:pt-6">
         <div className="mb-5">

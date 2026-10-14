@@ -1,4 +1,3 @@
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import {
   getAuthenticatedCustomerId,
   getCustomerEmailById,
@@ -21,7 +20,7 @@ export default async function CustomerEmailComposePage({
   if (!customerId) {
     return (
       <div className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <main className="mx-auto max-w-4xl px-4 py-10">
           <div className="rounded-3xl border border-red-200 bg-white p-8 text-center shadow-sm">
@@ -44,7 +43,7 @@ export default async function CustomerEmailComposePage({
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
         <Link

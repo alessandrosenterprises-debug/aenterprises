@@ -1,4 +1,3 @@
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   CalendarDays,
@@ -547,7 +546,7 @@ export default async function CustomerBookingsPage() {
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <section className="mx-auto max-w-3xl px-4 py-10">
           <div className="rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-sm">
@@ -621,7 +620,7 @@ export default async function CustomerBookingsPage() {
   if (!customer) {
     return (
       <main className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <section className="bg-[#03162F] px-4 pb-8 pt-6 text-white">
           <div className="mx-auto max-w-4xl">
@@ -788,7 +787,7 @@ export default async function CustomerBookingsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       {/* =================================================
           HEADER

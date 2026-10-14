@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { supabase } from "@/lib/supabase/client";
 
 interface Business {
@@ -195,7 +194,7 @@ export default function NewCustomerMessagePage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       <section className="bg-[#03162F] px-4 pb-8 pt-6 text-white sm:px-5">
         <div className="mx-auto w-full max-w-[720px]">

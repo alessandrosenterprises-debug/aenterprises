@@ -1,4 +1,3 @@
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import {
   getCustomerEmailStats,
   getCustomerEmails,
@@ -130,7 +129,7 @@ export default async function CustomerEmailsPage({
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
 

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Store } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function CustomerBusinessesPage() {
@@ -25,7 +24,7 @@ export default async function CustomerBusinessesPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
-      <CustomerNavigation />
+
 
       <div className="mx-auto w-full max-w-[720px]">
         {/* Header */}

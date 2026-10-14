@@ -1,5 +1,4 @@
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -44,7 +43,7 @@ export default async function NewOrderPage() {
   if (!customer) {
     return (
       <div className="min-h-screen bg-[#06142f] text-white">
-        <CustomerNavigation />
+
 
         <main className="mx-auto flex min-h-[80vh] max-w-4xl items-center justify-center px-4 py-10">
           <div className="w-full rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-xl">

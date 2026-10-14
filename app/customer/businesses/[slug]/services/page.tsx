@@ -11,7 +11,6 @@ import {
   Zap,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import CustomerBusinessCatalogList from "@/modules/catalog/components/CustomerBusinessCatalogList";
 import { getActiveCustomerBusinessCatalog } from "@/modules/catalog/services/customer-business-catalog.service";
 
@@ -121,7 +120,7 @@ export default async function SoftLoansServicesPage({
   if (businessError || !business) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <CustomerNavigation />
+
 
         <div className="mx-auto max-w-xl px-5 py-20 text-center">
           <h1 className="text-2xl font-black text-[#03162F]">
@@ -201,7 +200,7 @@ export default async function SoftLoansServicesPage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-28 text-[#03162F]">
-      <CustomerNavigation />
+
 
       {/* HEADER */}
       <section className="overflow-hidden bg-[#03162F] text-white">

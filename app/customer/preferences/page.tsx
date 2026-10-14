@@ -1,4 +1,3 @@
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { getCustomerPreferences } from "@/modules/customers/services/customer-preferences.service";
 import PreferencesClient from "./PreferencesClient";
 
@@ -9,7 +8,7 @@ export default async function CustomerPreferencesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 dark:bg-slate-950">
-        <CustomerNavigation />
+
 
         <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-6">

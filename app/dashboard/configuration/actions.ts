@@ -1,7 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
+import { createAdminClient as createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { revalidatePath } from "next/cache";
 
 /* ============================================================
 SUPABASE ADMIN CLIENT
@@ -13,34 +14,7 @@ Never expose SUPABASE_SERVICE_ROLE_KEY to the browser.
 ============================================================ */
 
 function createAdminClient() {
-  const url =
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url) {
-    throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL is not configured."
-    );
-  }
-
-  if (!serviceRoleKey) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is not configured."
-    );
-  }
-
-  return createSupabaseAdminClient(
-    url,
-    serviceRoleKey,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
+  return createSupabaseAdminClient();
 }
 
 /* ============================================================
@@ -216,6 +190,7 @@ export async function createConfigurationAction(
    * Verify the real logged-in user.
    */
   const {
+    supabase,
     user,
     roleName,
   } = await requireConfigurationAdmin();
@@ -229,22 +204,46 @@ export async function createConfigurationAction(
     }
   );
 
-  /*
-   * SECOND:
-   * Use the server-only admin client for the database write.
-   *
-   * This bypasses table RLS because authorization has already
-   * been explicitly checked above.
-   */
-  const supabaseAdmin =
-    createAdminClient();
+  // Keep business writes on the authenticated client so the
+  // database's configuration-admin RLS policy remains authoritative.
+  // Generate the required business slug because the form intentionally
+  // asks only for the business name.
+  const insertValues = { ...values };
+  if (table === "businesses") {
+    const name = String(insertValues.name ?? "").trim();
+    if (!name) throw new Error("Business name is required.");
+
+    const baseSlug = name
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "business";
+
+    const { data: existingBusinesses, error: slugLookupError } = await supabase
+      .from("businesses")
+      .select("slug")
+      .like("slug", `${baseSlug}%`);
+
+    if (slugLookupError) {
+      throwActionError("check business slug for", table, slugLookupError);
+    }
+
+    const existingSlugs = new Set(
+      (existingBusinesses ?? []).map((business) => business.slug as string)
+    );
+    let slug = baseSlug;
+    let suffix = 2;
+    while (existingSlugs.has(slug)) slug = `${baseSlug}-${suffix++}`;
+    insertValues.slug = slug;
+  }
 
   const {
     data,
     error,
-  } = await supabaseAdmin
+  } = await supabase
     .from(table)
-    .insert(values)
+    .insert(insertValues)
     .select()
     .single();
 
@@ -254,6 +253,10 @@ export async function createConfigurationAction(
       table,
       error
     );
+  }
+
+  if (table === "branches") {
+    revalidatePath("/dashboard/configuration/branches");
   }
 
   return data;
@@ -333,6 +336,7 @@ export async function deleteConfigurationAction(
    * Verify the authenticated configuration administrator first.
    */
   const {
+    supabase,
     user,
     roleName,
   } = await requireConfigurationAdmin();
@@ -347,15 +351,9 @@ export async function deleteConfigurationAction(
     }
   );
 
-  /*
-   * Server-only admin client.
-   */
-  const supabaseAdmin =
-    createAdminClient();
-
   const {
     error,
-  } = await supabaseAdmin
+  } = await supabase
     .from(table)
     .delete()
     .eq("id", id);

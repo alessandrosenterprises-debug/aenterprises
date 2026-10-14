@@ -111,7 +111,19 @@ export default function ConfigurationTable({
                   key={column.key}
                   className="px-6 py-4"
                 >
-                  {column.key === "logo_url" && row[column.key] ? (
+                  {column.key === "map_location" ? (
+                    row.latitude != null && row.longitude != null ? (
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${row.latitude}&mlon=${row.longitude}#map=17/${row.latitude}/${row.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex flex-col text-xs font-semibold text-blue-700 hover:underline"
+                      >
+                        <span>View map location</span>
+                        <span className="mt-0.5 font-normal text-slate-500">{Number(row.latitude).toFixed(5)}, {Number(row.longitude).toFixed(5)}</span>
+                      </a>
+                    ) : <span className="text-slate-400">Not pinned</span>
+                  ) : column.key === "logo_url" && row[column.key] ? (
                     <img src={String(row[column.key])} alt={`${row.name ?? "Business"} logo`} className="h-10 w-10 rounded-lg border border-slate-200 bg-white object-contain p-1" />
                   ) : String(row[column.key] ?? "-")}
                 </td>

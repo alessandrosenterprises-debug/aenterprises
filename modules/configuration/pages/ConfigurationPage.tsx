@@ -185,6 +185,13 @@ export default async function ConfigurationPage({
       };
     });
 
+  const tableColumns = baseSchema.table === "branches"
+    ? [
+        ...columns.filter((column) => column.key !== "latitude" && column.key !== "longitude"),
+        { key: "map_location", label: "Map Location" },
+      ]
+    : columns;
+
   /* ==========================================================
      PAGE
      ========================================================== */
@@ -204,7 +211,7 @@ export default async function ConfigurationPage({
       <ConfigurationManager
         schema={schema}
         initialRows={displayRows}
-        columns={columns}
+        columns={tableColumns}
         businesses={businesses}
       />
     </div>

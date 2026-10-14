@@ -13,7 +13,6 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import SoftLoansLoanOverview from "@/components/customer/SoftLoansLoanOverview";
 import MobileMoneyHome from "@/components/customer/MobileMoneyHome";
@@ -57,7 +56,7 @@ export default async function CustomerBusinessPage({
   if (!business) {
     return (
       <main className="min-h-screen bg-slate-50 pb-[92px]">
-        <CustomerNavigation />
+
 
         <div className="mx-auto flex min-h-[70vh] w-full max-w-[720px] items-center justify-center px-5">
           <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -86,7 +85,7 @@ export default async function CustomerBusinessPage({
     );
   }
 
-  
+
 
   const isSoftLoans =
     business.slug.toLowerCase() === "soft-loans" ||
@@ -132,7 +131,7 @@ if (isMobileMoney) {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
-      <CustomerNavigation />
+
 
       <MobileMoneyHome business={business} catalogServices={catalogServices} />
       <BusinessCustomerContentPanel business={business} />
@@ -143,7 +142,7 @@ if (isMobileMoney) {
 if (isTechSolutions) {
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
-      <CustomerNavigation />
+
       <TechSolutionsHome business={business} />
       <BusinessCustomerContentPanel business={business} />
     </main>
@@ -153,7 +152,7 @@ if (isTechSolutions) {
   if (!isSoftLoans) {
     return (
       <main className="min-h-screen bg-slate-50 pb-[92px]">
-        <CustomerNavigation />
+
         <CustomerBusinessHome business={business} />
         <BusinessCustomerContentPanel business={business} />
       </main>
@@ -164,7 +163,7 @@ if (isTechSolutions) {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
-      <CustomerNavigation />
+
 
       <div className="mx-auto w-full max-w-[720px]">
         {/* =========================================================

@@ -38,6 +38,18 @@ export const branchesSchema: ConfigurationSchema = {
       type: "textarea",
     },
     {
+      key: "latitude",
+      label: "Map Latitude",
+      type: "number",
+      placeholder: "Example: -15.4167",
+    },
+    {
+      key: "longitude",
+      label: "Map Longitude",
+      type: "number",
+      placeholder: "Example: 28.2833",
+    },
+    {
       key: "phone",
       label: "Phone",
       type: "text",

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, Code2,
+  ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, Code2,
   Headphones, Laptop, Monitor, Network, Package, Printer, Search, Server,
   ShieldCheck, Smartphone, Sparkles, Wrench,
 } from "lucide-react";
@@ -81,8 +81,7 @@ export default function TechSolutionsExperience({ business }: { business: Busine
         <div className="pointer-events-none absolute -bottom-28 left-1/4 h-72 w-72 rounded-full bg-[#D4AF37]/15 blur-3xl" />
         <div className="relative grid min-h-[400px] gap-8 p-6 sm:p-9 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:p-12">
           <div className="animate-[tech-rise_.55s_ease-out_both]">
-            <Link href="/customer/businesses" className="inline-flex items-center gap-2 text-xs font-semibold text-blue-100/70 transition hover:text-white"><ArrowLeft className="h-4 w-4" />All businesses</Link>
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/25 bg-white/[0.07] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.16em] text-[#E8CA62]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/25 bg-white/[0.07] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.16em] text-[#E8CA62]">
               {business.logo_url ? <img src={business.logo_url} alt="" className="h-6 w-6 rounded-full bg-white object-contain p-0.5" /> : <BadgeCheck className="h-4 w-4" />}{business.name}<span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Available
             </div>
             <h1 className="mt-5 max-w-2xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl">Technology, support and solutions that <span className="text-[#D4AF37]">move you forward.</span></h1>

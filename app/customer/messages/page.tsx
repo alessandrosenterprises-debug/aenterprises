@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase/client";
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 
 type MessageStatus =
   | "Unread"
@@ -630,7 +629,7 @@ export default function CustomerMessagesPage() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#061329] text-white">
-      <CustomerNavigation />
+
 
       {/*
        * MOBILE:

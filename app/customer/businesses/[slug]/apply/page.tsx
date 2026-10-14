@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, FileText, Landmark } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -45,7 +44,7 @@ export default async function CustomerLoanApplyPage({
   if (!business) {
     return (
       <main className="min-h-screen bg-slate-50 pb-[92px]">
-        <CustomerNavigation />
+
 
         <div className="mx-auto flex min-h-[70vh] w-full max-w-[720px] items-center justify-center px-5">
           <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -81,7 +80,7 @@ export default async function CustomerLoanApplyPage({
   if (!isSoftLoans) {
     return (
       <main className="min-h-screen bg-slate-50 pb-[92px]">
-        <CustomerNavigation />
+
 
         <div className="mx-auto w-full max-w-[720px] px-5 py-8">
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -159,7 +158,7 @@ export default async function CustomerLoanApplyPage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
-      <CustomerNavigation />
+
 
       <div className="mx-auto w-full max-w-[720px]">
         <section className="bg-[#03162F] px-5 pb-7 pt-5 text-white">

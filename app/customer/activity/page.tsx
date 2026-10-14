@@ -1,4 +1,3 @@
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import {
   ArrowRight,
   CalendarDays,
@@ -127,7 +126,7 @@ export default async function CustomerActivityPage() {
 
   return (
     <div className="min-h-screen overflow-hidden bg-slate-50">
-      <CustomerNavigation />
+
 
       <main className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-8">
         {/* Ambient background */}

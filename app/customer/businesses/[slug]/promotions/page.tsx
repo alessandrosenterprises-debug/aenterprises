@@ -5,7 +5,6 @@ import {
   Megaphone,
 } from "lucide-react";
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import BusinessContentFeed from "@/components/customer/BusinessContentFeed";
 
 export default async function SoftLoansPromotionsPage({
@@ -29,7 +28,7 @@ export default async function SoftLoansPromotionsPage({
   if (!business) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <CustomerNavigation />
+
 
         <div className="mx-auto max-w-xl px-5 py-20 text-center">
           <h1 className="text-2xl font-black text-[#03162F]">
@@ -49,7 +48,7 @@ export default async function SoftLoansPromotionsPage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-28 text-[#03162F]">
-      <CustomerNavigation />
+
 
       <section className="overflow-hidden bg-[#03162F] text-white">
         <div className="mx-auto max-w-5xl px-4 pb-8 pt-5 sm:px-6">

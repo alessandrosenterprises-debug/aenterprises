@@ -1,5 +1,4 @@
 
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import {
   getCustomerEmailById,
   getCustomerEmails,
@@ -106,7 +105,7 @@ export default async function CustomerEmailDetailsPage({
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-5 flex items-center justify-between gap-3">

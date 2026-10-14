@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { navigation, type NavigationItem } from "@/lib/navigation";
 
 function isCurrentPath(pathname: string, href?: string) {
-  return Boolean(href && (pathname === href || pathname.startsWith(`${href}/`)));
+  // A section landing page (for example HR Overview) must not stay selected
+  // when the user is on one of its child pages.
+  return Boolean(href && pathname === href);
 }
 
 function SidebarItem({ item, pathname }: { item: NavigationItem; pathname: string }) {
@@ -28,8 +30,8 @@ function SidebarItem({ item, pathname }: { item: NavigationItem; pathname: strin
               <Link key={child.title} href={child.href}
                 title={child.title}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-8 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] leading-5 transition-colors ${active ? "bg-[#03162F] font-semibold text-white shadow-sm" : "text-[#03162F]/85 hover:bg-white/50 hover:text-[#03162F]"}`}>
-                {child.icon ? <child.icon className={`h-4 w-4 shrink-0 ${active ? "text-[#D4AF37]" : "text-[#03162F]/65"}`} /> : <span className="h-4 w-4 shrink-0" />}
+                className={`flex min-h-8 w-full items-center gap-2.5 rounded-lg border-l-[3px] px-2 py-1.5 text-[13px] leading-5 transition-colors ${active ? "border-[#03162F] bg-white/55 font-semibold text-[#03162F]" : "border-transparent text-[#03162F]/85 hover:bg-white/40 hover:text-[#03162F]"}`}>
+                {child.icon ? <child.icon className={`h-4 w-4 shrink-0 ${active ? "text-[#03162F]" : "text-[#03162F]/65"}`} /> : <span className="h-4 w-4 shrink-0" />}
                 <span className="min-w-0 flex-1 truncate">{child.title}</span>
               </Link>
             );
@@ -44,8 +46,8 @@ function SidebarItem({ item, pathname }: { item: NavigationItem; pathname: strin
   return (
     <Link href={item.href ?? "#"}
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-9 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] leading-5 transition-colors ${active ? "bg-[#03162F] font-semibold text-white shadow-sm" : "text-[#03162F]/85 hover:bg-white/50 hover:text-[#03162F]"}`}>
-      {item.icon ? <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-[#D4AF37]" : "text-[#03162F]/70"}`} /> : <span className="h-4 w-4 shrink-0" />}
+      className={`flex min-h-9 w-full items-center gap-2.5 rounded-lg border-l-[3px] px-2 py-1.5 text-[13px] leading-5 transition-colors ${active ? "border-[#03162F] bg-white/55 font-semibold text-[#03162F]" : "border-transparent text-[#03162F]/85 hover:bg-white/40 hover:text-[#03162F]"}`}>
+      {item.icon ? <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-[#03162F]" : "text-[#03162F]/70"}`} /> : <span className="h-4 w-4 shrink-0" />}
       <span className="min-w-0 flex-1 truncate">{item.title}</span>
     </Link>
   );

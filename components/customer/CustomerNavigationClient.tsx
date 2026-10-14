@@ -91,6 +91,7 @@ export default function CustomerNavigationClient() {
     let mounted = true;
     let profileId: string | null = null;
     let countInterval: number | undefined;
+    let notificationChannel: ReturnType<typeof supabase.channel> | undefined;
 
     async function refreshUnreadCount() {
       if (!profileId) return;
@@ -179,6 +180,19 @@ export default function CustomerNavigationClient() {
           );
 
           await refreshUnreadCount();
+          notificationChannel = supabase
+            .channel(`customer-notifications-${profile.id}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "*",
+                schema: "public",
+                table: "notifications",
+                filter: `user_id=eq.${profile.id}`,
+              },
+              () => void refreshUnreadCount()
+            )
+            .subscribe();
           countInterval = window.setInterval(
             () => void refreshUnreadCount(),
             30_000
@@ -204,8 +218,11 @@ export default function CustomerNavigationClient() {
       if (countInterval !== undefined) {
         window.clearInterval(countInterval);
       }
+      if (notificationChannel) {
+        void supabase.removeChannel(notificationChannel);
+      }
     };
-  }, [pathname]);
+  }, []);
 
   const isActive = (href: string) => {
     if (href === "/customer") {

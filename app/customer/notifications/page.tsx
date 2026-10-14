@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Bell } from "lucide-react";
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import NotificationsList, { type CustomerNotificationItem } from "./NotificationsList";
 
@@ -25,7 +24,7 @@ export default async function CustomerNotificationsPage() {
   const notifications = (data ?? []) as CustomerNotificationItem[];
 
   return <main className="min-h-screen bg-slate-50 pb-24">
-    <CustomerNavigation />
+
     <div className="mx-auto max-w-3xl px-5 py-7">
       <Link href="/customer" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#03162F]"><ArrowLeft className="h-4 w-4" />Back to Home</Link>
       <header className="mt-6 mb-7 flex items-center gap-4 rounded-2xl bg-[#03162F] p-6 text-white">

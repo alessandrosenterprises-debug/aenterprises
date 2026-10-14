@@ -27,6 +27,7 @@ interface Department {
 interface EmployeeFormValues {
   business_id: string;
   department_id: string;
+  user_id: string;
 
   full_name: string;
   phone: string;
@@ -49,10 +50,12 @@ interface EmployeeFormValues {
 interface EmployeeFormProps {
   businesses: Business[];
   departments: Department[];
+  accountOptions?: { auth_user_id: string; display_name: string; email: string }[];
 
   onSuccess?: () => void;
 
   mode?: "create" | "edit";
+  initialPosition?: string;
 
   employee?: Partial<EmployeeFormValues> & {
     id?: string;
@@ -62,8 +65,10 @@ interface EmployeeFormProps {
 export default function EmployeeForm({
   businesses,
   departments,
+  accountOptions = [],
   onSuccess,
   mode = "create",
+  initialPosition,
   employee,
 }: EmployeeFormProps) {
   const router = useRouter();
@@ -76,6 +81,7 @@ export default function EmployeeForm({
     defaultValues: {
       business_id: employee?.business_id ?? "",
       department_id: employee?.department_id ?? "",
+      user_id: employee?.user_id ?? "",
 
       full_name: employee?.full_name ?? "",
       phone: employee?.phone ?? "",
@@ -85,7 +91,7 @@ export default function EmployeeForm({
       national_id: employee?.national_id ?? "",
       address: employee?.address ?? "",
 
-      position: employee?.position ?? "",
+      position: employee?.position ?? initialPosition ?? "",
       employment_type:
         employee?.employment_type ?? "Full Time",
 
@@ -119,6 +125,7 @@ export default function EmployeeForm({
       const employeeData = {
         business_id: data.business_id || null,
         department_id: data.department_id,
+        user_id: data.user_id || null,
 
         full_name: data.full_name.trim(),
         phone: data.phone.trim(),
@@ -204,6 +211,19 @@ export default function EmployeeForm({
     required: "Department is required.",
   })}
 />
+
+        {accountOptions.length > 0 && <div>
+          <Select
+            label="Rider sign-in account"
+            placeholder="Select account (optional)"
+            options={accountOptions.map((account) => ({
+              value: account.auth_user_id,
+              label: account.email ? `${account.display_name} · ${account.email}` : account.display_name,
+            }))}
+            {...register("user_id")}
+          />
+          <p className="mt-1 text-xs text-slate-500">Link the rider’s AEOS login so they can update deliveries from My Deliveries on their phone.</p>
+        </div>}
 
         {/* Employee Name */}
         <Input

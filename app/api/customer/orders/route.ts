@@ -14,6 +14,10 @@ interface CreateOrderRequest {
   fulfillmentMethod?: "Pickup" | "Delivery";
   delivery_address?: string | null;
   deliveryAddress?: string | null;
+  delivery_latitude?: number | null;
+  delivery_longitude?: number | null;
+  deliveryLatitude?: number | null;
+  deliveryLongitude?: number | null;
   notes?: string | null;
   items: OrderItemInput[];
 }
@@ -90,6 +94,8 @@ export async function POST(request: Request) {
 
     const fulfillmentMethod = body.fulfillmentMethod ?? body.fulfillment_method ?? "Pickup";
     const deliveryAddress = body.deliveryAddress ?? body.delivery_address ?? null;
+    const deliveryLatitude = body.deliveryLatitude ?? body.delivery_latitude ?? null;
+    const deliveryLongitude = body.deliveryLongitude ?? body.delivery_longitude ?? null;
     const notes = body.notes ?? null;
     const items = body.items;
 
@@ -109,9 +115,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const hasLatitude = typeof deliveryLatitude === "number" && Number.isFinite(deliveryLatitude);
+    const hasLongitude = typeof deliveryLongitude === "number" && Number.isFinite(deliveryLongitude);
+    if (hasLatitude !== hasLongitude) {
+      return NextResponse.json({ error: "A delivery pin needs both latitude and longitude." }, { status: 400 });
+    }
+    if (hasLatitude && (deliveryLatitude! < -90 || deliveryLatitude! > 90 || deliveryLongitude! < -180 || deliveryLongitude! > 180)) {
+      return NextResponse.json({ error: "The pinned delivery coordinates are invalid." }, { status: 400 });
+    }
     if (
       fulfillmentMethod === "Delivery" &&
-      !deliveryAddress?.trim()
+      !deliveryAddress?.trim() &&
+      !hasLatitude
     ) {
       return NextResponse.json(
         {
@@ -249,6 +264,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "The selected business is unavailable." }, { status: 400 });
     }
 
+    const { data: store } = await supabase
+      .from("branches")
+      .select("id")
+      .eq("business_id", business_id)
+      .eq("active", true)
+      .order("name")
+      .limit(1)
+      .maybeSingle();
+
     // ============================================================
     // BUILD ORDER ITEMS
     // ============================================================
@@ -292,14 +316,17 @@ export async function POST(request: Request) {
       .from("orders")
       .insert({
         business_id,
+        store_branch_id: store?.id ?? null,
         customer_id: customer.id,
         status: "Pending",
         payment_status: "Pending",
         fulfillment_method: fulfillmentMethod,
         delivery_address:
           fulfillmentMethod === "Delivery"
-            ? deliveryAddress?.trim() || null
+            ? deliveryAddress?.trim() || (hasLatitude ? `Pinned location: ${deliveryLatitude!.toFixed(6)}, ${deliveryLongitude!.toFixed(6)}` : null)
             : null,
+        delivery_latitude: fulfillmentMethod === "Delivery" && hasLatitude ? deliveryLatitude : null,
+        delivery_longitude: fulfillmentMethod === "Delivery" && hasLongitude ? deliveryLongitude : null,
         notes: notes?.trim() || null,
         subtotal,
         total_amount: subtotal,
@@ -313,6 +340,8 @@ export async function POST(request: Request) {
           payment_status,
           fulfillment_method,
           delivery_address,
+          delivery_latitude,
+          delivery_longitude,
           notes,
           subtotal,
           total_amount,

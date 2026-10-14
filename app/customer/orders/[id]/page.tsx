@@ -1,5 +1,5 @@
-import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
+import CustomerLiveTracking from "@/components/customer/CustomerLiveTracking";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -35,11 +35,18 @@ interface OrderItem {
 interface Order {
   id: string;
   business_id: string;
+  store_branch_id?: string | null;
   customer_id: string;
   status: string;
   payment_status: string;
   fulfillment_method: string;
   delivery_address: string | null;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
+  delivery_status: string;
+  rider_employee_id: string | null;
+  rider_latitude: number | null;
+  rider_longitude: number | null;
   notes: string | null;
   subtotal: number;
   total_amount: number;
@@ -50,6 +57,16 @@ interface Order {
     id: string;
     name: string;
   } | null;
+  store?: {
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null;
+
+  rider?: { id: string; full_name: string; phone: string | null } | null;
 
   order_items?: OrderItem[];
 }
@@ -259,7 +276,7 @@ export default async function CustomerOrderDetailsPage({
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <section className="mx-auto max-w-3xl px-4 py-10">
           <div className="rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-sm">
@@ -316,7 +333,7 @@ export default async function CustomerOrderDetailsPage({
   if (!customer) {
     return (
       <main className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <section className="mx-auto max-w-3xl px-4 py-10">
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -353,6 +370,12 @@ export default async function CustomerOrderDetailsPage({
         payment_status,
         fulfillment_method,
         delivery_address,
+        delivery_latitude,
+        delivery_longitude,
+        delivery_status,
+        rider_employee_id,
+        rider_latitude,
+        rider_longitude,
         notes,
         subtotal,
         total_amount,
@@ -362,6 +385,12 @@ export default async function CustomerOrderDetailsPage({
         businesses (
           id,
           name
+        ),
+
+        rider:employees!orders_rider_employee_id_fkey (
+          id,
+          full_name,
+          phone
         ),
 
         order_items (
@@ -399,7 +428,7 @@ export default async function CustomerOrderDetailsPage({
   if (!order) {
     return (
       <main className="min-h-screen bg-slate-50 pb-24">
-        <CustomerNavigation />
+
 
         <section className="mx-auto max-w-4xl px-4 py-8">
           <Link
@@ -460,8 +489,24 @@ export default async function CustomerOrderDetailsPage({
     );
   }
 
-  const typedOrder =
-    order as unknown as Order;
+  const typedOrder = order as unknown as Order;
+  {
+    const { data: store } = await supabase
+      .from("branches")
+      .select("id, name, business_id")
+      .eq("business_id", typedOrder.business_id)
+      .order("name")
+      .limit(1)
+      .maybeSingle();
+    typedOrder.store = store ? {
+      id: store.id,
+      name: store.name,
+      address: null,
+      city: null,
+      latitude: null,
+      longitude: null,
+    } : null;
+  }
 
   const items =
     typedOrder.order_items ?? [];
@@ -472,7 +517,7 @@ export default async function CustomerOrderDetailsPage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
-      <CustomerNavigation />
+
 
       {/* =================================================
           HEADER
@@ -525,6 +570,24 @@ export default async function CustomerOrderDetailsPage({
       ================================================= */}
 
       <section className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+        <div className="mb-5">
+          <CustomerLiveTracking
+            kind="order"
+            recordId={typedOrder.id}
+            initialStatus={typedOrder.status}
+            updatedAt={typedOrder.updated_at}
+            isDelivery={typedOrder.fulfillment_method?.toLowerCase() === "delivery"}
+            initialDeliveryStatus={typedOrder.delivery_status}
+            initialRider={typedOrder.rider ?? null}
+            initialRiderLatitude={typedOrder.rider_latitude}
+            initialRiderLongitude={typedOrder.rider_longitude}
+            storeName={typedOrder.store?.name || typedOrder.businesses?.name || "Store"}
+            initialStoreLatitude={typedOrder.store?.latitude ?? null}
+            initialStoreLongitude={typedOrder.store?.longitude ?? null}
+            initialDestinationLatitude={typedOrder.delivery_latitude}
+            initialDestinationLongitude={typedOrder.delivery_longitude}
+          />
+        </div>
         <div className="grid gap-5 lg:grid-cols-3">
           {/* =================================================
               LEFT
@@ -687,6 +750,16 @@ export default async function CustomerOrderDetailsPage({
                           {typedOrder.delivery_address}
                         </p>
                       </>
+                    )}
+                    {typedOrder.delivery_latitude !== null && typedOrder.delivery_longitude !== null && (
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${typedOrder.delivery_latitude}&mlon=${typedOrder.delivery_longitude}#map=17/${typedOrder.delivery_latitude}/${typedOrder.delivery_longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-flex text-xs font-semibold text-blue-700 hover:underline"
+                      >
+                        View pinned delivery location
+                      </a>
                     )}
                   </div>
                 </div>

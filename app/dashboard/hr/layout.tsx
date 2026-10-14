@@ -10,6 +10,7 @@ import {
   HandCoins,
   FolderOpen,
   BarChart3,
+  Bike,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -27,6 +28,11 @@ const hrNavigation = [
     title: "Employees",
     href: "/dashboard/hr/employees",
     icon: Users,
+  },
+  {
+    title: "Rider Management",
+    href: "/dashboard/hr/riders",
+    icon: Bike,
   },
   {
     title: "Departments",
