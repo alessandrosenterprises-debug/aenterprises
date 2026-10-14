@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "mobile/customer-preview"]
+  "exclude": ["node_modules", "mobile/customer-preview", "mobile/customer-app"]
 }
