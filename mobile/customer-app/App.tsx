@@ -4,11 +4,9 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import WebView, { type WebViewNavigation } from "react-native-webview";
 
-declare const process: { env: { EXPO_PUBLIC_CUSTOMER_URL?: string } };
-
-const CUSTOMER_URL =
-  process.env.EXPO_PUBLIC_CUSTOMER_URL ??
-  "https://aenterprises-dashboard.vercel.app/customer/login";
+// The app previews the published customer interface. A LAN development URL
+// cannot be reached when Expo Go is running over cellular data.
+const CUSTOMER_URL = "https://aenterprises-dashboard.vercel.app/customer/login";
 const CUSTOMER_HOST = new URL(CUSTOMER_URL).host;
 const CUSTOMER_PROTOCOL = new URL(CUSTOMER_URL).protocol;
 

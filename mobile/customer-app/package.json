@@ -5,6 +5,8 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
+    "start:lan": "expo start --lan",
+    "start:tunnel": "expo start --tunnel",
     "check": "expo install --check && tsc --noEmit"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
     "react-native-webview": "13.16.1"
   },
   "devDependencies": {
+    "@expo/ngrok": "^4.1.3",
     "@types/react": "~19.2.0",
     "typescript": "~6.0.3"
   }
