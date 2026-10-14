@@ -21,7 +21,7 @@ import {
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import TechnologyCategoryItems from "@/modules/catalog/components/TechnologyCategoryItems";
 import type { BusinessCatalogRecord } from "@/modules/catalog/services/business-catalog-admin.service";
-import { matchesTechnologyCategory } from "@/modules/catalog/utils/technology-category";
+import { matchesTechnologyCategory, technologyCategoryCapabilities } from "@/modules/catalog/utils/technology-category";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -231,21 +231,12 @@ if (catalogError) {
 
 const categoryItems = ((catalogData ?? []) as BusinessCatalogRecord[])
   .filter((item) => matchesTechnologyCategory(item, category));
+const capabilities = technologyCategoryCapabilities[category];
+const productCount = categoryItems.filter((item) => item.item_type?.toLowerCase() === "product").length;
+const serviceCount = categoryItems.filter((item) => item.item_type?.toLowerCase() === "service").length;
 
   const Icon = categoryDefinition.icon;
 
-  /*
-   * These are intentionally separate pages.
-   *
-   * Products:
-   * /technology/[category]/products
-   *
-   * Services:
-   * /technology/[category]/services
-   *
-   * Gallery:
-   * /technology/[category]/gallery
-   */
   const basePath = `/customer/businesses/${slug}/technology/${category}`;
 
   return (
@@ -295,30 +286,30 @@ const categoryItems = ((catalogData ?? []) as BusinessCatalogRecord[])
 
         {/* Independent sections */}
         <section className="mt-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <CategoryLink
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {capabilities.products && <CategoryLink
               href={`${basePath}/products`}
               icon={Package}
               title="Products"
               description="Browse available technology products."
-              badge="SHOP"
-            />
+              badge={`${productCount} items`}
+            />}
 
-            <CategoryLink
+            {capabilities.services && <CategoryLink
               href={`${basePath}/services`}
               icon={Wrench}
               title="Services"
               description="Explore professional technology services."
-              badge="BOOK"
-            />
+              badge={`${serviceCount} services`}
+            />}
 
-            <CategoryLink
+            {capabilities.gallery && <CategoryLink
               href={`${basePath}/gallery`}
               icon={ImageIcon}
               title="Gallery"
-              description="View our technology work and projects."
+              description="View published Tech Solutions work and projects."
               badge="VIEW"
-            />
+            />}
             {specialCategoryRoute && (
               <CategoryLink
                 href={specialCategoryRoute}
@@ -335,6 +326,7 @@ const categoryItems = ((catalogData ?? []) as BusinessCatalogRecord[])
           items={categoryItems}
           slug={slug}
           categoryName={categoryDefinition.name}
+          itemType={!capabilities.products ? "service" : !capabilities.services ? "product" : "all"}
         />
 
         {/* Small information strip */}

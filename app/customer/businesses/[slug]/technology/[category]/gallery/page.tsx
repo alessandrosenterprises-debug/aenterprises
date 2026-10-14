@@ -9,6 +9,7 @@ import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import BusinessContentFeed from "@/components/customer/BusinessContentFeed";
+import { technologyCategoryCapabilities } from "@/modules/catalog/utils/technology-category";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,9 @@ export default async function TechnologyGalleryPage({
 
   const categoryName =
     categoryNames[category] ?? category.replaceAll("-", " ");
+  if (!technologyCategoryCapabilities[category]?.gallery) {
+    redirect(`/customer/businesses/${slug}/technology/${category}`);
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24 text-[#03162F]">
@@ -85,12 +89,12 @@ export default async function TechnologyGalleryPage({
 
                 <div>
                   <h1 className="text-3xl font-black text-white">
-                    {categoryName} Gallery
+                    {business.name} Gallery
                   </h1>
 
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                    Explore work, projects and technology solutions from
-                    Alessandro Tech Solutions.
+                    Browse published project images and work shared by
+                    {" "}{business.name}.
                   </p>
                 </div>
               </div>

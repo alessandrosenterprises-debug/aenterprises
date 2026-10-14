@@ -17,7 +17,7 @@ import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import SoftLoansLoanOverview from "@/components/customer/SoftLoansLoanOverview";
 import MobileMoneyHome from "@/components/customer/MobileMoneyHome";
-import TechSolutionsHome from "@/components/customer/TechSolutionsHome";
+import TechSolutionsHome from "@/components/customer/TechSolutionsExperience";
 import CustomerBusinessHome from "@/components/customer/CustomerBusinessHome";
 import BusinessCustomerContentPanel from "@/components/customer/BusinessCustomerContentPanel";
 

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
-import { matchesTechnologyCategory } from "@/modules/catalog/utils/technology-category";
+import { matchesTechnologyCategory, technologyCategoryCapabilities } from "@/modules/catalog/utils/technology-category";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -60,6 +60,9 @@ export default async function TechnologyProductsPage({
 
   const categoryName =
     categoryNames[category] ?? category.replaceAll("-", " ");
+  if (!technologyCategoryCapabilities[category]?.products) {
+    redirect(`/customer/businesses/${slug}/technology/${category}`);
+  }
 
   const { data: catalogItems, error: productsError } = await supabase
     .from("enterprise_catalog")
