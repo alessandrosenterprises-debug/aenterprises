@@ -8,6 +8,7 @@ import {
 import CustomerNavigation from "@/components/customer/CustomerNavigation";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import BusinessContentFeed from "@/components/customer/BusinessContentFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -53,12 +54,6 @@ export default async function TechnologyGalleryPage({
 
   const categoryName =
     categoryNames[category] ?? category.replaceAll("-", " ");
-
-  /*
-   * Gallery content is intentionally kept independent from Products
-   * and Services. When AEOS gallery/media records are connected,
-   * this page can display them without changing the route structure.
-   */
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24 text-[#03162F]">
@@ -112,29 +107,8 @@ export default async function TechnologyGalleryPage({
             {categoryName}
           </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Projects and technology work will appear here as they are
-            published through AEOS.
-          </p>
-
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <div
-                key={item}
-                className="group aspect-[4/3] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-              >
-                <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 transition duration-300 group-hover:from-[#03162F]/5 group-hover:to-[#D4AF37]/10">
-                  <div className="text-center">
-                    <ImageIcon className="mx-auto h-7 w-7 text-slate-300 transition group-hover:text-[#D4AF37]" />
-
-                    <p className="mt-2 text-xs font-semibold text-slate-400">
-                      AEOS Gallery
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="mt-1 mb-6 text-sm text-slate-500">Published gallery images from {business.name}.</p>
+          <BusinessContentFeed businesses={[business]} businessId={business.id} kind="gallery" />
         </section>
       </main>
     </div>

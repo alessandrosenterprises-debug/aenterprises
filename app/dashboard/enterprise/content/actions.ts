@@ -178,6 +178,16 @@ export async function saveBusinessContentAction(input: SaveBusinessContentInput)
 
   revalidatePath("/dashboard/enterprise/content");
   revalidatePath(`/dashboard/enterprise/${business.slug}`);
+  revalidatePath("/customer");
+  revalidatePath(`/customer/businesses/${business.slug}`);
+  revalidatePath(`/customer/businesses/${business.slug}/promotions`);
+  revalidatePath(`/customer/businesses/${business.slug}/gallery`);
+  revalidatePath(`/customer/businesses/${business.slug}/updates`);
+  revalidatePath(`/customer/businesses/${business.slug}/services`);
+  revalidatePath(`/customer/businesses/${business.slug}/products`);
+  revalidatePath("/customer/services");
+  revalidatePath("/customer/bookings/new");
+  revalidatePath("/customer/orders/new");
   return { ...(result.data as Record<string, unknown>), source_table: table };
 }
 
@@ -198,5 +208,15 @@ export async function deleteBusinessContentAction(input: { section: BusinessCont
   if (count === 0) throw new Error("This content item was not found. Refresh and try again.");
   revalidatePath("/dashboard/enterprise/content");
   revalidatePath(`/dashboard/enterprise/${business.slug}`);
+  revalidatePath("/customer");
+  revalidatePath(`/customer/businesses/${business.slug}`);
+  revalidatePath(`/customer/businesses/${business.slug}/promotions`);
+  revalidatePath(`/customer/businesses/${business.slug}/gallery`);
+  revalidatePath(`/customer/businesses/${business.slug}/updates`);
+  revalidatePath(`/customer/businesses/${business.slug}/services`);
+  revalidatePath(`/customer/businesses/${business.slug}/products`);
+  revalidatePath("/customer/services");
+  revalidatePath("/customer/bookings/new");
+  revalidatePath("/customer/orders/new");
   return true;
 }

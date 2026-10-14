@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { CustomerHomeBusiness } from "./page";
+import BusinessContentFeed from "@/components/customer/BusinessContentFeed";
 
 interface CustomerHomeClientProps {
   businesses: CustomerHomeBusiness[];
@@ -372,7 +373,7 @@ export default function CustomerHomeClient({
           )}
         </section>
 
-        {/* PROMOTIONS PLACEHOLDER */}
+        {/* BUSINESS PROMOTIONS */}
         <section>
           <SectionHeading
             eyebrow="Offers"
@@ -381,28 +382,10 @@ export default function CustomerHomeClient({
             linkLabel="Explore"
           />
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-sm">
-            <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#D4AF37]/10 blur-2xl" />
-
-            <div className="relative">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#D4AF37] to-amber-500 text-[#03162F] shadow-lg">
-                <Sparkles className="h-5 w-5" />
-              </div>
-
-              <h3 className="mt-5 text-lg font-black text-slate-900">
-                Promotions will appear here
-              </h3>
-
-              <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Once AEOS promotions are connected, active offers from your
-                businesses will automatically become swipeable promotional
-                slides here.
-              </p>
-            </div>
-          </div>
+          <BusinessContentFeed businesses={businesses} kind="promotions" compact />
         </section>
 
-        {/* GALLERY PLACEHOLDER */}
+        {/* BUSINESS GALLERY */}
         <section>
           <SectionHeading
             eyebrow="Discover"
@@ -411,22 +394,7 @@ export default function CustomerHomeClient({
             linkLabel="View businesses"
           />
 
-          <div className="grid grid-cols-3 gap-2 overflow-hidden rounded-[2rem]">
-            <GalleryPlaceholder className="h-36 sm:h-44" />
-            <GalleryPlaceholder className="h-36 sm:h-44" />
-            <GalleryPlaceholder className="h-36 sm:h-44" />
-          </div>
-
-          <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-            <p className="text-sm font-bold text-slate-900">
-              Business gallery coming from AEOS
-            </p>
-
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              This area is ready for real business images, posts and visual
-              updates once the existing gallery source is connected.
-            </p>
-          </div>
+          <BusinessContentFeed businesses={businesses} kind="gallery" compact />
         </section>
 
         {/* LATEST UPDATES */}
@@ -438,6 +406,9 @@ export default function CustomerHomeClient({
             linkLabel="Explore"
           />
 
+          <div className="mb-4">
+            <BusinessContentFeed businesses={businesses} kind="posts" compact />
+          </div>
           <div className="space-y-3">
             <UpdatePreview
               icon={<Clock3 className="h-5 w-5" />}
@@ -547,25 +518,6 @@ function SectionHeading({
         {linkLabel}
         <ArrowRight className="h-3.5 w-3.5" />
       </Link>
-    </div>
-  );
-}
-
-function GalleryPlaceholder({ className }: { className?: string }) {
-  return (
-    <div
-      className={`relative overflow-hidden bg-gradient-to-br from-slate-200 via-slate-100 to-white ${
-        className ?? ""
-      }`}
-    >
-      <div className="absolute inset-0 opacity-50">
-        <div className="absolute -left-6 top-4 h-20 w-20 rounded-full bg-blue-300/30 blur-xl" />
-        <div className="absolute -right-5 bottom-2 h-24 w-24 rounded-full bg-[#D4AF37]/20 blur-xl" />
-      </div>
-
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Sparkles className="h-5 w-5 text-slate-300" />
-      </div>
     </div>
   );
 }

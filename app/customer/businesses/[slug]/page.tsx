@@ -19,6 +19,7 @@ import SoftLoansLoanOverview from "@/components/customer/SoftLoansLoanOverview";
 import MobileMoneyHome from "@/components/customer/MobileMoneyHome";
 import TechSolutionsHome from "@/components/customer/TechSolutionsHome";
 import CustomerBusinessHome from "@/components/customer/CustomerBusinessHome";
+import BusinessCustomerContentPanel from "@/components/customer/BusinessCustomerContentPanel";
 
 interface BusinessPageProps {
   params: Promise<{
@@ -134,6 +135,7 @@ if (isMobileMoney) {
       <CustomerNavigation />
 
       <MobileMoneyHome business={business} catalogServices={catalogServices} />
+      <BusinessCustomerContentPanel business={business} />
     </main>
   );
 }
@@ -143,6 +145,7 @@ if (isTechSolutions) {
     <main className="min-h-screen bg-slate-50 pb-[92px]">
       <CustomerNavigation />
       <TechSolutionsHome business={business} />
+      <BusinessCustomerContentPanel business={business} />
     </main>
   );
 }
@@ -152,6 +155,7 @@ if (isTechSolutions) {
       <main className="min-h-screen bg-slate-50 pb-[92px]">
         <CustomerNavigation />
         <CustomerBusinessHome business={business} />
+        <BusinessCustomerContentPanel business={business} />
       </main>
     );
   }
@@ -272,6 +276,7 @@ if (isTechSolutions) {
           ========================================================= */}
           <section className="transition-all duration-500">
             <SoftLoansLoanOverview slug={business.slug} />
+          <BusinessCustomerContentPanel business={business} />
           </section>
 
           {/* =========================================================
