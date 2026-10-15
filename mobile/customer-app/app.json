@@ -12,8 +12,9 @@
       "edgeToEdgeEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#03162F"
-      }
+        "backgroundColor": "#FFFFFF"
+      },
+      "versionCode": 2
     },
     "plugins": [
       [
