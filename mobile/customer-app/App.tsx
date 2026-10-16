@@ -15,7 +15,6 @@ export default function App() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [progress, setProgress] = useState(0.04);
   const [failed, setFailed] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
 
@@ -71,16 +70,10 @@ export default function App() {
           onShouldStartLoadWithRequest={handleNavigationRequest}
           onLoadStart={() => {
             setLoading(true);
-            setProgress(0.04);
             setTimedOut(false);
             setFailed(false);
           }}
-          onLoadProgress={({ nativeEvent }) => {
-            setProgress(Math.max(0.04, nativeEvent.progress));
-            // Reveal the original customer site as soon as its document is
-            // underway; don't wait on every image and third-party resource.
-          }}
-          onLoadEnd={() => { setHasLoaded(true); setLoading(false); setProgress(1); setFailed(false); setTimedOut(false); }}
+          onLoadEnd={() => { setHasLoaded(true); setLoading(false); setFailed(false); setTimedOut(false); }}
           onError={() => { setLoading(false); setFailed(true); setTimedOut(false); }}
           onHttpError={(event) => {
             if (new URL(event.nativeEvent.url).host === CUSTOMER_HOST && event.nativeEvent.statusCode >= 500) {
@@ -102,13 +95,12 @@ export default function App() {
           bounces={false}
           pullToRefreshEnabled={false}
         />
-        {loading && <View pointerEvents="none" style={styles.progressTrack}><View style={[styles.progressBar, { width: `${Math.max(5, Math.round(progress * 100))}%` }]} /></View>}
         {failed && (
           <View style={styles.messageOverlay}>
             <View style={styles.messageCard}>
               <Text style={styles.errorTitle}>We couldn’t connect</Text>
               <Text style={styles.errorMessage}>Check your connection and try again.</Text>
-              <Pressable style={styles.retryButton} onPress={() => { setFailed(false); setTimedOut(false); setLoading(true); setProgress(0.04); setHasLoaded(false); webView.current?.reload(); }}>
+              <Pressable style={styles.retryButton} onPress={() => { setFailed(false); setTimedOut(false); setLoading(true); setHasLoaded(false); webView.current?.reload(); }}>
                 <Text style={styles.retryText}>Try again</Text>
               </Pressable>
             </View>
@@ -124,7 +116,6 @@ export default function App() {
               onPress={() => {
                 setTimedOut(false);
                 setLoading(true);
-                setProgress(0.04);
                 webView.current?.reload();
               }}
             >
@@ -141,8 +132,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#03162F" },
   container: { flex: 1, backgroundColor: "#F4F6FA" },
   webView: { flex: 1, backgroundColor: "#F4F6FA" },
-  progressTrack: { position: "absolute", top: 0, left: 0, right: 0, height: 3, backgroundColor: "#E6EAF0" },
-  progressBar: { height: 3, backgroundColor: "#D4AF37" },
   messageOverlay: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "rgba(244,246,250,0.94)" },
   messageCard: { width: "100%", maxWidth: 360, borderRadius: 20, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "white", alignItems: "center", paddingHorizontal: 24, paddingVertical: 25, elevation: 3 },
   slowLoadNotice: { position: "absolute", top: 12, left: 14, right: 14, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#FFFFFF", paddingHorizontal: 14, paddingVertical: 12, elevation: 5 },
