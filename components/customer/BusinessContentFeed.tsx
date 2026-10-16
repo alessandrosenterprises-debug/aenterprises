@@ -116,7 +116,7 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-2 pt-7 text-[10px] font-bold text-white">{row.title || category} · Preview</span>
           </button>
         ) : row.image_url ? (
-          <div className={`relative bg-slate-100 ${compact ? "aspect-[5/4]" : "aspect-[4/3]"}`}>
+          <div className={`relative bg-slate-100 ${compact ? "aspect-[3/2] sm:aspect-[4/3]" : "aspect-[4/3]"}`}>
             <Image src={row.image_url} alt={title} fill unoptimized className="object-cover" />
           </div>
         ) : (
@@ -130,16 +130,16 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
           <p className="mt-1 line-clamp-1 text-[11px] font-bold text-[#03162F]">{title}</p>
           <p className="mt-0.5 line-clamp-1 text-[9px] text-slate-500">{businessName}</p>
         </div>
-        ) : <div className={compact ? "p-3 sm:p-4" : "p-4"}>
+        ) : <div className={compact ? "p-2.5 sm:p-4" : "p-4"}>
           <p className="text-[9px] font-bold uppercase tracking-wider text-[#9A7910] sm:text-[10px]">
             {business?.name ?? "Alessandro Enterprises"}{row.discount_text ? ` · ${row.discount_text}` : ""}
           </p>
-          <h3 className="mt-1 text-sm font-black text-[#03162F] sm:text-base">{title}</h3>
-          {body && <p className="mt-1 line-clamp-2 text-xs leading-4 text-slate-600 sm:line-clamp-3 sm:text-sm sm:leading-5">{body}</p>}
-          {row.price != null && <p className="mt-1.5 text-xs font-bold text-[#03162F] sm:mt-2 sm:text-sm">ZMW {Number(row.price).toLocaleString("en-ZM", { minimumFractionDigits: 2 })}</p>}
-          {row.start_date && <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500 sm:mt-2 sm:text-xs"><CalendarDays className="h-3.5 w-3.5" />From {new Date(row.start_date).toLocaleDateString()}</p>}
+          <h3 className="mt-0.5 text-xs font-black text-[#03162F] sm:mt-1 sm:text-base">{title}</h3>
+          {body && <p className="mt-0.5 line-clamp-2 text-[10px] leading-3.5 text-slate-600 sm:mt-1 sm:line-clamp-3 sm:text-sm sm:leading-5">{body}</p>}
+          {row.price != null && <p className="mt-1 text-xs font-bold text-[#03162F] sm:mt-2 sm:text-sm">ZMW {Number(row.price).toLocaleString("en-ZM", { minimumFractionDigits: 2 })}</p>}
+          {row.start_date && <p className="mt-1 flex items-center gap-1 text-[9px] text-slate-500 sm:mt-2 sm:text-xs"><CalendarDays className="h-3 w-3 sm:h-3.5 sm:w-3.5" />From {new Date(row.start_date).toLocaleDateString()}</p>}
           {offerHref ? (
-            <p className="mt-3 inline-flex min-h-9 w-full items-center justify-center rounded-xl bg-[#03162F] px-3 py-2 text-xs font-bold text-white transition group-hover:bg-[#0A2852] sm:mt-4 sm:min-h-10 sm:px-4 sm:py-2.5 sm:text-sm">
+            <p className="mt-2 inline-flex min-h-8 w-full items-center justify-center rounded-lg bg-[#03162F] px-2.5 py-1.5 text-[10px] font-bold text-white transition group-hover:bg-[#0A2852] sm:mt-4 sm:min-h-10 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm">
               Order with this offer <span aria-hidden="true" className="ml-2">→</span>
             </p>
           ) : business && !businessId ? (
@@ -250,13 +250,13 @@ function PromotionsCarousel({ cards }: { cards: ReactNode[] }) {
         aria-label="Promotions carousel"
       >
         {cards.map((card, index) => (
-          <div key={index} className="w-[72%] max-w-[280px] shrink-0 snap-start sm:w-[calc(50%-0.5rem)] sm:max-w-none">
+          <div key={index} className="w-[64%] max-w-[240px] shrink-0 snap-start sm:w-[calc(50%-0.5rem)] sm:max-w-none">
             {card}
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => move(-1)} aria-label="Previous promotion" className="absolute left-2 top-[42%] flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-[#03162F] shadow-md transition hover:bg-white"><ChevronLeft className="h-5 w-5" /></button>
-      <button type="button" onClick={() => move(1)} aria-label="Next promotion" className="absolute right-2 top-[42%] flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-[#03162F] shadow-md transition hover:bg-white"><ChevronRight className="h-5 w-5" /></button>
+      <button type="button" onClick={() => move(-1)} aria-label="Previous promotion" className="absolute left-1 top-[38%] flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-[#03162F] shadow-sm transition hover:bg-white sm:left-2 sm:top-[42%] sm:h-9 sm:w-9 sm:shadow-md"><ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" /></button>
+      <button type="button" onClick={() => move(1)} aria-label="Next promotion" className="absolute right-1 top-[38%] flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-[#03162F] shadow-sm transition hover:bg-white sm:right-2 sm:top-[42%] sm:h-9 sm:w-9 sm:shadow-md"><ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" /></button>
       <p className="mt-1.5 text-center text-[10px] font-semibold text-slate-500 sm:mt-2 sm:text-[11px]">Promotion {Math.min(activeIndex + 1, cards.length)} of {cards.length}</p>
     </div>
   );

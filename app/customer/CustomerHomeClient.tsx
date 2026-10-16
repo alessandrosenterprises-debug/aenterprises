@@ -307,20 +307,20 @@ export default function CustomerHomeClient({
                 className="pointer-events-none absolute right-1/3 top-1/2 h-32 w-32 -translate-y-1/2 rounded-full bg-white/10 blur-2xl"
               />
 
-              <div className="relative p-3.5 sm:p-6">
+              <div className="relative p-3 sm:p-6">
                 {/* Featured badge */}
-                <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#03162F]/20 bg-[#03162F] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-[#D4AF37] shadow-sm sm:mb-5 sm:px-3 sm:py-1.5 sm:text-[9px] sm:tracking-[0.14em] sm:shadow-md">
+                <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[#03162F]/20 bg-[#03162F] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-[#D4AF37] shadow-sm sm:mb-5 sm:px-3 sm:py-1.5 sm:text-[9px] sm:tracking-[0.14em] sm:shadow-md">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
                   Featured Business
                 </div>
 
-                <div className="grid items-center gap-3 sm:grid-cols-[auto_1fr_auto] sm:gap-5">
+                <div className="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1.5 sm:grid-cols-[auto_1fr_auto] sm:gap-5">
                   {/* Business Logo */}
                   <div className="flex justify-center sm:justify-start">
-                    <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border-[3px] border-white/90 bg-white shadow-[0_8px_18px_rgba(3,22,47,0.20)] sm:h-28 sm:w-28 sm:rounded-[24px] sm:border-4 sm:shadow-[0_12px_30px_rgba(3,22,47,0.22)]">
+                    <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-2 border-white/90 bg-white shadow-[0_6px_12px_rgba(3,22,47,0.18)] sm:h-28 sm:w-28 sm:rounded-[24px] sm:border-4 sm:shadow-[0_12px_30px_rgba(3,22,47,0.22)]">
                       <div
                         aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 rounded-[20px] ring-1 ring-[#03162F]/10"
+                        className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-[#03162F]/10 sm:rounded-[20px]"
                       />
 
                       {activeFeaturedBusiness.logo_url ? (
@@ -336,24 +336,24 @@ export default function CustomerHomeClient({
                   </div>
 
                   {/* Business Information */}
-                  <div className="min-w-0 text-center sm:text-left">
-                    <p className="mb-1 text-[8px] font-black uppercase tracking-[0.13em] text-[#03162F]/60 sm:text-[9px] sm:tracking-[0.15em]">
+                  <div className="min-w-0 text-left">
+                    <p className="mb-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-[#03162F]/60 sm:mb-1 sm:text-[9px] sm:tracking-[0.15em]">
                       Explore
                     </p>
 
-                    <h3 className="mx-auto max-w-full truncate text-base font-black tracking-tight text-[#03162F] sm:mx-0 sm:text-2xl">
+                    <h3 className="max-w-full truncate text-sm font-black tracking-tight text-[#03162F] sm:text-2xl">
                       {activeFeaturedBusiness.name}
                     </h3>
 
                     {activeFeaturedBusiness.description && (
-                      <p className="mt-1.5 line-clamp-2 max-w-xl text-[10px] font-medium leading-4 text-[#03162F]/70 sm:mt-2 sm:text-sm sm:leading-relaxed">
+                      <p className="mt-0.5 line-clamp-1 max-w-xl text-[9px] font-medium leading-3.5 text-[#03162F]/70 sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-relaxed">
                         {activeFeaturedBusiness.description}
                       </p>
                     )}
 
                     <Link
                       href={`/customer/businesses/${activeFeaturedBusiness.slug}`}
-                      className="group mt-3 inline-flex min-h-[36px] items-center justify-center gap-2 rounded-xl bg-[#03162F] px-3.5 py-2 text-[10px] font-black text-white shadow-[0_6px_14px_rgba(3,22,47,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#071F40] hover:shadow-[0_12px_22px_rgba(3,22,47,0.32)] active:scale-[0.97] sm:mt-4 sm:min-h-[42px] sm:px-4 sm:py-2.5 sm:shadow-[0_8px_18px_rgba(3,22,47,0.25)]"
+                      className="group mt-1.5 inline-flex min-h-[30px] items-center justify-center gap-1.5 rounded-lg bg-[#03162F] px-2.5 py-1.5 text-[9px] font-black text-white shadow-[0_5px_10px_rgba(3,22,47,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#071F40] hover:shadow-[0_12px_22px_rgba(3,22,47,0.32)] active:scale-[0.97] sm:mt-4 sm:min-h-[42px] sm:gap-2 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-[10px] sm:shadow-[0_8px_18px_rgba(3,22,47,0.25)]"
                     >
                       Visit Business
                       <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
@@ -362,23 +362,23 @@ export default function CustomerHomeClient({
 
                   {/* Slider Controls */}
                   {featuredBusinesses.length > 1 && (
-                    <div className="flex items-center justify-center gap-2 sm:flex-col">
+                    <div className="col-span-2 flex items-center justify-center gap-1.5 sm:col-span-1 sm:flex-col sm:gap-2">
                       <button
                         type="button"
                         onClick={goPrevious}
                         aria-label="Previous featured business"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#03162F]/15 bg-white/85 text-[#03162F] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md active:scale-[0.94] sm:h-10 sm:w-10 sm:rounded-xl"
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-[#03162F]/15 bg-white/85 text-[#03162F] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md active:scale-[0.94] sm:h-10 sm:w-10 sm:rounded-xl"
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
 
                       <button
                         type="button"
                         onClick={goNext}
                         aria-label="Next featured business"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#03162F]/15 bg-white/85 text-[#03162F] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md active:scale-[0.94] sm:h-10 sm:w-10 sm:rounded-xl"
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-[#03162F]/15 bg-white/85 text-[#03162F] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md active:scale-[0.94] sm:h-10 sm:w-10 sm:rounded-xl"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
                     </div>
                   )}
@@ -386,7 +386,7 @@ export default function CustomerHomeClient({
 
                 {/* Slide indicators */}
                 {featuredBusinesses.length > 1 && (
-                  <div className="mt-5 flex justify-center gap-1.5">
+                  <div className="mt-1 flex justify-center gap-1 sm:mt-5 sm:gap-1.5">
                     {featuredBusinesses.map((business, index) => (
                       <button
                         key={business.id}
@@ -396,10 +396,10 @@ export default function CustomerHomeClient({
                         aria-current={
                           index === activeBusiness ? "true" : undefined
                         }
-                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                        className={`h-1 rounded-full transition-all duration-300 sm:h-1.5 ${
                           index === activeBusiness
-                            ? "w-6 bg-[#03162F]"
-                            : "w-1.5 bg-[#03162F]/25 hover:bg-[#03162F]/45"
+                            ? "w-4 bg-[#03162F] sm:w-6"
+                            : "w-1 bg-[#03162F]/25 hover:bg-[#03162F]/45 sm:w-1.5"
                         }`}
                       />
                     ))}
