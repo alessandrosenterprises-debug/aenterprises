@@ -48,18 +48,35 @@ function formatMoney(amount: number) {
 export default function OrderCreationInterface({
   items,
   customerId,
+  initialItemId,
+  initialSearch,
+  promotion,
 }: {
   items: CatalogItem[];
   customerId: string;
+  initialItemId?: string;
+  initialSearch?: string;
+  promotion?: { title: string; tag: string };
 }) {
-  const [search, setSearch] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [search, setSearch] = useState(initialSearch ?? "");
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const item = items.find((candidate) => candidate.id === initialItemId);
+    return item ? [{
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      price: Number(item.base_price || 0),
+      quantity: 1,
+      business_id: item.business_id,
+      business_name: item.businesses?.name || "Alessandro Enterprises",
+    }] : [];
+  });
   const [fulfillment, setFulfillment] =
     useState<"Pickup" | "Delivery">("Pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryLatitude, setDeliveryLatitude] = useState<number | null>(null);
   const [deliveryLongitude, setDeliveryLongitude] = useState<number | null>(null);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(promotion ? `Promotion: ${promotion.title} · ${promotion.tag}` : "");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -312,6 +329,14 @@ export default function OrderCreationInterface({
             </div>
           </div>
         </div>
+
+        {promotion && (
+          <div className="mb-6 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#F2D879]">Promotion applied</p>
+            <p className="mt-1 font-semibold text-white">{promotion.title} · {promotion.tag}</p>
+            {cart.length > 0 && <p className="mt-1 text-xs text-white/60">Offer item added to your cart. Review the order and continue.</p>}
+          </div>
+        )}
 
         {/* Search */}
         <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">

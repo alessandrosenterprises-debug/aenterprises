@@ -4,6 +4,7 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
 import PageTransition from "./PageTransition";
+import FloatingLiveChat from "@/components/shared/FloatingLiveChat";
 interface AppLayoutProps {
   children: ReactNode;
 }
@@ -38,6 +39,7 @@ export default function AppLayout({
           <Footer />
         </div>
       </div>
+      <FloatingLiveChat role="staff" />
     </div>
   );
 }

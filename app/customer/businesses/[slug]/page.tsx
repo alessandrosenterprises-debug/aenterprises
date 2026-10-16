@@ -19,6 +19,8 @@ import MobileMoneyHome from "@/components/customer/MobileMoneyHome";
 import TechSolutionsHome from "@/components/customer/TechSolutionsExperience";
 import CustomerBusinessHome from "@/components/customer/CustomerBusinessHome";
 import BusinessCustomerContentPanel from "@/components/customer/BusinessCustomerContentPanel";
+import DeliveryServiceRequestForm from "@/app/customer/businesses/delivery-service/DeliveryServiceRequestForm";
+import { getDeliveryPricingSettings } from "@/modules/orders/services/order.service";
 
 interface BusinessPageProps {
   params: Promise<{
@@ -98,6 +100,19 @@ export default async function CustomerBusinessPage({
 const isMobileMoney =
   business.slug.toLowerCase() === "mobile-money" ||
   business.name.toLowerCase().includes("mobile money");
+
+const isDeliveryService =
+  business.slug.toLowerCase().includes("delivery") ||
+  business.name.toLowerCase().includes("delivery service");
+
+if (isDeliveryService) {
+  const [{ data: { user } }, pricing] = await Promise.all([supabase.auth.getUser(), getDeliveryPricingSettings()]);
+  const { data: customer } = user
+    ? await supabase.from("customers").select("full_name,phone").eq("auth_user_id", user.id).maybeSingle()
+    : { data: null };
+
+  return <DeliveryServiceRequestForm customerName={customer?.full_name ?? ""} customerPhone={customer?.phone ?? ""} pricing={pricing} />;
+}
 
 if (isMobileMoney) {
   const [mobileMoneyCatalogResult, mobileServicesResult] = await Promise.all([

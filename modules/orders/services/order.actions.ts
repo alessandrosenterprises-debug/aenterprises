@@ -1,7 +1,38 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isOrdersAdministrator } from "./order.service";
+import { isOrdersAdministrator, type DeliveryPricingSettings } from "./order.service";
+
+export async function saveDeliveryPricingAction(input: DeliveryPricingSettings): Promise<{ success: boolean; error?: string }> {
+  if (!Number.isFinite(input.base_fee) || input.base_fee < 0
+    || !Number.isFinite(input.rate_per_km) || input.rate_per_km < 0
+    || !Number.isFinite(input.minimum_fee) || input.minimum_fee < 0
+    || !Number.isFinite(input.road_distance_factor) || input.road_distance_factor < 1 || input.road_distance_factor > 5
+    || !["per_km", "per_area"].includes(input.pricing_mode)) {
+    return { success: false, error: "Check the delivery pricing values." };
+  }
+  const areaRates = Object.fromEntries(Object.entries(input.area_rates)
+    .map(([area, amount]) => [area.trim(), Number(amount)])
+    .filter(([area, amount]) => typeof area === "string" && area.length > 0 && typeof amount === "number" && Number.isFinite(amount) && amount >= 0));
+  if (input.pricing_mode === "per_area" && (Object.keys(areaRates).length === 0 || Object.keys(areaRates).length !== Object.keys(input.area_rates).length)) {
+    return { success: false, error: "Add a valid price for each delivery area." };
+  }
+  if (input.pricing_mode === "per_km" && input.rate_per_km <= 0) return { success: false, error: "Set a per-kilometre rate greater than zero." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !(await isOrdersAdministrator(supabase, user.id))) return { success: false, error: "You do not have permission to change delivery rates." };
+  const { error } = await supabase.rpc("save_delivery_pricing_settings", {
+    p_pricing_mode: input.pricing_mode,
+    p_base_fee: input.base_fee,
+    p_rate_per_km: input.rate_per_km,
+    p_minimum_fee: input.minimum_fee,
+    p_road_distance_factor: input.road_distance_factor,
+    p_area_rates: areaRates,
+  });
+  if (error) return { success: false, error: "Delivery rates could not be saved. Check the settings and try again." };
+  return { success: true };
+}
 
 export async function updateOrderAction(
   orderId: string,
@@ -10,6 +41,7 @@ export async function updateOrderAction(
     payment_status?: string;
     rider_employee_id?: string | null;
     delivery_status?: string;
+    delivery_fee?: number;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const validStatuses = ["Pending", "Confirmed", "Processing", "Ready", "Completed", "Cancelled"];
@@ -19,6 +51,7 @@ export async function updateOrderAction(
   if (updates.status && !validStatuses.includes(updates.status)) return { success: false, error: "Invalid order status." };
   if (updates.payment_status && !validPaymentStatuses.includes(updates.payment_status)) return { success: false, error: "Invalid payment status." };
   if (updates.delivery_status && !validDeliveryStatuses.includes(updates.delivery_status)) return { success: false, error: "Invalid delivery status." };
+  if (Object.hasOwn(updates, "delivery_fee") && (updates.delivery_fee === undefined || !Number.isFinite(updates.delivery_fee) || updates.delivery_fee < 0 || updates.delivery_fee > 10000000)) return { success: false, error: "Enter a valid delivery fee." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -32,6 +65,12 @@ export async function updateOrderAction(
   if (orderError || !order) return { success: false, error: "Order not found." };
 
   const isDelivery = order.fulfillment_method?.toLowerCase() === "delivery";
+  if (Object.hasOwn(updates, "delivery_fee")) {
+    if (!isDelivery) return { success: false, error: "A delivery fee can only be set on a delivery request." };
+    const { error: feeError } = await supabase.rpc("set_delivery_request_fee", { p_order_id: orderId, p_fee: updates.delivery_fee ?? -1 });
+    if (feeError) return { success: false, error: "The delivery fee could not be saved." };
+    return { success: true };
+  }
   if ((updates.delivery_status || Object.hasOwn(updates, "rider_employee_id")) && !isDelivery) {
     return { success: false, error: "Delivery tracking is only available for delivery orders." };
   }
@@ -184,6 +223,56 @@ export async function createAdminOrderAction(input: {
   return { success: true, orderId: order.id };
 }
 
+export async function createCustomerDeliveryRequestAction(input: {
+  pickupAddress: string;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
+  pickupContactName: string;
+  pickupContactPhone: string;
+  deliveryAddress: string;
+  deliveryLatitude: number | null;
+  deliveryLongitude: number | null;
+  deliveryContactName: string;
+  deliveryContactPhone: string;
+  packageDescription: string;
+  deliveryArea?: string;
+  notes?: string;
+}): Promise<{ success: boolean; error?: string; orderId?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Sign in to request a delivery." };
+
+  const requiredText = [input.pickupAddress, input.pickupContactName, input.pickupContactPhone, input.deliveryAddress, input.deliveryContactName, input.deliveryContactPhone, input.packageDescription];
+  if (requiredText.some((value) => !value.trim())) return { success: false, error: "Complete the collection, delivery, contact, and parcel details." };
+  const validPin = (latitude: number | null, longitude: number | null) =>
+    (latitude === null && longitude === null)
+    || (latitude !== null && longitude !== null && Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180);
+  if (!validPin(input.pickupLatitude, input.pickupLongitude) || !validPin(input.deliveryLatitude, input.deliveryLongitude)) {
+    return { success: false, error: "Check both map pins and try again." };
+  }
+
+  const { data: orderId, error: requestError } = await supabase.rpc("create_customer_delivery_request", {
+    p_pickup_address: input.pickupAddress.trim(),
+    p_pickup_latitude: input.pickupLatitude,
+    p_pickup_longitude: input.pickupLongitude,
+    p_pickup_contact_name: input.pickupContactName.trim(),
+    p_pickup_contact_phone: input.pickupContactPhone.trim(),
+    p_delivery_address: input.deliveryAddress.trim(),
+    p_delivery_latitude: input.deliveryLatitude,
+    p_delivery_longitude: input.deliveryLongitude,
+    p_delivery_contact_name: input.deliveryContactName.trim(),
+    p_delivery_contact_phone: input.deliveryContactPhone.trim(),
+    p_package_description: input.packageDescription.trim(),
+    p_notes: input.notes?.trim() || null,
+    p_delivery_area: input.deliveryArea?.trim() || null,
+  });
+  if (requestError || !orderId) {
+    console.error("Delivery request submission failed:", requestError?.message);
+    return { success: false, error: "Your delivery request couldn’t be submitted. Please try again." };
+  }
+  return { success: true, orderId };
+}
+
 export async function updateAssignedRiderOrderAction(
   orderId: string,
   status: "Preparing" | "Ready" | "Out for Delivery" | "Delivered" | null,
@@ -201,5 +290,45 @@ export async function updateAssignedRiderOrderAction(
     p_longitude: longitude ?? null,
   });
   if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function completeAssignedDeliveryWithProofAction(input: {
+  orderId: string;
+  receivedBy: string;
+  proofNote?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!input.orderId || !input.receivedBy.trim() || (input.proofNote?.length ?? 0) > 500) {
+    return { success: false, error: "Enter who received the delivery and keep the proof note under 500 characters." };
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Please sign in to complete this delivery." };
+  const { error } = await supabase.rpc("complete_assigned_delivery_with_proof", {
+    p_order_id: input.orderId,
+    p_received_by: input.receivedBy.trim(),
+    p_proof_note: input.proofNote?.trim() || null,
+  });
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function rateCustomerDeliveryAction(input: {
+  orderId: string;
+  rating: number;
+  review?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!input.orderId || !Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5 || (input.review?.length ?? 0) > 1000) {
+    return { success: false, error: "Choose a rating from one to five stars." };
+  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Sign in to rate this delivery." };
+  const { error } = await supabase.rpc("rate_customer_delivery", {
+    p_order_id: input.orderId,
+    p_rating: input.rating,
+    p_review: input.review?.trim() || null,
+  });
+  if (error) return { success: false, error: "Your rating could not be saved. Please try again." };
   return { success: true };
 }

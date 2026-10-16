@@ -22,13 +22,24 @@ export default async function CustomerBusinessesPage() {
     console.error("Customer businesses loading error:", error);
   }
 
+  const visibleBusinesses = [...(businesses ?? [])];
+  if (!visibleBusinesses.some((business) => business.slug === "delivery-service")) {
+    visibleBusinesses.push({
+      id: "delivery-service-featured",
+      name: "Alessandro Delivery Service",
+      slug: "delivery-service",
+      description: "Send your own parcel or shop purchase from any pickup location to your chosen address.",
+      logo_url: null,
+    });
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 pb-[92px]">
 
 
-      <div className="mx-auto w-full max-w-[720px]">
-        {/* Header */}
-        <section className="bg-[#03162F] px-5 pb-10 pt-7 text-white">
+      {/* Full-width hero */}
+      <section className="w-full bg-[#03162F] px-5 py-7 text-white sm:px-8 sm:py-9">
+        <div className="mx-auto w-full max-w-7xl">
           <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#D4AF37]">
             Discover
           </p>
@@ -42,10 +53,11 @@ export default async function CustomerBusinessesPage() {
             Each business has its own products, services, categories,
             galleries, offers and customer experience.
           </p>
-        </section>
+        </div>
+      </section>
 
         {/* Businesses */}
-        <section className="px-5 py-7">
+        <section className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6">
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
               <h2 className="text-sm font-bold text-red-700">
@@ -56,9 +68,9 @@ export default async function CustomerBusinessesPage() {
                 Please try again shortly.
               </p>
             </div>
-          ) : businesses && businesses.length > 0 ? (
+          ) : visibleBusinesses.length > 0 ? (
             <div className="space-y-3">
-              {businesses.map((business) => (
+              {visibleBusinesses.map((business) => (
                 <Link
                   key={business.id}
                   href={`/customer/businesses/${business.slug}`}
@@ -127,7 +139,6 @@ export default async function CustomerBusinessesPage() {
             </div>
           )}
         </section>
-      </div>
     </main>
   );
 }

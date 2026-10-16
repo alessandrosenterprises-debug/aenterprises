@@ -38,30 +38,38 @@ export default async function CustomerRequestsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let requests: RequestItem[] = [];
+  let customerFound = false;
+  let customerLookupFailed = false;
+  let activityLoadFailed = false;
 
   if (user) {
-    const { data: profile } = await supabase.from("profiles").select("email,phone").eq("auth_user_id", user.id).maybeSingle();
-    let customer: { id: string } | null = null;
-    const customerEmail = profile?.email || user.email;
-    if (customerEmail) {
-      const result = await supabase.from("customers").select("id").eq("email", customerEmail).maybeSingle();
-      customer = result.data;
-    }
-    if (!customer && profile?.phone) {
-      const result = await supabase.from("customers").select("id").eq("phone", profile.phone).maybeSingle();
-      customer = result.data;
+    const { data: customer, error: customerError } = await supabase.from("customers").select("id").eq("auth_user_id", user.id).maybeSingle();
+    if (customerError) {
+      customerLookupFailed = true;
+      console.error("Customer requests profile lookup error:", customerError);
     }
 
     if (customer) {
-      const [bookings, orders, messages] = await Promise.all([
+      customerFound = true;
+      const [bookings, orders, messages, loans, consultations] = await Promise.all([
         supabase.from("bookings").select("id,status,created_at,booking_date,booking_time,businesses(name)").eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(10),
         supabase.from("orders").select("id,status,created_at,businesses(name)").eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(10),
-        supabase.from("messages").select("id,subject,status,created_at,businesses(name)").eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(10),
+        supabase.from("messages").select("id,subject,status,source,created_at,businesses(name)").eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("customer_loan_applications").select("id,status,created_at,application_number,requested_amount,loan_products(name)").eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(10),
+        supabase.from("technology_consultation_requests").select("id,status,created_at,subject,consultation_type").eq("customer_id", customer.id).order("created_at", { ascending: false }).limit(10),
       ]);
+      const results = [bookings, orders, messages, loans, consultations];
+      activityLoadFailed = results.some((result) => Boolean(result.error));
+      for (const [index, result] of results.entries()) {
+        if (result.error) console.error(`Customer requests activity query ${index + 1} failed:`, result.error);
+      }
+      const messageRows = (messages.data ?? []).filter((item) => !item.source?.toLowerCase().includes("technology consultation"));
       requests = [
         ...((bookings.data ?? []) as any[]).map((item) => ({ id: item.id, title: item.businesses?.name ? `${item.businesses.name} booking` : "Service booking", status: item.status, created_at: item.created_at, business: item.businesses?.name, detail: [item.booking_date, item.booking_time].filter(Boolean).join(" · "), href: "/customer/bookings" })),
         ...((orders.data ?? []) as any[]).map((item) => ({ id: item.id, title: item.businesses?.name ? `${item.businesses.name} order` : "Product order", status: item.status, created_at: item.created_at, business: item.businesses?.name, href: "/customer/orders" })),
-        ...((messages.data ?? []) as any[]).map((item) => ({ id: item.id, title: item.subject || "Message to a business", status: item.status, created_at: item.created_at, business: item.businesses?.name, href: "/customer/messages" })),
+        ...(messageRows as any[]).map((item) => ({ id: item.id, title: item.subject || (item.source?.toLowerCase().includes("repair") ? "Repair request" : item.source?.toLowerCase().includes("support") ? "IT support request" : "Message to a business"), status: item.status, created_at: item.created_at, business: item.businesses?.name, href: "/customer/messages" })),
+        ...((loans.data ?? []) as any[]).map((item) => ({ id: item.id, title: "Loan application", status: item.status, created_at: item.created_at, business: "Alessandro Soft Loans", detail: item.loan_products?.name || item.application_number || (item.requested_amount ? `ZMW ${Number(item.requested_amount).toLocaleString("en-ZM")}` : null), href: "/customer/businesses/soft-loans/history" })),
+        ...((consultations.data ?? []) as any[]).map((item) => ({ id: item.id, title: item.subject || "Technology consultation", status: item.status, created_at: item.created_at, business: "Alessandro Tech Solutions", detail: item.consultation_type?.replaceAll("_", " "), href: "/customer/messages" })),
       ].sort((a, b) => b.created_at.localeCompare(a.created_at));
     }
   }
@@ -90,7 +98,7 @@ export default async function CustomerRequestsPage() {
             <Link href="/customer/activity" className="shrink-0 text-xs font-bold text-[#9A7910]">Activity history</Link>
           </div>
           {requests.map((item) => <RequestCard key={`${item.href}-${item.id}`} item={item} />)}
-          {!user ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm"><p className="font-bold text-[#03162F]">Sign in to view your requests</p><p className="mt-2 text-sm text-slate-500">Your customer activity appears here after you sign in.</p><Link href="/customer/login" className="mt-4 inline-flex rounded-xl bg-[#03162F] px-4 py-2.5 text-sm font-bold text-white">Sign in</Link></div> : requests.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm"><p className="font-bold text-[#03162F]">No requests yet</p><p className="mt-2 text-sm text-slate-500">Bookings, orders and messages you send will appear here.</p></div> : null}
+          {!user ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm"><p className="font-bold text-[#03162F]">Sign in to view your requests</p><p className="mt-2 text-sm text-slate-500">Your customer activity appears here after you sign in.</p><Link href="/customer/login" className="mt-4 inline-flex rounded-xl bg-[#03162F] px-4 py-2.5 text-sm font-bold text-white">Sign in</Link></div> : customerLookupFailed || activityLoadFailed ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center shadow-sm"><p className="font-bold text-[#03162F]">Some activity couldn’t be loaded</p><p className="mt-2 text-sm text-slate-600">Open Bookings, Orders, Messages, or Loan History to check those records directly.</p></div> : !customerFound ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm"><p className="font-bold text-[#03162F]">Customer profile not linked</p><p className="mt-2 text-sm text-slate-500">We couldn’t match this sign-in to a customer record. Please contact support to link your account.</p></div> : requests.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm"><p className="font-bold text-[#03162F]">No requests yet</p><p className="mt-2 text-sm text-slate-500">Bookings, orders, messages, consultations, and loan applications you send will appear here.</p></div> : null}
         </section>
         <aside className="space-y-3">
           <h2 className="mb-4 text-lg font-black text-[#03162F]">Manage requests</h2>

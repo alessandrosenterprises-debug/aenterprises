@@ -6,11 +6,20 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Cloud,
+  CloudFog,
+  CloudRain,
+  CloudSun,
   Clock3,
+  FileText,
+  Headphones,
+  Mail,
   MessageCircle,
   Package,
+  Phone,
   Sparkles,
   Store,
+  Sun,
   Wrench,
 } from "lucide-react";
 import Link from "next/link";
@@ -20,6 +29,13 @@ import BusinessContentFeed from "@/components/customer/BusinessContentFeed";
 
 interface CustomerHomeClientProps {
   businesses: CustomerHomeBusiness[];
+  contactDetails: {
+    companyName: string;
+    tagline: string;
+    phone: string;
+    whatsapp: string;
+    email: string;
+  };
 }
 
 interface QuickAction {
@@ -32,6 +48,7 @@ interface QuickAction {
 
 export default function CustomerHomeClient({
   businesses,
+  contactDetails,
 }: CustomerHomeClientProps) {
   const [activeBusiness, setActiveBusiness] = useState(0);
 
@@ -109,9 +126,9 @@ export default function CustomerHomeClient({
   };
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[760px] overflow-hidden bg-[#F1F5F9]">
+    <div className="min-h-screen w-full overflow-hidden bg-[#F1F5F9]">
       {/* HERO */}
-      <section className="relative overflow-hidden bg-[#03162F] px-5 pb-8 pt-8 text-white sm:px-7">
+      <section className="relative w-full overflow-hidden bg-[#03162F] px-4 pb-5 pt-5 text-white sm:px-7 sm:pb-6 sm:pt-6">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[#D4AF37]/20 blur-3xl"
@@ -127,29 +144,30 @@ export default function CustomerHomeClient({
           className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-3xl"
         />
 
-        <div className="relative">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 backdrop-blur-xl">
-            <Sparkles className="h-3.5 w-3.5 text-[#D4AF37]" />
-            <span>AEOS Customer Experience</span>
-          </div>
+        <div className="relative mx-auto grid w-full max-w-6xl items-center gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(350px,1.1fr)] md:gap-7">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/80 backdrop-blur-xl">
+              <Sparkles className="h-3.5 w-3.5 text-[#D4AF37]" />
+              <span>AEOS Customer Experience</span>
+            </div>
 
-          <h1 className="max-w-xl text-3xl font-black leading-[1.05] tracking-tight sm:text-4xl">
-            Everything you need,
-            <span className="block bg-gradient-to-r from-white via-[#D4AF37] to-amber-200 bg-clip-text text-transparent">
-              all in one place.
-            </span>
-          </h1>
+            <h1 className="max-w-3xl font-serif text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+              Everything you need,
+              <span className="block bg-gradient-to-r from-white via-[#D4AF37] to-amber-200 bg-clip-text text-transparent">
+                all in one place.
+              </span>
+            </h1>
 
-          <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
-            Discover Alessandro Enterprises businesses, services, products,
-            bookings and opportunities through one connected customer
-            experience.
-          </p>
+            <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-300 sm:text-sm sm:leading-6">
+              Discover Alessandro Enterprises businesses, services, products,
+              bookings and opportunities through one connected customer
+              experience.
+            </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3">
+            <div className="mt-4 grid max-w-xl grid-cols-2 gap-2 sm:gap-3">
             <Link
               href="/customer/businesses"
-              className="group flex min-h-[46px] items-center justify-center gap-1.5 rounded-2xl bg-[#D4AF37] px-3 py-2.5 text-center text-[11px] font-black text-[#03162F] shadow-[0_8px_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_25px_rgba(212,175,55,0.35)] active:scale-[0.97] sm:text-xs"
+              className="group flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-[#D4AF37] px-3 py-2 text-center text-[11px] font-black text-[#03162F] shadow-[0_8px_20px_rgba(212,175,55,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_25px_rgba(212,175,55,0.35)] active:scale-[0.97] sm:text-xs"
             >
               <Store className="h-4 w-4 shrink-0 transition-transform duration-300 group-hover:scale-110" />
               <span>Explore Businesses</span>
@@ -158,17 +176,36 @@ export default function CustomerHomeClient({
 
             <Link
               href="/"
-              className="group flex min-h-[46px] items-center justify-center gap-1.5 rounded-2xl border border-white/20 bg-white/10 px-3 py-2.5 text-center text-[11px] font-black text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37]/50 hover:bg-white/15 hover:text-[#D4AF37] active:scale-[0.97] sm:text-xs"
+              className="group flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-center text-[11px] font-black text-white backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37]/50 hover:bg-white/15 hover:text-[#D4AF37] active:scale-[0.97] sm:text-xs"
             >
               <span>Visit Website</span>
               <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-3 md:pt-1">
+            <div className="grid grid-cols-5 gap-2 sm:gap-3">
+              <HeroQuickLink href={contactDetails.email ? `mailto:${contactDetails.email}` : "/customer/emails"} label="Emails" icon={<Mail className="h-4 w-4" />} />
+              <HeroQuickLink href={contactDetails.phone ? `tel:${contactDetails.phone.replace(/\s+/g, "")}` : "/customer/support"} label="Phone" icon={<Phone className="h-4 w-4" />} />
+              <HeroQuickLink href={contactDetails.whatsapp ? `https://wa.me/${contactDetails.whatsapp.replace(/\D/g, "").replace(/^0/, "260")}` : "/customer/support"} label="WhatsApp" icon={<MessageCircle className="h-4 w-4" />} external={Boolean(contactDetails.whatsapp)} />
+              <HeroQuickLink href="/customer/requests" label="Requests" icon={<FileText className="h-4 w-4" />} />
+              <HeroQuickLink href="/customer/support" label="Support" icon={<Headphones className="h-4 w-4" />} />
+            </div>
+            <LiveWeatherWidget />
+            <div className="mt-8 flex min-h-[48px] items-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] text-[#E8CA62]">
+              <div className="customer-hero-marquee flex w-max items-center gap-4 whitespace-nowrap px-5 text-base font-semibold tracking-wide sm:text-lg">
+                <span className="font-bold text-[#F2D879]">{contactDetails.companyName}</span>
+                <span aria-hidden="true" className="text-white/60">•</span>
+                <span className="text-white">{contactDetails.tagline}</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* PAGE CONTENT */}
-      <div className="space-y-7 bg-[#F1F5F9] px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-[760px] space-y-7 bg-[#F1F5F9] px-4 py-6 sm:px-6">
         {/* QUICK ACTIONS */}
         <section>
           <div className="mb-3 flex items-end justify-between">
@@ -390,8 +427,8 @@ export default function CustomerHomeClient({
           <SectionHeading
             eyebrow="Discover"
             title="Gallery"
-            href="/customer/businesses"
-            linkLabel="View businesses"
+            href="/customer/gallery"
+            linkLabel="View all photos"
           />
 
           <BusinessContentFeed businesses={businesses} kind="gallery" compact />
@@ -463,6 +500,19 @@ export default function CustomerHomeClient({
       </div>
 
       <style jsx global>{`
+        @keyframes customerHeroMarquee {
+          from { transform: translateX(100%); }
+          to { transform: translateX(-100%); }
+        }
+
+        .customer-hero-marquee {
+          animation: customerHeroMarquee 18s linear infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .customer-hero-marquee { animation: none; }
+        }
+
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -486,6 +536,67 @@ export default function CustomerHomeClient({
           }
         }
       `}</style>
+    </div>
+  );
+}
+
+function HeroQuickLink({
+  href,
+  label,
+  icon,
+  external = false,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  external?: boolean;
+}) {
+  const className = "group flex min-w-0 flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.07] px-2 py-2 text-[9px] font-semibold text-slate-200 transition hover:border-[#D4AF37]/50 hover:bg-white/15 hover:text-white sm:min-w-[58px] sm:text-[10px]";
+  const content = <><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-[#D4AF37] transition group-hover:bg-[#D4AF37] group-hover:text-[#03162F]">{icon}</span><span className="truncate">{label}</span></>;
+
+  return external ? (
+    <a href={href} target="_blank" rel="noreferrer" aria-label={label} className={className}>{content}</a>
+  ) : (
+    <Link href={href} aria-label={label} className={className}>{content}</Link>
+  );
+}
+
+function LiveWeatherWidget() {
+  const [weather, setWeather] = useState<{ temperature: number; code: number; wind: number } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadWeather = async () => {
+      try {
+        const response = await fetch("https://api.open-meteo.com/v1/forecast?latitude=-15.4167&longitude=28.2833&current=temperature_2m,weather_code,wind_speed_10m&timezone=Africa%2FLusaka", { cache: "no-store" });
+        if (!response.ok) throw new Error("Weather unavailable");
+        const result = await response.json();
+        if (active && result.current) {
+          setWeather({ temperature: Math.round(result.current.temperature_2m), code: result.current.weather_code, wind: Math.round(result.current.wind_speed_10m) });
+        }
+      } catch {
+        if (active) setWeather(null);
+      }
+    };
+
+    void loadWeather();
+    const interval = window.setInterval(loadWeather, 15 * 60 * 1000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, []);
+
+  const code = weather?.code ?? -1;
+  const WeatherIcon = code === 0 || code === 1 ? Sun : code === 2 ? CloudSun : code === 45 || code === 48 ? CloudFog : code >= 51 && code <= 82 ? CloudRain : code >= 3 ? Cloud : CloudSun;
+  const condition = code === 0 ? "Clear skies" : code === 1 ? "Mostly clear" : code === 2 ? "Partly cloudy" : code === 3 ? "Cloudy" : code === 45 || code === 48 ? "Foggy" : code >= 51 && code <= 67 ? "Light rain" : code >= 71 && code <= 77 ? "Snow" : code >= 80 && code <= 82 ? "Showers" : code >= 95 ? "Thunderstorms" : "Checking Lusaka weather";
+
+  return (
+    <div className="flex min-h-[76px] min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.07] px-3 py-2.5 sm:px-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/15 text-[#E8C84E]"><WeatherIcon className="h-5 w-5" /></div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2"><p className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-300">Live weather · Lusaka</p><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" /></div>
+        <p className="mt-0.5 truncate text-xs font-semibold text-white">{condition}</p>
+        <p className="mt-0.5 text-[10px] text-slate-400">{weather ? `Wind ${weather.wind} km/h` : "Current conditions"}</p>
+      </div>
+      <p className="shrink-0 font-serif text-2xl font-bold text-white">{weather ? `${weather.temperature}°` : "--°"}</p>
     </div>
   );
 }

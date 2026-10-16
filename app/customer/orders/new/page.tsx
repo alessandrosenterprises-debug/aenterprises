@@ -19,7 +19,12 @@ export interface CatalogItem {
   businesses?: { name: string } | null;
 }
 
-export default async function NewOrderPage() {
+export default async function NewOrderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ itemId?: string; search?: string; promotion?: string; tag?: string }>;
+}) {
+  const query = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -137,6 +142,9 @@ export default async function NewOrderPage() {
     <OrderCreationInterface
       items={orderableItems}
       customerId={customer.id}
+      initialItemId={query.itemId}
+      initialSearch={query.search}
+      promotion={query.promotion ? { title: query.promotion, tag: query.tag || "Special offer" } : undefined}
     />
   );
 }

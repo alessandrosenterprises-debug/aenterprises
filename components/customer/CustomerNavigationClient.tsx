@@ -427,7 +427,7 @@ export default function CustomerNavigationClient() {
               className="fixed inset-0 top-16 z-[-1] h-screen w-screen bg-black/20 backdrop-blur-[2px] min-[390px]:top-[72px] sm:top-[78px]"
             />
 
-            <div className="absolute right-3 top-16 w-[calc(100%-24px)] max-w-[370px] origin-top overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-[0_25px_70px_rgba(15,23,42,0.32)] animate-[menuIn_180ms_ease-out] min-[390px]:top-[72px] sm:top-[78px]">
+            <div className="absolute right-3 top-16 w-[calc(100%-40px)] max-w-[320px] origin-top overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-[0_25px_70px_rgba(15,23,42,0.32)] animate-[menuIn_180ms_ease-out] min-[390px]:top-[72px] sm:top-[78px]">
 
               {/* ACCOUNT HEADER */}
 
@@ -572,10 +572,10 @@ export default function CustomerNavigationClient() {
 
       <nav
         aria-label="Customer navigation"
-        className="customer-mobile-bottom-nav pointer-events-none fixed inset-x-0 bottom-0 z-[90]"
+        className="customer-mobile-bottom-nav pointer-events-none fixed inset-x-0 bottom-0 z-[90] bg-[#03162F] pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="mx-auto w-full max-w-[760px] px-2 pb-2 sm:px-3 sm:pb-3">
-          <div className="pointer-events-auto relative overflow-hidden rounded-[22px] border border-white/10 bg-[#03162F] shadow-[0_-8px_30px_rgba(3,22,47,0.22)]">
+        <div className="w-full px-0 pb-0">
+          <div className="pointer-events-auto relative overflow-hidden rounded-t-[22px] border-x-0 border-b-0 border-t border-white/10 bg-[#03162F] shadow-[0_-8px_30px_rgba(3,22,47,0.22)]">
 
             {/* Subtle gold top border */}
 

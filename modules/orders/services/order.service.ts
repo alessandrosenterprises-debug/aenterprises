@@ -1,5 +1,33 @@
 import { createClient } from "@/lib/supabase/server";
 
+export interface DeliveryPricingSettings {
+  pricing_mode: "per_km" | "per_area";
+  base_fee: number;
+  rate_per_km: number;
+  minimum_fee: number;
+  road_distance_factor: number;
+  area_rates: Record<string, number>;
+}
+
+export async function getDeliveryPricingSettings(): Promise<DeliveryPricingSettings> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("delivery_pricing_settings")
+    .select("pricing_mode, base_fee, rate_per_km, minimum_fee, road_distance_factor, area_rates")
+    .eq("id", "default").maybeSingle();
+  const rawRates = data?.area_rates;
+  const areaRates = rawRates && typeof rawRates === "object" && !Array.isArray(rawRates)
+    ? Object.fromEntries(Object.entries(rawRates).map(([area, rate]) => [area, Number(rate)]).filter(([, rate]) => Number.isFinite(rate)))
+    : {};
+  return {
+    pricing_mode: data?.pricing_mode === "per_area" ? "per_area" : "per_km",
+    base_fee: Number(data?.base_fee ?? 0),
+    rate_per_km: Number(data?.rate_per_km ?? 0),
+    minimum_fee: Number(data?.minimum_fee ?? 0),
+    road_distance_factor: Number(data?.road_distance_factor ?? 1.25),
+    area_rates: areaRates,
+  };
+}
+
 export interface ManagedOrder {
   id: string;
   business_id: string;
@@ -8,6 +36,13 @@ export interface ManagedOrder {
   status: string;
   payment_status: string;
   fulfillment_method: string;
+  pickup_address: string | null;
+  pickup_latitude: number | null;
+  pickup_longitude: number | null;
+  pickup_contact_name: string | null;
+  pickup_contact_phone: string | null;
+  delivery_contact_name: string | null;
+  delivery_contact_phone: string | null;
   delivery_address: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
@@ -20,7 +55,7 @@ export interface ManagedOrder {
   subtotal: number;
   total_amount: number;
   created_at: string;
-  businesses: { id: string; name: string } | null;
+  businesses: { id: string; name: string; slug?: string | null } | null;
   store: { id: string; name: string; address: string | null; city: string | null; latitude: number | null; longitude: number | null } | null;
   customers: { id: string; full_name: string; phone: string | null; email: string | null } | null;
   rider: { id: string; full_name: string; phone: string | null; position: string } | null;
@@ -48,13 +83,21 @@ export interface RiderDeliveryOrder {
   business_id: string;
   status: string;
   fulfillment_method: string;
+  pickup_address: string | null;
+  pickup_latitude: number | null;
+  pickup_longitude: number | null;
+  pickup_contact_name: string | null;
+  pickup_contact_phone: string | null;
   delivery_address: string | null;
+  delivery_contact_name: string | null;
+  delivery_contact_phone: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   delivery_status: string;
   rider_latitude: number | null;
   rider_longitude: number | null;
   rider_location_updated_at: string | null;
+  notes: string | null;
   total_amount: number;
   created_at: string;
   businesses: { name: string } | null;
@@ -95,9 +138,10 @@ export async function getRiderDeliveryOrders(userId: string): Promise<RiderDeliv
   const { data, error } = await supabase
     .from("orders")
     .select(`
-      id, business_id, status, fulfillment_method, delivery_address,
+      id, business_id, status, fulfillment_method, pickup_address, pickup_latitude, pickup_longitude,
+      pickup_contact_name, pickup_contact_phone, delivery_address, delivery_contact_name, delivery_contact_phone,
       delivery_latitude, delivery_longitude, delivery_status,
-      rider_latitude, rider_longitude, rider_location_updated_at,
+      rider_latitude, rider_longitude, rider_location_updated_at, notes,
       total_amount, created_at, businesses(name),
       order_items(id, quantity, enterprise_catalog(name))
     `)
@@ -185,9 +229,11 @@ export async function getManagedOrders(): Promise<ManagedOrder[]> {
     .from("orders")
     .select(`
       id, business_id, customer_id, status, payment_status, fulfillment_method,
+      pickup_address, pickup_latitude, pickup_longitude, pickup_contact_name, pickup_contact_phone,
+      delivery_contact_name, delivery_contact_phone,
       delivery_address, delivery_latitude, delivery_longitude, delivery_status, rider_employee_id,
       rider_latitude, rider_longitude, rider_location_updated_at, notes, subtotal, total_amount, created_at,
-      businesses(id, name),
+      businesses(id, name, slug),
       customers(id, full_name, phone, email),
       rider:employees!orders_rider_employee_id_fkey(id, full_name, phone, position),
       order_items(id, catalog_item_id, quantity, unit_price, total_price,

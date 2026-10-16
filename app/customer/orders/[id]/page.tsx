@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import CustomerLiveTracking from "@/components/customer/CustomerLiveTracking";
+import CustomerCourierJourney from "@/components/customer/CustomerCourierJourney";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -40,10 +41,22 @@ interface Order {
   status: string;
   payment_status: string;
   fulfillment_method: string;
+  pickup_address: string | null;
+  pickup_latitude: number | null;
+  pickup_longitude: number | null;
+  pickup_contact_name: string | null;
+  pickup_contact_phone: string | null;
+  delivery_contact_name: string | null;
+  delivery_contact_phone: string | null;
   delivery_address: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   delivery_status: string;
+  delivery_proof_received_by: string | null;
+  delivery_proof_note: string | null;
+  delivery_proof_at: string | null;
+  delivery_rating: number | null;
+  delivery_review: string | null;
   rider_employee_id: string | null;
   rider_latitude: number | null;
   rider_longitude: number | null;
@@ -369,10 +382,22 @@ export default async function CustomerOrderDetailsPage({
         status,
         payment_status,
         fulfillment_method,
+        pickup_address,
+        pickup_latitude,
+        pickup_longitude,
+        pickup_contact_name,
+        pickup_contact_phone,
+        delivery_contact_name,
+        delivery_contact_phone,
         delivery_address,
         delivery_latitude,
         delivery_longitude,
         delivery_status,
+        delivery_proof_received_by,
+        delivery_proof_note,
+        delivery_proof_at,
+        delivery_rating,
+        delivery_review,
         rider_employee_id,
         rider_latitude,
         rider_longitude,
@@ -581,13 +606,23 @@ export default async function CustomerOrderDetailsPage({
             initialRider={typedOrder.rider ?? null}
             initialRiderLatitude={typedOrder.rider_latitude}
             initialRiderLongitude={typedOrder.rider_longitude}
-            storeName={typedOrder.store?.name || typedOrder.businesses?.name || "Store"}
-            initialStoreLatitude={typedOrder.store?.latitude ?? null}
-            initialStoreLongitude={typedOrder.store?.longitude ?? null}
+            storeName={typedOrder.pickup_address ? "Collection point" : typedOrder.store?.name || typedOrder.businesses?.name || "Store"}
+            initialStoreLatitude={typedOrder.pickup_latitude ?? typedOrder.store?.latitude ?? null}
+            initialStoreLongitude={typedOrder.pickup_longitude ?? typedOrder.store?.longitude ?? null}
             initialDestinationLatitude={typedOrder.delivery_latitude}
             initialDestinationLongitude={typedOrder.delivery_longitude}
           />
         </div>
+        {typedOrder.fulfillment_method?.toLowerCase() === "delivery" && typedOrder.pickup_address && <CustomerCourierJourney
+          orderId={typedOrder.id}
+          deliveryStatus={typedOrder.delivery_status}
+          paymentStatus={typedOrder.payment_status}
+          receivedBy={typedOrder.delivery_proof_received_by}
+          proofNote={typedOrder.delivery_proof_note}
+          proofAt={typedOrder.delivery_proof_at}
+          rating={typedOrder.delivery_rating}
+          review={typedOrder.delivery_review}
+        />}
         <div className="grid gap-5 lg:grid-cols-3">
           {/* =================================================
               LEFT
@@ -751,6 +786,8 @@ export default async function CustomerOrderDetailsPage({
                         </p>
                       </>
                     )}
+                    {typedOrder.pickup_address && <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-[#80600A]">Collection point</p><p className="mt-1 text-xs leading-5 text-slate-700">{typedOrder.pickup_address}</p><p className="mt-1 text-[11px] text-slate-500">{typedOrder.pickup_contact_name || ""}{typedOrder.pickup_contact_phone ? ` · ${typedOrder.pickup_contact_phone}` : ""}</p>{typedOrder.pickup_latitude !== null && typedOrder.pickup_longitude !== null && <a href={`https://www.openstreetmap.org/?mlat=${typedOrder.pickup_latitude}&mlon=${typedOrder.pickup_longitude}#map=17/${typedOrder.pickup_latitude}/${typedOrder.pickup_longitude}`} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-semibold text-blue-700 hover:underline">View collection location</a>}</div>}
+                    {typedOrder.delivery_contact_name && <p className="mt-2 text-[11px] text-slate-500">Recipient: {typedOrder.delivery_contact_name}{typedOrder.delivery_contact_phone ? ` · ${typedOrder.delivery_contact_phone}` : ""}</p>}
                     {typedOrder.delivery_latitude !== null && typedOrder.delivery_longitude !== null && (
                       <a
                         href={`https://www.openstreetmap.org/?mlat=${typedOrder.delivery_latitude}&mlon=${typedOrder.delivery_longitude}#map=17/${typedOrder.delivery_latitude}/${typedOrder.delivery_longitude}`}

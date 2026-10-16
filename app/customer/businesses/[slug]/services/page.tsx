@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
-  ArrowLeft,
   Banknote,
   BriefcaseBusiness,
   Clock3,
@@ -204,16 +203,8 @@ export default async function SoftLoansServicesPage({
 
       {/* HEADER */}
       <section className="overflow-hidden bg-[#03162F] text-white">
-        <div className="mx-auto max-w-5xl px-4 pb-8 pt-5 sm:px-6">
-          <Link
-            href={`/customer/businesses/${slug}`}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-300 transition hover:text-[#D4AF37]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Soft Loans
-          </Link>
-
-          <div className="mt-6">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+          <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#D4AF37]">
               Alessandro Soft Loans
             </p>

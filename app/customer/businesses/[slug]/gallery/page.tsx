@@ -12,7 +12,7 @@ export default async function BusinessGalleryPage({ params }: { params: Promise<
   const { data: business } = await supabase.from("businesses").select("id,name,slug,active").eq("slug", slug).eq("active", true).maybeSingle();
   if (!business) redirect("/customer/businesses");
   return <main className="min-h-screen bg-slate-50 pb-24 text-[#03162F]"><div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-    <Link href={`/customer/businesses/${slug}`} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-600"><ArrowLeft className="h-4 w-4" />Back to {business.name}</Link>
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><Link href={`/customer/businesses/${slug}`} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600"><ArrowLeft className="h-4 w-4" />Back to {business.name}</Link><Link href="/customer/gallery" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-[#03162F] shadow-sm">All business photos</Link></div>
     <header className="mb-6 rounded-3xl bg-gradient-to-br from-[#03162F] to-[#174D8C] p-6 text-white"><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#D4AF37]"><ImageIcon className="h-4 w-4" />{business.name}</p><h1 className="mt-2 text-3xl font-black">Gallery</h1><p className="mt-2 text-sm text-blue-100">Photos and work shared by this business.</p></header>
     <BusinessContentFeed businesses={[business]} businessId={business.id} kind="gallery" />
   </div></main>;

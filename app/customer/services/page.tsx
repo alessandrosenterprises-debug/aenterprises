@@ -1,9 +1,5 @@
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Wrench,
-} from "lucide-react";
+import { ArrowRight, Wrench } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -75,45 +71,24 @@ export default async function CustomerServicesPage() {
     <main className="min-h-screen bg-slate-50 pb-[92px]">
 
 
-      <div className="mx-auto w-full max-w-[720px]">
-        {/* =========================================================
-            HEADER
-        ========================================================= */}
-        <section className="bg-[#03162F] px-5 pb-10 pt-7 text-white">
-          <Link
-            href="/customer"
-            className="mb-6 inline-flex items-center text-xs font-semibold text-slate-300 transition hover:text-[#D4AF37]"
-          >
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            Back to Home
-          </Link>
-
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37] text-[#03162F]">
-              <Wrench className="h-6 w-6" />
-            </div>
-
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">
-                Discover
-              </p>
-
-              <h1 className="mt-1 text-3xl font-black tracking-tight">
-                Services
-              </h1>
-
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Explore services available across
-                Alessandro Enterprises.
-              </p>
-            </div>
+      {/* Full-width hero; service cards stay centered below. */}
+      <section className="w-full bg-[#03162F] px-5 py-7 text-white sm:px-8 sm:py-9">
+        <div className="mx-auto flex w-full max-w-7xl items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37] text-[#03162F]">
+            <Wrench className="h-6 w-6" />
           </div>
-        </section>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">Discover</p>
+            <h1 className="mt-1 text-3xl font-black tracking-tight">Services</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-300">Explore services available across Alessandro Enterprises.</p>
+          </div>
+        </div>
+      </section>
 
         {/* =========================================================
             ALL SERVICES
         ========================================================= */}
-        <section className="px-5 py-7">
+        <section className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6">
           {services.length > 0 ? (
             <div className="space-y-3">
               {services.map((service) => {
@@ -220,7 +195,6 @@ export default async function CustomerServicesPage() {
             </div>
           )}
         </section>
-      </div>
     </main>
   );
 }

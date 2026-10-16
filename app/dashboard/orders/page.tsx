@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Activity, Bike, CheckCircle2, Clock3, MapPin, PackageCheck, ShoppingBag, Wallet } from "lucide-react";
+import { Activity, Bike, CheckCircle2, Clock3, MapPin, PackageCheck, ShoppingBag, Wallet, WalletCards } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDeliveryRiders, getManagedOrders } from "@/modules/orders/services/order.service";
 import OrdersManager from "@/modules/orders/components/OrdersManager";
@@ -58,7 +58,7 @@ export default async function OrdersPage() {
       <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full border-[28px] border-white/[0.04]" />
       <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-200"><Activity className="h-3.5 w-3.5" />Live dispatch · {orders.length} orders</div><h1 className="text-3xl font-black tracking-tight sm:text-4xl">Customer Orders</h1><p className="mt-2 max-w-2xl text-sm text-slate-300">One view for incoming orders, rider assignments, preparation, live delivery and customer locations.</p></div>
-        <div className="flex flex-wrap gap-2"><Link href="/dashboard/orders/my-deliveries" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"><MapPin className="h-4 w-4" />Rider deliveries</Link><Link href="/dashboard/hr/riders" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-3 text-sm font-extrabold text-[#03162F] transition hover:bg-[#e4c75c]"><Bike className="h-4 w-4" />Rider management</Link></div>
+        <div className="flex flex-wrap gap-2"><Link href="/dashboard/orders/my-deliveries" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"><MapPin className="h-4 w-4" />Rider deliveries</Link><Link href="/dashboard/orders/delivery-pricing" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"><WalletCards className="h-4 w-4" />Delivery pricing</Link><Link href="/dashboard/hr/riders" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-3 text-sm font-extrabold text-[#03162F] transition hover:bg-[#e4c75c]"><Bike className="h-4 w-4" />Rider management</Link></div>
       </div>
       <div className="relative mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/10 pt-4 text-xs text-slate-300"><span className="inline-flex items-center gap-2"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />Queue updates automatically</span><span className="inline-flex items-center gap-2"><Wallet className="h-3.5 w-3.5 text-[#D4AF37]" />Paid revenue <strong className="text-white">ZMW {paidRevenue.toLocaleString("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span></div>
     </header>

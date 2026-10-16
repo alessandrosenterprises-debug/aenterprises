@@ -14,7 +14,8 @@ export interface CustomerHomeBusiness {
 export default async function CustomerHomePage() {
   const supabase = await createClient();
 
-  const { data: businesses, error } = await supabase
+  const [{ data: businesses, error }, { data: settings }] = await Promise.all([
+    supabase
     .from("businesses")
     .select(`
       id,
@@ -25,7 +26,13 @@ export default async function CustomerHomePage() {
     `)
     .eq("active", true)
     .order("name")
-    .limit(12);
+    .limit(12),
+    supabase
+      .from("company_settings")
+      .select("company_name, tagline, phone, whatsapp, email")
+      .eq("singleton_key", "default")
+      .maybeSingle<{ company_name: string | null; tagline: string | null; phone: string | null; whatsapp: string | null; email: string | null }>(),
+  ]);
 
   if (error) {
     console.error("Customer home businesses error:", error);
@@ -37,6 +44,13 @@ export default async function CustomerHomePage() {
 
       <CustomerHomeClient
         businesses={(businesses ?? []) as CustomerHomeBusiness[]}
+        contactDetails={{
+          companyName: settings?.company_name?.trim() || "Alessandro Enterprises",
+          tagline: settings?.tagline?.trim() || "The Name That Covers All",
+          phone: settings?.phone?.trim() || "",
+          whatsapp: settings?.whatsapp?.trim() || "",
+          email: settings?.email?.trim() || "",
+        }}
       />
     </main>
   );

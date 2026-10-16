@@ -76,21 +76,21 @@ export default function TechSolutionsExperience({ business }: { business: Busine
 
   return <main className="min-h-screen bg-[#f3f6fb] pb-28 text-[#03162F]">
     <div className="mx-auto max-w-7xl space-y-9 px-4 py-5 sm:px-6 lg:px-8">
-      <section className="relative isolate overflow-hidden rounded-[30px] bg-[#03162F] shadow-xl">
+      <section className="customer-tech-hero relative isolate -mx-4 -mt-5 w-[calc(100%_+_2rem)] overflow-hidden bg-[#03162F] shadow-xl sm:-mx-6 sm:w-[calc(100%_+_3rem)] lg:-mx-8 lg:w-[calc(100%_+_4rem)]">
         <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-28 left-1/4 h-72 w-72 rounded-full bg-[#D4AF37]/15 blur-3xl" />
-        <div className="relative grid min-h-[400px] gap-8 p-6 sm:p-9 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:p-12">
+        <div className="relative grid gap-5 p-5 sm:gap-7 sm:p-8 lg:min-h-[400px] lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:gap-8 lg:p-10">
           <div className="animate-[tech-rise_.55s_ease-out_both]">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/25 bg-white/[0.07] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.16em] text-[#E8CA62]">
               {business.logo_url ? <img src={business.logo_url} alt="" className="h-6 w-6 rounded-full bg-white object-contain p-0.5" /> : <BadgeCheck className="h-4 w-4" />}{business.name}<span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Available
             </div>
-            <h1 className="mt-5 max-w-2xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl">Technology, support and solutions that <span className="text-[#D4AF37]">move you forward.</span></h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">Shop trusted technology, book a skilled technician or get expert guidance—all in one connected place.</p>
-            <div className="mt-6 flex flex-wrap gap-3"><Link href={`/customer/businesses/${business.slug}/products`} className="inline-flex items-center gap-2 rounded-xl bg-[#D4AF37] px-5 py-3 text-sm font-black text-[#03162F] transition hover:-translate-y-0.5 hover:bg-[#e6c65f]">Browse technology <ArrowRight className="h-4 w-4" /></Link><Link href={`/customer/businesses/${business.slug}/services`} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"><Wrench className="h-4 w-4" />Book a service</Link></div>
+            <h1 className="mt-4 max-w-2xl font-serif text-[1.9rem] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-4xl">Technology, support and solutions that <span className="text-[#D4AF37]">move you forward.</span></h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">Shop trusted technology, book a skilled technician or get expert guidance—all in one connected place.</p>
+            <div className="mt-5 flex flex-wrap gap-3"><Link href={`/customer/businesses/${business.slug}/products`} className="inline-flex items-center gap-2 rounded-xl bg-[#D4AF37] px-5 py-3 text-sm font-black text-[#03162F] transition hover:-translate-y-0.5 hover:bg-[#e6c65f]">Browse technology <ArrowRight className="h-4 w-4" /></Link><Link href={`/customer/businesses/${business.slug}/services`} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"><Wrench className="h-4 w-4" />Book a service</Link></div>
           </div>
 
-          <div className="relative min-h-[250px] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] p-3 shadow-2xl backdrop-blur-sm sm:min-h-[300px]">
-            {currentSlide ? <Link key={currentSlide.id} href={itemHref(currentSlide, business.slug)} className="group relative block h-full min-h-[224px] overflow-hidden rounded-2xl sm:min-h-[274px]">
+          <div className="relative min-h-[210px] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] p-2.5 shadow-2xl backdrop-blur-sm sm:min-h-[280px] sm:p-3">
+            {currentSlide ? <Link key={currentSlide.id} href={itemHref(currentSlide, business.slug)} className="group relative block h-full min-h-[190px] overflow-hidden rounded-2xl sm:min-h-[254px]">
               <img src={currentSlide.image_url!} alt={currentSlide.name} className="absolute inset-0 h-full w-full animate-[tech-slide_.45s_ease-out_both] object-cover transition duration-700 group-hover:scale-[1.03]" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#03162F] via-[#03162F]/15 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6"><p className="text-[10px] font-black uppercase tracking-[.18em] text-[#E8CA62]">{currentSlide.item_type?.toLowerCase().includes("service") ? "Featured service" : "In the technology shop"}</p><h2 className="mt-1 text-2xl font-black text-white">{currentSlide.name}</h2><p className="mt-1 text-sm font-semibold text-white/80">{price(currentSlide.base_price)}</p></div>
