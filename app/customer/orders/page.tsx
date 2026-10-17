@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   ShoppingBag,
-  Clock,
   CheckCircle2,
   XCircle,
   Hourglass,
@@ -14,6 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import Link from "next/link";
+import OrderStatusFilter from "./OrderStatusFilter";
 export const dynamic = "force-dynamic";
 
 /* =========================================================
@@ -94,145 +94,13 @@ function isCourierOrder(order: Order) {
 }
 
 /* =========================================================
-   STATUS CARD
-========================================================= */
-
-function StatusCard({
-  type,
-  count,
-}: {
-  type:
-    | "pending"
-    | "confirmed"
-    | "processing"
-    | "ready"
-    | "completed"
-    | "cancelled";
-  count: number;
-}) {
-  const config = {
-    pending: {
-      label: "Pending",
-      description: "Awaiting confirmation",
-      icon: Hourglass,
-      wrapper: "border-amber-200 bg-amber-50/40",
-      iconWrapper: "bg-amber-100 text-amber-600",
-      labelColor: "text-amber-700",
-    },
-
-    confirmed: {
-      label: "Confirmed",
-      description: "Order confirmed",
-      icon: CheckCircle2,
-      wrapper: "border-emerald-200 bg-emerald-50/40",
-      iconWrapper: "bg-emerald-100 text-emerald-600",
-      labelColor: "text-emerald-700",
-    },
-
-    processing: {
-      label: "Processing",
-      description: "Being prepared",
-      icon: Package,
-      wrapper: "border-blue-200 bg-blue-50/40",
-      iconWrapper: "bg-blue-100 text-blue-600",
-      labelColor: "text-blue-700",
-    },
-
-    ready: {
-      label: "Ready",
-      description: "Ready for collection",
-      icon: ShoppingBag,
-      wrapper: "border-purple-200 bg-purple-50/40",
-      iconWrapper: "bg-purple-100 text-purple-600",
-      labelColor: "text-purple-700",
-    },
-
-    completed: {
-      label: "Completed",
-      description: "Order completed",
-      icon: CheckCircle2,
-      wrapper: "border-blue-200 bg-blue-50/40",
-      iconWrapper: "bg-blue-100 text-blue-600",
-      labelColor: "text-blue-700",
-    },
-
-    cancelled: {
-      label: "Cancelled",
-      description: "Order cancelled",
-      icon: XCircle,
-      wrapper: "border-red-200 bg-red-50/40",
-      iconWrapper: "bg-red-100 text-red-600",
-      labelColor: "text-red-700",
-    },
-  };
-
-  const item = config[type];
-  const Icon = item.icon;
-
-  return (
-    <div
-      className={`
-        rounded-2xl
-        border
-        ${item.wrapper}
-        px-4
-        py-4
-        sm:px-5
-        sm:py-5
-      `}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p
-            className={`
-              text-[11px]
-              font-bold
-              uppercase
-              tracking-wide
-              ${item.labelColor}
-            `}
-          >
-            {item.label}
-          </p>
-
-          <p className="mt-1 text-2xl font-bold leading-none text-slate-900">
-            {count}
-          </p>
-
-          <p className="mt-1.5 text-[11px] leading-4 text-slate-500">
-            {item.description}
-          </p>
-        </div>
-
-        <div
-          className={`
-            flex
-            h-10
-            w-10
-            shrink-0
-            items-center
-            justify-center
-            rounded-xl
-            ${item.iconWrapper}
-          `}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
    ORDER CARD
 ========================================================= */
 
 function OrderCard({
   order,
-  history = false,
 }: {
   order: Order;
-  history?: boolean;
 }) {
   const status = normalizeStatus(order.status);
 
@@ -561,8 +429,8 @@ function EmptyOrders({
           : "Your pending, confirmed and active orders will appear here."}
       </p>
 
-      <a
-        href="/customer/services"
+      <Link
+        href="/customer/orders/new"
         className="
           mt-4
           inline-flex
@@ -580,8 +448,8 @@ function EmptyOrders({
           hover:bg-slate-200
         "
       >
-        Browse Products
-      </a>
+        Start a new order
+      </Link>
     </div>
   );
 }
@@ -794,16 +662,6 @@ export default async function CustomerOrdersPage() {
       normalizeStatus(order.status) === "ready"
   );
 
-  const completedOrders = orders.filter(
-    (order) =>
-      normalizeStatus(order.status) === "completed"
-  );
-
-  const cancelledOrders = orders.filter(
-    (order) =>
-      normalizeStatus(order.status) === "cancelled"
-  );
-
   /* =======================================================
      ACTIVE ORDERS
   ======================================================= */
@@ -914,106 +772,16 @@ export default async function CustomerOrdersPage() {
             STATUS CARDS
         ================================================= */}
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          <StatusCard
-            type="pending"
-            count={pendingOrders.length}
-          />
-
-          <StatusCard
-            type="confirmed"
-            count={confirmedOrders.length}
-          />
-
-          <StatusCard
-            type="processing"
-            count={processingOrders.length}
-          />
-
-          <StatusCard
-            type="ready"
-            count={readyOrders.length}
-          />
-        </div>
-
-        {/* =================================================
-            UPCOMING / HISTORY NAVIGATION
-        ================================================= */}
-
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
-          <div className="grid grid-cols-2 gap-1">
-            <a
-              href="#active"
-              className="
-                flex
-                items-center
-                justify-center
-                rounded-xl
-                bg-[#03162F]
-                px-3
-                py-2.5
-                text-xs
-                font-bold
-                text-white
-                sm:text-sm
-              "
-            >
-              Active ({activeOrders.length})
-            </a>
-
-            <a
-              href="#history"
-              className="
-                flex
-                items-center
-                justify-center
-                rounded-xl
-                px-3
-                py-2.5
-                text-xs
-                font-bold
-                text-slate-500
-                transition
-                hover:bg-slate-100
-                sm:text-sm
-              "
-            >
-              History ({historyOrders.length})
-            </a>
-          </div>
-        </div>
-
-        {/* =================================================
-            ACTIVE ORDERS
-        ================================================= */}
-
-        <section
-          id="active"
-          className="scroll-mt-6 pt-7"
-        >
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
-              Active Orders
-            </h2>
-
-            <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-              Your pending, confirmed and active orders.
-            </p>
-          </div>
-
-          {activeOrders.length === 0 ? (
-            <EmptyOrders />
-          ) : (
-            <div className="space-y-4">
-              {activeOrders.map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        <OrderStatusFilter
+          counts={{ pending: pendingOrders.length, confirmed: confirmedOrders.length, processing: processingOrders.length, ready: readyOrders.length }}
+          activeOrders={activeOrders.length === 0 ? <EmptyOrders /> : <div className="space-y-4">{activeOrders.map((order) => <OrderCard key={order.id} order={order} />)}</div>}
+          statusOrders={{
+            pending: <div className="space-y-4">{pendingOrders.map((order) => <OrderCard key={order.id} order={order} />)}</div>,
+            confirmed: <div className="space-y-4">{confirmedOrders.map((order) => <OrderCard key={order.id} order={order} />)}</div>,
+            processing: <div className="space-y-4">{processingOrders.map((order) => <OrderCard key={order.id} order={order} />)}</div>,
+            ready: <div className="space-y-4">{readyOrders.map((order) => <OrderCard key={order.id} order={order} />)}</div>,
+          }}
+        />
 
         {/* =================================================
             ORDER HISTORY
@@ -1021,7 +789,7 @@ export default async function CustomerOrdersPage() {
 
         <section
           id="history"
-          className="scroll-mt-6 pt-8"
+          className="scroll-mt-6 pt-10"
         >
           <div className="mb-4">
             <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
@@ -1041,7 +809,6 @@ export default async function CustomerOrdersPage() {
                 <OrderCard
                   key={order.id}
                   order={order}
-                  history
                 />
               ))}
             </div>
