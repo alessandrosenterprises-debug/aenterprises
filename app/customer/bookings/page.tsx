@@ -893,16 +893,10 @@ export default async function CustomerBookingsPage() {
             UPCOMING / HISTORY NAVIGATION
         ================================================= */}
 
-        <BookingSectionNavigation upcomingCount={upcomingBookings.length} historyCount={historyBookings.length} />
-
-        {/* =================================================
-            UPCOMING BOOKINGS
-        ================================================= */}
-
-        <section
-          id="upcoming"
-          className="scroll-mt-6 pt-7"
-        >
+        <BookingSectionNavigation
+          upcomingCount={upcomingBookings.length}
+          historyCount={historyBookings.length}
+          upcomingContent={<>
           <div className="mb-4">
             <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
               Upcoming Bookings
@@ -927,16 +921,8 @@ export default async function CustomerBookingsPage() {
               )}
             </div>
           )}
-        </section>
-
-        {/* =================================================
-            BOOKING HISTORY
-        ================================================= */}
-
-        <section
-          id="history"
-          className="scroll-mt-6 pt-8"
-        >
+          </>}
+          historyContent={<>
           <div className="mb-4">
             <h2 className="text-xl font-bold text-[#03162F] sm:text-2xl">
               Booking History
@@ -962,7 +948,8 @@ export default async function CustomerBookingsPage() {
               )}
             </div>
           )}
-        </section>
+          </>}
+        />
 
       </section>
     </main>

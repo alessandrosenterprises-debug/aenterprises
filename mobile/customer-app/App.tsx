@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, BackHandler, StyleSheet, Text, View } from "react-native";
+import { BackHandler, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { Session } from "@supabase/supabase-js";
@@ -13,13 +13,13 @@ import { NativeCustomerHeader } from "./src/components/NativeCustomerHeader";
 import { isSupabaseConfigured, supabase } from "./src/services/supabase";
 import { theme } from "./src/theme";
 
-type AppState = "loading" | "signed-out" | "signed-in" | "connection-error";
+type AppState = "signed-out" | "signed-in" | "connection-error";
 const NATIVE_PERMISSIONS_PATH = "native:permissions";
 type CustomerRecord = { id: string; full_name: string | null; is_active: boolean | null; status: string | null };
 type ProfileRecord = { id: string; avatar_url: string | null };
 
 export default function App() {
-  const [appState, setAppState] = useState<AppState>("loading");
+  const [appState, setAppState] = useState<AppState>("signed-out");
   const [session, setSession] = useState<Session | null>(null);
   const [customerName, setCustomerName] = useState("Customer");
   const [profileId, setProfileId] = useState("");
@@ -149,12 +149,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <StatusBar style="light" />
-      {appState === "loading" ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={theme.colors.gold} size="large" />
-          <Text style={styles.loadingText}>Opening your customer account…</Text>
-        </View>
-      ) : appState === "signed-out" && !currentPath ? (
+      {appState === "signed-out" && !currentPath ? (
         <CustomerLoginScreen onSignedIn={(nextSession) => void acceptSession(nextSession)} onOpenWebsite={goToPath} />
       ) : appState === "signed-out" ? (
         <CustomerWebPage
@@ -198,6 +193,4 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.navy },
   app: { flex: 1, backgroundColor: theme.colors.background },
   screenContent: { flex: 1, backgroundColor: theme.colors.background },
-  loading: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: theme.colors.navy },
-  loadingText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 });
