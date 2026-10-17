@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import {
   ChangeEvent,
   useEffect,
@@ -330,9 +332,7 @@ export default function CustomerProfileSettings({
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to upload your profile photo."
+        getCustomerErrorMessage(err, "Unable to upload your profile photo.")
       );
     } finally {
       setUploadingAvatar(false);
@@ -404,9 +404,7 @@ export default function CustomerProfileSettings({
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to remove your profile photo."
+        getCustomerErrorMessage(err, "Unable to remove your profile photo.")
       );
     } finally {
       setRemovingAvatar(false);
@@ -442,8 +440,7 @@ export default function CustomerProfileSettings({
 
       if (!response.ok) {
         throw new Error(
-          result.error ||
-            "Failed to update profile"
+          getCustomerErrorMessage(result.error, "We couldn’t update your profile right now. Please try again.")
         );
       }
 
@@ -459,9 +456,7 @@ export default function CustomerProfileSettings({
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to update profile."
+        getCustomerErrorMessage(err, "Unable to update profile.")
       );
     } finally {
       setSaving(false);

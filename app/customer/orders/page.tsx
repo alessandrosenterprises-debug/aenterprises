@@ -89,6 +89,10 @@ function normalizeStatus(status: string | null | undefined) {
   return status?.toLowerCase().trim() || "pending";
 }
 
+function isCourierOrder(order: Order) {
+  return order.businesses?.name.toLowerCase().includes("delivery service") ?? false;
+}
+
 /* =========================================================
    STATUS CARD
 ========================================================= */
@@ -277,7 +281,9 @@ function OrderCard({
   const StatusIcon = config.icon;
 
   const itemCount =
-    order.order_items?.reduce(
+    isCourierOrder(order)
+      ? 1
+      : order.order_items?.reduce(
       (total, item) => total + Number(item.quantity ?? 0),
       0
     ) ?? 0;
@@ -301,8 +307,9 @@ function OrderCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#D4AF37]">
-              {order.businesses?.name ||
-                "Alessandro Enterprises"}
+              {isCourierOrder(order)
+                ? "Courier service · Alessandro Delivery Service"
+                : order.businesses?.name || "Alessandro Enterprises"}
             </p>
 
             <h3 className="mt-1 truncate text-base font-bold text-[#03162F] sm:text-lg">
@@ -342,7 +349,19 @@ function OrderCard({
 
       <div className="border-t border-slate-100 px-4 py-4 sm:px-5">
         <div className="space-y-3">
-          {order.order_items?.map((item) => (
+          {isCourierOrder(order) ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-800">
+                  <Truck className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold text-[#03162F]">Courier delivery</p>
+                  <p className="text-[10px] text-slate-400">Personal parcel from pickup to destination</p>
+                </div>
+              </div>
+            </div>
+          ) : order.order_items?.map((item) => (
             <div
               key={item.id}
               className="flex items-center justify-between gap-3"
@@ -374,11 +393,11 @@ function OrderCard({
         <div className="mt-3 border-t border-slate-100 pt-3">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-medium text-slate-400">
-              Items
+              {isCourierOrder(order) ? "Delivery" : "Items"}
             </p>
 
             <p className="text-xs font-semibold text-[#03162F]">
-              {itemCount}
+              {isCourierOrder(order) ? "1 courier request" : itemCount}
             </p>
           </div>
         </div>

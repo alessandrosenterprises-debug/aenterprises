@@ -17,6 +17,7 @@ interface PageProps {
   params: Promise<{
     serviceId: string;
   }>;
+  searchParams: Promise<{ promotion?: string; tag?: string }>;
 }
 
 interface CatalogItem {
@@ -73,8 +74,13 @@ function formatMoney(amount: number | null) {
 
 export default async function BookingServicePage({
   params,
+  searchParams,
 }: PageProps) {
   const { serviceId } = await params;
+  const query = await searchParams;
+  const promotion = query.promotion?.trim() && query.tag?.trim()
+    ? { title: query.promotion.trim(), tag: query.tag.trim() }
+    : undefined;
 
   const supabase = await createClient();
 
@@ -409,6 +415,7 @@ export default async function BookingServicePage({
   customerId={customer?.id ?? null}
   serviceName={service.name}
   price={price}
+              promotion={promotion}
   branches={branches.map((branch) => ({
     id: branch.id,
     name: branch.name,

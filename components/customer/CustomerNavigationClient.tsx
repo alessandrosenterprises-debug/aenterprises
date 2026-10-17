@@ -424,10 +424,10 @@ export default function CustomerNavigationClient() {
               type="button"
               aria-label="Close account menu"
               onClick={closeMenu}
-              className="fixed inset-0 top-16 z-[-1] h-screen w-screen bg-black/20 backdrop-blur-[2px] min-[390px]:top-[72px] sm:top-[78px]"
+              className="fixed inset-x-0 bottom-0 top-16 z-[101] bg-black/20 backdrop-blur-[2px] min-[390px]:top-[72px] sm:top-[78px]"
             />
 
-            <div className="absolute right-3 top-16 w-[calc(100%-40px)] max-w-[320px] origin-top overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-[0_25px_70px_rgba(15,23,42,0.32)] animate-[menuIn_180ms_ease-out] min-[390px]:top-[72px] sm:top-[78px]">
+            <div className="fixed right-3 top-[calc(4rem+8px)] z-[102] max-h-[calc(100dvh-5.5rem)] w-[calc(100vw-24px)] max-w-[320px] origin-top overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-800 shadow-[0_25px_70px_rgba(15,23,42,0.32)] animate-[menuIn_180ms_ease-out] min-[390px]:top-[calc(4.5rem+8px)] min-[390px]:max-h-[calc(100dvh-6rem)] sm:top-[calc(4.875rem+8px)] sm:max-h-[calc(100dvh-6.5rem)]">
 
               {/* ACCOUNT HEADER */}
 
@@ -468,7 +468,7 @@ export default function CustomerNavigationClient() {
 
               {/* MENU ITEMS */}
 
-              <div className="max-h-[calc(100vh-190px)] overflow-y-auto p-2">
+              <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto overscroll-contain p-2 min-[390px]:max-h-[calc(100dvh-10.5rem)] sm:max-h-[calc(100dvh-11rem)]">
 
                 <CustomerMenuItem
                   href="/customer/profile"

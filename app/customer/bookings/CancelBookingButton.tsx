@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { XCircle, Loader2 } from "lucide-react";
 import { cancelBooking } from "./actions";
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
 
 interface CancelBookingButtonProps {
   bookingId: string;
@@ -26,7 +27,7 @@ export default function CancelBookingButton({
       const result = await cancelBooking(bookingId);
 
       if (!result.success) {
-        window.alert(result.message);
+        window.alert(getCustomerErrorMessage(result.message, "We couldn’t cancel your booking. Please try again."));
         return;
       }
 

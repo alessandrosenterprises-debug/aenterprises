@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -182,9 +184,7 @@ export default function CustomerLoanStatusPage({
         );
 
         setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load your loan status.",
+          getCustomerErrorMessage(err, "Unable to load your loan status."),
         );
       } finally {
         if (mounted) {

@@ -535,6 +535,7 @@ export default async function CustomerOrderDetailsPage({
 
   const items =
     typedOrder.order_items ?? [];
+  const isCourierOrder = typedOrder.businesses?.name.toLowerCase().includes("delivery service") ?? false;
 
   /* =======================================================
      RENDER
@@ -634,19 +635,29 @@ export default async function CustomerOrderDetailsPage({
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
                 <h2 className="text-base font-bold text-[#03162F]">
-                  Order Items
+                  {isCourierOrder ? "Courier Service" : "Order Items"}
                 </h2>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  {items.length}{" "}
-                  {items.length === 1
-                    ? "item"
-                    : "items"}{" "}
-                  in this order.
+                  {isCourierOrder
+                    ? "Your personal delivery request and fee."
+                    : <>{items.length} {items.length === 1 ? "item" : "items"} in this order.</>}
                 </p>
               </div>
 
-              {items.length === 0 ? (
+              {isCourierOrder ? (
+                <div className="flex items-start justify-between gap-4 px-4 py-4 sm:px-5">
+                  <div className="flex min-w-0 gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-800">
+                      <Truck className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-bold text-[#03162F]">Courier delivery</h3>
+                      <p className="mt-1 text-[11px] text-slate-500">Personal parcel from pickup to destination</p>
+                    </div>
+                  </div>
+                </div>
+              ) : items.length === 0 ? (
                 <div className="px-5 py-10 text-center">
                   <Package className="mx-auto h-7 w-7 text-slate-300" />
 

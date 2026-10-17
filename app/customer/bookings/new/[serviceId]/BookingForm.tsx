@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -29,6 +31,7 @@ interface BookingFormProps {
   customerId: string | null;
   serviceName: string;
   price: string | null;
+  promotion?: { title: string; tag: string };
   branches: Branch[];
   employees: Employee[];
 }
@@ -39,6 +42,7 @@ export default function BookingForm({
   customerId,
   serviceName,
   price,
+  promotion,
   branches,
   employees,
 }: BookingFormProps) {
@@ -48,7 +52,7 @@ export default function BookingForm({
   const [bookingTime, setBookingTime] = useState("");
   const [branchId, setBranchId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(promotion ? `Promotion: ${promotion.title} · ${promotion.tag}` : "");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -123,9 +127,7 @@ export default function BookingForm({
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while creating your booking."
+        getCustomerErrorMessage(err, "Something went wrong while creating your booking.")
       );
     } finally {
       setSubmitting(false);

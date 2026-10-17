@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -258,9 +260,7 @@ export default function LoanHistoryPage() {
       setLoans([]);
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load your loan history."
+        getCustomerErrorMessage(err, "Unable to load your loan history.")
       );
     } finally {
       setLoading(false);

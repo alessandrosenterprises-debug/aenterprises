@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import Link from "next/link";
 import {
   ArrowRight,
@@ -171,9 +173,7 @@ export default function SoftLoansLoanOverview({
         );
 
         setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load your loans.",
+          getCustomerErrorMessage(err, "Unable to load your loans."),
         );
       } finally {
         if (mounted) {

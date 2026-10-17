@@ -1,145 +1,203 @@
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, BackHandler, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import WebView, { type WebViewNavigation } from "react-native-webview";
+import type { Session } from "@supabase/supabase-js";
+import type { WebViewNavigation } from "react-native-webview";
+import { CustomerLoginScreen } from "./src/screens/CustomerLoginScreen";
+import { CustomerConnectionErrorScreen } from "./src/screens/CustomerConnectionErrorScreen";
+import { CustomerWebPage } from "./src/screens/CustomerWebPage";
+import { NativePermissionsScreen } from "./src/screens/NativePermissionsScreen";
+import { NativeCustomerTabs } from "./src/components/NativeCustomerTabs";
+import { NativeCustomerHeader } from "./src/components/NativeCustomerHeader";
+import { isSupabaseConfigured, supabase } from "./src/services/supabase";
+import { theme } from "./src/theme";
 
-// The app previews the published customer interface. A LAN development URL
-// cannot be reached when Expo Go is running over cellular data.
-const CUSTOMER_URL = "https://aenterprises-dashboard.vercel.app/customer/login";
-const CUSTOMER_HOST = new URL(CUSTOMER_URL).host;
-const CUSTOMER_PROTOCOL = new URL(CUSTOMER_URL).protocol;
+type AppState = "loading" | "signed-out" | "signed-in" | "connection-error";
+const NATIVE_PERMISSIONS_PATH = "native:permissions";
+type CustomerRecord = { id: string; full_name: string | null; is_active: boolean | null; status: string | null };
+type ProfileRecord = { id: string; avatar_url: string | null };
 
 export default function App() {
-  const webView = useRef<WebView>(null);
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [timedOut, setTimedOut] = useState(false);
+  const [appState, setAppState] = useState<AppState>("loading");
+  const [session, setSession] = useState<Session | null>(null);
+  const [customerName, setCustomerName] = useState("Customer");
+  const [profileId, setProfileId] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [currentPath, setCurrentPath] = useState<string | null>(null);
+  const [webCanGoBack, setWebCanGoBack] = useState(false);
 
-  useEffect(() => {
-    if (Platform.OS !== "android") return;
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (canGoBack) {
-        webView.current?.goBack();
-        return true;
-      }
-      return false;
-    });
-    return () => subscription.remove();
-  }, [canGoBack]);
-
-  useEffect(() => {
-    if (!loading || hasLoaded) return;
-    const timeout = setTimeout(() => setTimedOut(true), 15_000);
-    return () => clearTimeout(timeout);
-  }, [loading, hasLoaded]);
-
-  function handleNavigationRequest(request: { url: string }) {
-    let target: URL;
+  const acceptSession = useCallback(async (nextSession: Session | null) => {
+    if (!nextSession || !isSupabaseConfigured) {
+      setSession(null);
+      setProfileId("");
+      setAvatarUrl("");
+      setCurrentPath(null);
+      setWebCanGoBack(false);
+      setAppState("signed-out");
+      return;
+    }
     try {
-      target = new URL(request.url);
+      const [{ data, error }, { data: profile }] = await Promise.all([
+        supabase.from("customers").select("id, full_name, is_active, status").eq("auth_user_id", nextSession.user.id).maybeSingle<CustomerRecord>(),
+        supabase.from("profiles").select("id, avatar_url").eq("auth_user_id", nextSession.user.id).maybeSingle<ProfileRecord>(),
+      ]);
+      if (error) {
+        setSession(nextSession);
+        setProfileId("");
+        setAvatarUrl("");
+        setAppState("connection-error");
+        return;
+      }
+      if (data?.is_active !== true || data.status?.toLowerCase() !== "active") {
+        await supabase.auth.signOut().catch(() => undefined);
+        setSession(null);
+        setProfileId("");
+        setAvatarUrl("");
+        setCurrentPath(null);
+        setWebCanGoBack(false);
+        setAppState("signed-out");
+        return;
+      }
+      setSession(nextSession);
+      setProfileId(profile?.id ?? "");
+      setAvatarUrl(profile?.avatar_url ?? "");
+      setCustomerName(data.full_name?.trim() || nextSession.user.user_metadata?.full_name || "Customer");
+      setCurrentPath(null);
+      setAppState("signed-in");
     } catch {
-      return false;
+      setSession(nextSession);
+      setProfileId("");
+      setAvatarUrl("");
+      setCurrentPath(null);
+      setWebCanGoBack(false);
+      setAppState("connection-error");
     }
-    if (target.host === CUSTOMER_HOST && target.protocol === CUSTOMER_PROTOCOL) return true;
-    if (target.protocol === "mailto:" || target.protocol === "tel:") {
-      void Linking.openURL(request.url);
-      return false;
+  }, []);
+
+  useEffect(() => {
+    if (!profileId) { setUnreadNotifications(0); return; }
+    let mounted = true;
+    const refreshUnreadCount = async () => {
+      const { count, error } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", profileId).eq("unread", true);
+      if (mounted && !error) setUnreadNotifications(count ?? 0);
+    };
+    void refreshUnreadCount();
+    const channel = supabase.channel(`native-notifications-${profileId}`).on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${profileId}` }, () => void refreshUnreadCount()).subscribe();
+    const timer = setInterval(() => void refreshUnreadCount(), 30_000);
+    return () => { mounted = false; clearInterval(timer); void supabase.removeChannel(channel); };
+  }, [profileId]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function restoreSession() {
+      if (!isSupabaseConfigured) {
+        setAppState("signed-out");
+        return;
+      }
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (mounted) await acceptSession(data.session);
+      } catch {
+        if (mounted) {
+          setCurrentPath(null);
+          setWebCanGoBack(false);
+          setAppState("signed-out");
+        }
+      }
     }
-    if (target.protocol === "https:" || target.protocol === "http:") {
-      void Linking.openURL(request.url);
+    void restoreSession();
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (mounted) {
+        setSession(nextSession);
+        if (!nextSession) {
+          setProfileId("");
+          setAvatarUrl("");
+          setCurrentPath(null);
+          setWebCanGoBack(false);
+          setAppState("signed-out");
+        }
+      }
+    });
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [acceptSession]);
+
+  const goToPath = useCallback((path: string) => {
+    setCurrentPath(path === "/customer" ? null : path);
+    setWebCanGoBack(false);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    if (currentPath && webCanGoBack) return false;
+    if (currentPath) {
+      setCurrentPath(null);
+      setWebCanGoBack(false);
+      return true;
     }
     return false;
-  }
+  }, [currentPath, webCanGoBack]);
 
-  function handleNavigationChange(state: WebViewNavigation) {
-    setCanGoBack(state.canGoBack);
-  }
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", handleBack);
+    return () => subscription.remove();
+  }, [handleBack]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <StatusBar style="light" />
-      <View style={styles.container}>
-        <WebView
-          ref={webView}
-          source={{ uri: CUSTOMER_URL }}
-          style={styles.webView}
-          onNavigationStateChange={handleNavigationChange}
-          onShouldStartLoadWithRequest={handleNavigationRequest}
-          onLoadStart={() => {
-            setLoading(true);
-            setTimedOut(false);
-            setFailed(false);
-          }}
-          onLoadEnd={() => { setHasLoaded(true); setLoading(false); setFailed(false); setTimedOut(false); }}
-          onError={() => { setLoading(false); setFailed(true); setTimedOut(false); }}
-          onHttpError={(event) => {
-            if (new URL(event.nativeEvent.url).host === CUSTOMER_HOST && event.nativeEvent.statusCode >= 500) {
-              setLoading(false);
-              setFailed(true);
-              setTimedOut(false);
-            }
-          }}
-          javaScriptEnabled
-          domStorageEnabled
-          sharedCookiesEnabled
-          thirdPartyCookiesEnabled
-          allowFileAccess
-          allowsBackForwardNavigationGestures
-          setSupportMultipleWindows={false}
-          startInLoadingState={false}
-          cacheEnabled
-          overScrollMode="never"
-          bounces={false}
-          pullToRefreshEnabled={false}
+      {appState === "loading" ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={theme.colors.gold} size="large" />
+          <Text style={styles.loadingText}>Opening your customer account…</Text>
+        </View>
+      ) : appState === "signed-out" && !currentPath ? (
+        <CustomerLoginScreen onSignedIn={(nextSession) => void acceptSession(nextSession)} onOpenWebsite={goToPath} />
+      ) : appState === "signed-out" ? (
+        <CustomerWebPage
+          path={currentPath ?? "/customer/login"}
+          session={null}
+          onClose={() => setCurrentPath(null)}
+          onNavigationStateChange={(state: WebViewNavigation) => setWebCanGoBack(state.canGoBack)}
         />
-        {failed && (
-          <View style={styles.messageOverlay}>
-            <View style={styles.messageCard}>
-              <Text style={styles.errorTitle}>We couldn’t connect</Text>
-              <Text style={styles.errorMessage}>Check your connection and try again.</Text>
-              <Pressable style={styles.retryButton} onPress={() => { setFailed(false); setTimedOut(false); setLoading(true); setHasLoaded(false); webView.current?.reload(); }}>
-                <Text style={styles.retryText}>Try again</Text>
-              </Pressable>
-            </View>
+      ) : appState === "connection-error" && session ? (
+        <CustomerConnectionErrorScreen onRetry={() => acceptSession(session)} onSignOut={() => void supabase.auth.signOut()} />
+      ) : (
+        <View style={styles.app}>
+          <NativeCustomerHeader customerName={customerName} avatarUrl={avatarUrl} unreadNotifications={unreadNotifications} onNavigate={goToPath} onOpenPermissions={() => { setCurrentPath(NATIVE_PERMISSIONS_PATH); setWebCanGoBack(false); }} onSignOut={() => void supabase.auth.signOut()} />
+          <View style={styles.screenContent}>
+            {currentPath === NATIVE_PERMISSIONS_PATH ? <NativePermissionsScreen onBack={() => { setCurrentPath(null); setWebCanGoBack(false); }} /> : <CustomerWebPage
+                path={currentPath ?? "/customer"}
+                session={session}
+                onClose={() => { setCurrentPath(null); setWebCanGoBack(false); }}
+                onNavigationStateChange={(state: WebViewNavigation) => {
+                  setWebCanGoBack(state.canGoBack);
+                  try {
+                    if (session && new URL(state.url).pathname === "/customer/login") {
+                      setCurrentPath(null);
+                      void supabase.auth.signOut().catch(() => undefined);
+                    }
+                  } catch { /* Ignore non-URL WebView state values. */ }
+                }}
+              />}
           </View>
-        )}
-        {timedOut && loading && !failed && (
-          <View style={styles.slowLoadNotice}>
-            <ActivityIndicator size="small" color="#D4AF37" />
-            <Text style={styles.slowLoadText}>The customer page is taking longer than usual.</Text>
-            <Pressable
-              accessibilityRole="button"
-              style={styles.slowRetryButton}
-              onPress={() => {
-                setTimedOut(false);
-                setLoading(true);
-                webView.current?.reload();
-              }}
-            >
-              <Text style={styles.slowRetryText}>Retry</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
+          <NativeCustomerTabs
+            currentPath={currentPath}
+            onNavigate={(path) => { setCurrentPath(path); setWebCanGoBack(false); }}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#03162F" },
-  container: { flex: 1, backgroundColor: "#F4F6FA" },
-  webView: { flex: 1, backgroundColor: "#F4F6FA" },
-  messageOverlay: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "rgba(244,246,250,0.94)" },
-  messageCard: { width: "100%", maxWidth: 360, borderRadius: 20, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "white", alignItems: "center", paddingHorizontal: 24, paddingVertical: 25, elevation: 3 },
-  slowLoadNotice: { position: "absolute", top: 12, left: 14, right: 14, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", backgroundColor: "#FFFFFF", paddingHorizontal: 14, paddingVertical: 12, elevation: 5 },
-  slowLoadText: { flex: 1, color: "#475569", fontSize: 12, lineHeight: 17 },
-  slowRetryButton: { borderRadius: 9, backgroundColor: "#03162F", paddingHorizontal: 12, paddingVertical: 8 },
-  slowRetryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  errorTitle: { color: "#03162F", fontSize: 20, fontWeight: "800", textAlign: "center" },
-  errorMessage: { marginTop: 8, color: "#64748B", fontSize: 14, lineHeight: 21, textAlign: "center" },
-  retryButton: { marginTop: 20, minWidth: 140, alignItems: "center", borderRadius: 12, backgroundColor: "#03162F", paddingHorizontal: 22, paddingVertical: 13 },
-  retryText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" }
+  safeArea: { flex: 1, backgroundColor: theme.colors.navy },
+  app: { flex: 1, backgroundColor: theme.colors.background },
+  screenContent: { flex: 1, backgroundColor: theme.colors.background },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: theme.colors.navy },
+  loadingText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 });

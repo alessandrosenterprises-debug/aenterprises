@@ -12,6 +12,8 @@ import {
   Tag,
 } from "lucide-react";
 import CancelBookingButton from "./CancelBookingButton";
+import BookingSectionNavigation from "./BookingSectionNavigation";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -503,7 +505,7 @@ function EmptyBookings({
       </p>
 
       {history && (
-        <a
+        <Link
           href="/customer/services"
           className="
             mt-4
@@ -522,7 +524,7 @@ function EmptyBookings({
           "
         >
           Browse Services
-        </a>
+        </Link>
       )}
     </div>
   );
@@ -813,7 +815,7 @@ export default async function CustomerBookingsPage() {
 
             {/* NEW BOOKING BUTTON */}
 
-            <a
+            <Link
               href="/customer/bookings/new"
               className="
                 inline-flex
@@ -836,7 +838,7 @@ export default async function CustomerBookingsPage() {
             >
               <Plus className="h-4 w-4" />
               New Booking
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -891,48 +893,7 @@ export default async function CustomerBookingsPage() {
             UPCOMING / HISTORY NAVIGATION
         ================================================= */}
 
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
-          <div className="grid grid-cols-2 gap-1">
-            <a
-              href="#upcoming"
-              className="
-                flex
-                items-center
-                justify-center
-                rounded-xl
-                bg-[#03162F]
-                px-3
-                py-2.5
-                text-xs
-                font-bold
-                text-white
-                sm:text-sm
-              "
-            >
-              Upcoming ({upcomingBookings.length})
-            </a>
-
-            <a
-              href="#history"
-              className="
-                flex
-                items-center
-                justify-center
-                rounded-xl
-                px-3
-                py-2.5
-                text-xs
-                font-bold
-                text-slate-500
-                transition
-                hover:bg-slate-100
-                sm:text-sm
-              "
-            >
-              History ({historyBookings.length})
-            </a>
-          </div>
-        </div>
+        <BookingSectionNavigation upcomingCount={upcomingBookings.length} historyCount={historyBookings.length} />
 
         {/* =================================================
             UPCOMING BOOKINGS

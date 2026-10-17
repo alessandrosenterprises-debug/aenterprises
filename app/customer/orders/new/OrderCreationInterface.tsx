@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import {
   ArrowLeft,
   CheckCircle2,
@@ -266,9 +268,7 @@ export default function OrderCreationInterface({
       console.error(error);
 
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to create your order."
+        getCustomerErrorMessage(error, "Unable to create your order.")
       );
 
       setSubmitting(false);

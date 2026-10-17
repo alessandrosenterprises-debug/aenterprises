@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Check, ExternalLink } from "lucide-react";
 import { useState, useTransition } from "react";
 import { markAllCustomerNotificationsRead, markCustomerNotificationRead } from "./actions";
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
 
 export interface CustomerNotificationItem {
   id: string;
@@ -37,7 +38,7 @@ export default function NotificationsList({ notifications }: { notifications: Cu
     setError("");
     startTransition(async () => {
       const result = await markCustomerNotificationRead(id);
-      if (!result.success) setError(result.error || "Could not update the notification.");
+      if (!result.success) setError(getCustomerErrorMessage(result.error, "Could not update the notification. Please try again."));
       else router.refresh();
     });
   }
@@ -46,7 +47,7 @@ export default function NotificationsList({ notifications }: { notifications: Cu
     setError("");
     startTransition(async () => {
       const result = await markAllCustomerNotificationsRead();
-      if (!result.success) setError(result.error || "Could not update notifications.");
+      if (!result.success) setError(getCustomerErrorMessage(result.error, "Could not update notifications. Please try again."));
       else router.refresh();
     });
   }

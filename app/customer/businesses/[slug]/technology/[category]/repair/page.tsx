@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -98,7 +100,7 @@ ${form.get("notes")}
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "We couldn’t send your request. Please check your connection and try again.");
+      setErrorMessage(getCustomerErrorMessage(error, "We couldn’t send your request. Please check your connection and try again."));
     } finally {
       setSubmitting(false);
     }

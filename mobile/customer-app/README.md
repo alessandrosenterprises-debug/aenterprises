@@ -1,6 +1,6 @@
 # Alessandro Enterprises Customer App
 
-This Android app opens the production customer interface at `https://aenterprises-dashboard.vercel.app/customer` in a native WebView. Customer pages, styles, sign-in, navigation, and server features come from the main Next.js app, so the APK uses the same interface as the website.
+This Expo app uses native sign-in, account controls, and bottom navigation. Customer page content currently comes from the production AEOS site at `https://aenterprises-dashboard.vercel.app`, preserving its complete designs, cards, and customer workflows inside the native shell while native versions are built and checked for full parity.
 
 ## Preview in Expo Go
 

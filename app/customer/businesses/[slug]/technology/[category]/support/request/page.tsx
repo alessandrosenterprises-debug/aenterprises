@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import {
   AlertCircle,
   CheckCircle2,
@@ -373,9 +375,7 @@ export default function ITSupportRequestPage() {
       );
 
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Unable to send your support request."
+        getCustomerErrorMessage(error, "Unable to send your support request.")
       );
     } finally {
       setSending(false);

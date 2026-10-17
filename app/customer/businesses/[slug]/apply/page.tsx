@@ -14,12 +14,18 @@ interface ApplyPageProps {
   params: Promise<{
     slug: string;
   }>;
+  searchParams: Promise<{ promotion?: string; tag?: string }>;
 }
 
 export default async function CustomerLoanApplyPage({
   params,
+  searchParams,
 }: ApplyPageProps) {
   const { slug } = await params;
+  const query = await searchParams;
+  const promotion = query.promotion?.trim() && query.tag?.trim()
+    ? { title: query.promotion.trim(), tag: query.tag.trim() }
+    : undefined;
 
   const supabase = await createClient();
 
@@ -207,6 +213,7 @@ export default async function CustomerLoanApplyPage({
             businessSlug={business.slug}
             products={productsWithTerms}
             collaterals={collaterals}
+            promotion={promotion}
           />
         </section>
       </div>

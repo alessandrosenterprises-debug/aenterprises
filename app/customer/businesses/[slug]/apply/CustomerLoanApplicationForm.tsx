@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import {
   useEffect,
   useMemo,
@@ -46,6 +48,7 @@ interface CustomerLoanApplicationFormProps {
   businessSlug: string;
   products: LoanProduct[];
   collaterals: Collateral[];
+  promotion?: { title: string; tag: string };
 }
 
 interface CustomerProfile {
@@ -117,6 +120,7 @@ export default function CustomerLoanApplicationForm({
   businessSlug,
   products,
   collaterals,
+  promotion,
 }: CustomerLoanApplicationFormProps) {
   const [step, setStep] = useState<FormStep>(1);
 
@@ -148,7 +152,7 @@ export default function CustomerLoanApplicationForm({
   const [collateralWorth, setCollateralWorth] =
     useState("");
 
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(promotion ? `Promotion: ${promotion.title} · ${promotion.tag}` : "");
 
   const [nrcFront, setNrcFront] =
     useState<CapturedImage | null>(null);
@@ -230,9 +234,7 @@ export default function CustomerLoanApplicationForm({
         if (!mounted) return;
 
         setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load your customer profile.",
+          getCustomerErrorMessage(err, "Unable to load your customer profile."),
         );
       } finally {
         if (mounted) {
@@ -522,9 +524,7 @@ export default function CustomerLoanApplicationForm({
         }
       } else {
         setCameraError(
-          err instanceof Error
-            ? err.message
-            : "Unable to access the camera.",
+          getCustomerErrorMessage(err, "Unable to access the camera."),
         );
       }
     }
@@ -1068,9 +1068,7 @@ export default function CustomerLoanApplicationForm({
       stopCamera();
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to submit your loan application.",
+        getCustomerErrorMessage(err, "Unable to submit your loan application."),
       );
     } finally {
       setSubmitting(false);

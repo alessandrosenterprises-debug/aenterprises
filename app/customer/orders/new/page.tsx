@@ -110,16 +110,17 @@ export default async function NewOrderPage({
 
   const orderableItems = catalogItems.filter((item) => {
     const type = item.item_type?.trim().toLowerCase();
+    const businessName = item.businesses?.name?.trim().toLowerCase() || "";
+    const itemName = item.name.trim().toLowerCase();
 
     const orderable =
-      !type ||
       type === "product" ||
       type === "goods" ||
       type === "item" ||
       type === "order" ||
       type === "retail";
 
-    if (!orderable) {
+    if (!orderable || businessName.includes("delivery service") || itemName === "point to point delivery") {
       return false;
     }
 

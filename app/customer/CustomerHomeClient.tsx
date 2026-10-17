@@ -194,10 +194,14 @@ export default function CustomerHomeClient({
             </div>
             <LiveWeatherWidget />
             <div className="mt-4 flex min-h-[40px] items-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] text-[#E8CA62] sm:mt-8 sm:min-h-[48px]">
-              <div className="customer-hero-marquee flex w-max items-center gap-3 whitespace-nowrap px-4 text-sm font-semibold tracking-wide sm:gap-4 sm:px-5 sm:text-lg">
-                <span className="font-bold text-[#F2D879]">{contactDetails.companyName}</span>
-                <span aria-hidden="true" className="text-white/60">•</span>
-                <span className="text-white">{contactDetails.tagline}</span>
+              <div className="customer-hero-marquee flex w-max whitespace-nowrap text-sm font-semibold tracking-wide sm:text-lg">
+                {[0, 1].map((copy) => (
+                  <div key={copy} aria-hidden={copy === 1} className="flex shrink-0 items-center gap-3 px-4 sm:gap-4 sm:px-5">
+                    <span className="font-bold text-[#F2D879]">{contactDetails.companyName}</span>
+                    <span aria-hidden="true" className="text-white/60">•</span>
+                    <span className="text-white">{contactDetails.tagline}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -501,16 +505,17 @@ export default function CustomerHomeClient({
 
       <style jsx global>{`
         @keyframes customerHeroMarquee {
-          from { transform: translateX(100%); }
-          to { transform: translateX(-100%); }
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
         }
 
         .customer-hero-marquee {
-          animation: customerHeroMarquee 18s linear infinite;
+          animation: customerHeroMarquee 22s linear infinite;
+          will-change: transform;
         }
 
-        @media (prefers-reduced-motion: reduce) {
-          .customer-hero-marquee { animation: none; }
+        .customer-hero-marquee:hover {
+          animation-play-state: paused;
         }
 
         @keyframes fadeIn {
@@ -533,6 +538,13 @@ export default function CustomerHomeClient({
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
             scroll-behavior: auto !important;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .customer-hero-marquee {
+            animation-duration: 22s !important;
+            animation-iteration-count: infinite !important;
           }
         }
       `}</style>

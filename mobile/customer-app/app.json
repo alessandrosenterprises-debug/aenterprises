@@ -5,11 +5,19 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "icon": "./assets/app-icon.png",
     "android": {
       "package": "com.alessandroenterprises.customer",
-      "edgeToEdgeEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "READ_CONTACTS",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -24,6 +32,34 @@
           "imageWidth": 240,
           "resizeMode": "contain",
           "backgroundColor": "#03162F"
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Alessandro Enterprises to use your location to set a pickup or delivery point."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Alessandro Enterprises to choose a recipient from your contacts when you request a delivery."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Alessandro Enterprises to take profile and request photos.",
+          "photosPermission": "Allow Alessandro Enterprises to select profile photos and supporting documents.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#D4AF37",
+          "defaultChannel": "customer-updates"
         }
       ]
     ],

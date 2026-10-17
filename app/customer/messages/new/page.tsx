@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import { FormEvent, useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -183,9 +185,7 @@ export default function NewCustomerMessagePage() {
       );
 
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Unable to send your message."
+        getCustomerErrorMessage(error, "Unable to send your message.")
       );
     } finally {
       setSending(false);

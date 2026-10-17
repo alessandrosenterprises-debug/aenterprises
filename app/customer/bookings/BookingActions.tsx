@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, XCircle, Loader2 } from "lucide-react";
@@ -54,9 +56,7 @@ export default function BookingActions({
       console.error("Cancel booking error:", error);
 
       alert(
-        error instanceof Error
-          ? error.message
-          : "Unable to cancel booking."
+        getCustomerErrorMessage(error, "Unable to cancel booking.")
       );
 
       setCancelling(false);

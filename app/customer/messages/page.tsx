@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive,
@@ -264,9 +266,7 @@ export default function CustomerMessagesPage() {
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load your messages."
+        getCustomerErrorMessage(err, "Unable to load your messages.")
       );
     } finally {
       setLoading(false);
@@ -551,9 +551,7 @@ export default function CustomerMessagesPage() {
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to send your reply."
+        getCustomerErrorMessage(err, "Unable to send your reply.")
       );
     } finally {
       setSendingReply(false);
@@ -606,9 +604,7 @@ export default function CustomerMessagesPage() {
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to archive this message."
+        getCustomerErrorMessage(err, "Unable to archive this message.")
       );
     }
   };

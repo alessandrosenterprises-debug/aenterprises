@@ -8,6 +8,7 @@ import DeliveryLocationPicker from "@/components/customer/DeliveryLocationPicker
 import CustomerAddressAutocomplete from "@/components/customer/CustomerAddressAutocomplete";
 import { createCustomerDeliveryRequestAction } from "@/modules/orders/services/order.actions";
 import type { DeliveryPricingSettings } from "@/modules/orders/services/order.service";
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
 
 const steps = ["Service type", "Pickup details", "Item type", "Delivery details", "Review pricing", "Confirm order & pay"];
 const itemTypes = ["Parcel", "Documents", "Groceries", "Clothing", "Electronics", "Food", "Other"];
@@ -74,7 +75,7 @@ export default function DeliveryServiceRequestForm({ customerName, customerPhone
       deliveryContactPhone, packageDescription: `${serviceType} · ${itemType}: ${packageDescription}`, notes,
     });
     if (!result.success) {
-      setError(result.error || "Could not submit your request. Please try again.");
+      setError(getCustomerErrorMessage(result.error, "We couldn’t submit your delivery request. Check your connection and try again."));
       setSubmitting(false);
       return;
     }

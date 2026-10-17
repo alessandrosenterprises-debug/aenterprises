@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import {
@@ -159,9 +161,7 @@ export default function TechnologyConsultationPage({
       console.error("Technology consultation error:", err);
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while sending your request."
+        getCustomerErrorMessage(err, "Something went wrong while sending your request.")
       );
     } finally {
       setSubmitting(false);

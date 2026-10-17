@@ -7,14 +7,14 @@ import { CalendarDays, ChevronLeft, ChevronRight, Image as ImageIcon, Megaphone,
 import { supabase } from "@/lib/supabase/client";
 
 export interface ContentBusiness { id: string; name: string; slug: string; }
-type ContentRow = { id: string; business_id: string; title?: string | null; description?: string | null; content?: string | null; caption?: string | null; image_url?: string | null; discount_text?: string | null; price?: number | null; start_date?: string | null; end_date?: string | null; published_at?: string | null; created_at?: string | null; };
+type ContentRow = { id: string; business_id: string; title?: string | null; description?: string | null; content?: string | null; caption?: string | null; image_url?: string | null; discount_text?: string | null; price?: number | null; start_date?: string | null; end_date?: string | null; published_at?: string | null; created_at?: string | null; asset_type?: string | null; catalog_item_id?: string | null; };
 type Kind = "promotions" | "gallery" | "posts";
 const tableFor: Record<Kind, string> = { promotions: "business_promotions", gallery: "business_gallery", posts: "business_posts" };
 type GalleryPreview = { url: string; title: string; caption: string; businessName: string; businessSlug: string; category: string; actionLabel: string; actionHref: string };
 
 export default function BusinessContentFeed({ businesses, kind, businessId, compact = false }: { businesses: ContentBusiness[]; kind: Kind; businessId?: string; compact?: boolean }) {
   const [rows, setRows] = useState<ContentRow[]>([]);
-  const [promotionTargets, setPromotionTargets] = useState<Record<string, string>>({});
+  const [promotionTargets, setPromotionTargets] = useState<Record<string, { href: string; label: string }>>({});
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<GalleryPreview | null>(null);
   const [galleryLimit, setGalleryLimit] = useState(18);
@@ -23,7 +23,47 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
     let alive = true;
     const load = async () => {
       if (!businessIds.length) { setRows([]); setLoading(false); return; }
-      let query = supabase.from(tableFor[kind]).select("*").in("business_id", businessId ? [businessId] : businessIds);
+      const scopedBusinessIds = businessId ? [businessId] : businessIds;
+      if (kind === "gallery" && !businessId) {
+        const nowIso = new Date().toISOString();
+        const [galleryResult, promotionResult, postResult, catalogResult] = await Promise.all([
+          supabase.from("business_gallery").select("id,business_id,title,caption,image_url,created_at,display_order").in("business_id", scopedBusinessIds).eq("active", true).order("display_order", { ascending: true }),
+          supabase.from("business_promotions").select("id,business_id,title,description,image_url,discount_text,price,start_date,end_date,created_at").in("business_id", scopedBusinessIds).eq("active", true).eq("published", true).or(`start_date.is.null,start_date.lte.${nowIso}`).or(`end_date.is.null,end_date.gte.${nowIso}`).order("created_at", { ascending: false }),
+          supabase.from("business_posts").select("id,business_id,title,content,image_url,published_at,created_at").in("business_id", scopedBusinessIds).eq("published", true).or(`published_at.is.null,published_at.lte.${nowIso}`).order("published_at", { ascending: false }),
+          supabase.from("enterprise_catalog").select("id,business_id,name,description,image_url,item_type,category,base_price,created_at").in("business_id", scopedBusinessIds).ilike("status", "active").not("image_url", "is", null).order("created_at", { ascending: false }),
+        ]);
+        if (!alive) return;
+        const catalogItems = catalogResult.data ?? [];
+        const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        const rows: ContentRow[] = [
+          ...((galleryResult.data ?? []) as ContentRow[]).filter((row) => row.image_url),
+          ...((promotionResult.data ?? []) as ContentRow[]).filter((row) => row.image_url).map((row) => {
+            const offerName = normalize(row.title ?? "");
+            const matchedItem = catalogItems.find((item) => {
+              const itemName = normalize(item.name);
+              return item.business_id === row.business_id && itemName.length > 0 && offerName.length > 0 && (itemName === offerName || itemName.includes(offerName) || offerName.includes(itemName));
+            });
+            return { ...row, id: `promotion:${row.id}`, asset_type: matchedItem?.item_type ?? "promotion", catalog_item_id: matchedItem?.id, caption: matchedItem?.category ?? row.discount_text };
+          }),
+          ...((postResult.data ?? []) as ContentRow[]).filter((row) => row.image_url).map((row) => ({ ...row, id: `post:${row.id}`, asset_type: "update" })),
+          ...((catalogResult.data ?? []).filter((row) => row.image_url).map((row) => ({
+            id: `catalog:${row.id}`,
+            business_id: row.business_id,
+            title: row.name,
+            description: row.description,
+            image_url: row.image_url,
+            price: row.base_price,
+            created_at: row.created_at,
+            asset_type: row.item_type,
+            catalog_item_id: row.id,
+            caption: row.category,
+          })) as ContentRow[]),
+        ].sort((a, b) => new Date(b.created_at ?? b.published_at ?? 0).getTime() - new Date(a.created_at ?? a.published_at ?? 0).getTime());
+        setRows(rows);
+        setLoading(false);
+        return;
+      }
+      let query = supabase.from(tableFor[kind]).select("*").in("business_id", scopedBusinessIds);
       if (kind === "promotions") query = query.eq("active", true).eq("published", true);
       if (kind === "gallery") query = query.eq("active", true);
       if (kind === "posts") query = query.eq("published", true);
@@ -41,10 +81,10 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
         if (kind === "promotions") {
           const { data: catalog } = await supabase
             .from("enterprise_catalog")
-            .select("id, business_id, name, item_type")
+            .select("id, business_id, name, item_type, category")
             .in("business_id", businessId ? [businessId] : businessIds);
           if (!alive) return;
-          const targets: Record<string, string> = {};
+          const targets: Record<string, { href: string; label: string }> = {};
           for (const offer of visible) {
             const title = (offer.title ?? "Special offer").trim();
             const tag = offer.discount_text || "Special offer";
@@ -54,26 +94,44 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
             const matchedItem = (catalog ?? []).find((item) => {
               if (item.business_id !== offer.business_id) return false;
               const itemName = normalize(item.name);
-              return itemName === offerName || itemName.includes(offerName) || offerName.includes(itemName);
+              return itemName.length > 0 && (itemName === offerName || itemName.includes(offerName) || offerName.includes(itemName));
             });
+            const business = businesses.find((entry) => entry.id === offer.business_id);
+            const itemType = (matchedItem?.item_type ?? "").trim().toLowerCase();
+            const isLoan = itemType.includes("loan") || business?.slug.toLowerCase().includes("loan") === true || business?.name.toLowerCase().includes("loan") === true;
+            const businessTypes = (catalog ?? [])
+              .filter((item) => item.business_id === offer.business_id)
+              .map((item) => (item.item_type ?? "").trim().toLowerCase())
+              .filter(Boolean);
+            const serviceOnlyBusiness = businessTypes.length > 0 && businessTypes.every((type) => type === "service");
+            const isService = itemType === "service" || business?.slug.toLowerCase().includes("barber") === true || (!matchedItem && serviceOnlyBusiness);
             const itemQuery = matchedItem ? `itemId=${encodeURIComponent(matchedItem.id)}&` : `search=${encodeURIComponent(title)}&`;
-            targets[offer.id] = `/customer/orders/new?${itemQuery}${queryString}`;
+            if (isLoan) {
+              targets[offer.id] = { href: `/customer/businesses/${business?.slug ?? "soft-loans"}/apply?${queryString}`, label: "Apply" };
+            } else if (isService) {
+              const bookingPath = matchedItem ? `/customer/bookings/new/${encodeURIComponent(matchedItem.id)}` : "/customer/bookings/new";
+              targets[offer.id] = { href: `${bookingPath}?${queryString}`, label: "Book" };
+            } else {
+              targets[offer.id] = { href: `/customer/orders/new?${itemQuery}${queryString}`, label: "Order" };
+            }
           }
           setPromotionTargets(targets);
         }
       }
       setLoading(false);
     };
-    setLoading(true);
     void load();
-    const channel = supabase.channel(`customer-${kind}-${businessId ?? "all"}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: tableFor[kind] }, (event) => {
+    const subscribedTables = kind === "gallery" && !businessId
+      ? ["business_gallery", "business_promotions", "business_posts", "enterprise_catalog"]
+      : [tableFor[kind]];
+    const channels = subscribedTables.map((table) => supabase.channel(`customer-${kind}-${businessId ?? "all"}-${table}`)
+      .on("postgres_changes", { event: "*", schema: "public", table }, (event) => {
         const changed = (event.new ?? event.old) as { business_id?: string } | undefined;
         if (!changed?.business_id || !businessId || changed.business_id === businessId) void load();
         else if (businessIds.includes(changed.business_id)) void load();
-      }).subscribe();
-    return () => { alive = false; void supabase.removeChannel(channel); };
-  }, [kind, businessId, businessIds]);
+      }).subscribe());
+    return () => { alive = false; for (const channel of channels) void supabase.removeChannel(channel); };
+  }, [kind, businessId, businessIds, businesses]);
 
   useEffect(() => {
     if (!preview) return;
@@ -99,10 +157,15 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
     const body = row.description || row.content || row.caption || "";
     const businessSlug = business?.slug ?? "";
     const businessName = business?.name ?? "Alessandro Enterprises";
-    const category = businessSlug.includes("loan") ? "Loans" : businessSlug.includes("barber") ? "Barbering" : businessSlug.includes("fashion") ? "Fashion" : businessSlug.includes("mobile") ? "Mobile Money" : businessSlug.includes("tech") ? "Technology" : "Business";
-    const actionLabel = businessSlug.includes("loan") ? "Apply" : businessSlug.includes("barber") ? "Book a service" : businessSlug.includes("mobile") ? "Explore services" : businessSlug.includes("fashion") || businessSlug.includes("tech") ? "Order" : "View business";
-    const actionHref = businessSlug.includes("loan") ? `/customer/businesses/${businessSlug}/apply` : businessSlug.includes("barber") || businessSlug.includes("mobile") ? `/customer/businesses/${businessSlug}/services` : businessSlug.includes("fashion") ? `/customer/businesses/${businessSlug}/products` : businessSlug.includes("tech") ? "/customer/orders/new" : `/customer/businesses/${businessSlug}`;
-    const offerHref = kind === "promotions" ? promotionTargets[row.id] : null;
+    const assetType = (row.asset_type ?? "").toLowerCase();
+    const isLoan = assetType.includes("loan") || businessSlug.includes("loan");
+    const isService = assetType === "service" || businessSlug.includes("barber") || businessSlug.includes("mobile");
+    const isOrderable = assetType === "product" || assetType === "item" || assetType === "stock" || (assetType === "promotion" && (businessSlug.includes("fashion") || businessSlug.includes("tech")));
+    const category = row.caption || (isLoan ? "Loans" : isService ? "Services" : businessSlug.includes("fashion") ? "Fashion" : businessSlug.includes("tech") ? "Technology" : businessSlug.includes("delivery") ? "Delivery" : "Business");
+    const actionLabel = isLoan ? "Apply" : isService ? "Book a service" : isOrderable ? "Order" : "Explore business";
+    const actionHref = isLoan ? `/customer/businesses/${businessSlug}/apply` : isService ? row.catalog_item_id ? `/customer/bookings/new/${encodeURIComponent(row.catalog_item_id)}` : `/customer/businesses/${businessSlug}/services` : isOrderable ? row.catalog_item_id ? `/customer/orders/new?itemId=${encodeURIComponent(row.catalog_item_id)}` : "/customer/orders/new" : `/customer/businesses/${businessSlug}`;
+    const imageTitle = row.asset_type === "promotion" ? `${title} · Promotion` : row.asset_type === "update" ? `${title} · Update` : title;
+    const offerTarget = kind === "promotions" ? promotionTargets[row.id] : null;
     const card = (
       <>
         {row.image_url && kind === "gallery" ? (
@@ -113,7 +176,7 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
             className="group relative block aspect-square w-full overflow-hidden bg-slate-100 text-left"
           >
             <Image src={row.image_url} alt={title} fill unoptimized className="object-cover transition duration-300 group-hover:scale-[1.03]" />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-2 pt-7 text-[10px] font-bold text-white">{row.title || category} · Preview</span>
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-2 pt-7 text-[10px] font-bold text-white">{imageTitle} · Preview</span>
           </button>
         ) : row.image_url ? (
           <div className={`relative bg-slate-100 ${compact ? "aspect-[3/2] sm:aspect-[4/3]" : "aspect-[4/3]"}`}>
@@ -138,9 +201,9 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
           {body && <p className="mt-0.5 line-clamp-2 text-[10px] leading-3.5 text-slate-600 sm:mt-1 sm:line-clamp-3 sm:text-sm sm:leading-5">{body}</p>}
           {row.price != null && <p className="mt-1 text-xs font-bold text-[#03162F] sm:mt-2 sm:text-sm">ZMW {Number(row.price).toLocaleString("en-ZM", { minimumFractionDigits: 2 })}</p>}
           {row.start_date && <p className="mt-1 flex items-center gap-1 text-[9px] text-slate-500 sm:mt-2 sm:text-xs"><CalendarDays className="h-3 w-3 sm:h-3.5 sm:w-3.5" />From {new Date(row.start_date).toLocaleDateString()}</p>}
-          {offerHref ? (
+          {offerTarget ? (
             <p className="mt-2 inline-flex min-h-8 w-full items-center justify-center rounded-lg bg-[#03162F] px-2.5 py-1.5 text-[10px] font-bold text-white transition group-hover:bg-[#0A2852] sm:mt-4 sm:min-h-10 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm">
-              Order with this offer <span aria-hidden="true" className="ml-2">→</span>
+              {offerTarget.label} with this offer <span aria-hidden="true" className="ml-2">→</span>
             </p>
           ) : business && !businessId ? (
             <Link className="mt-3 inline-block text-xs font-bold text-[#8A6D13]" href={`/customer/businesses/${business.slug}/${kind === "promotions" ? "promotions" : "updates"}`}>View {business.name}</Link>
@@ -149,8 +212,8 @@ export default function BusinessContentFeed({ businesses, kind, businessId, comp
       </>
     );
     if (kind === "gallery") return <article key={row.id} className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">{card}</article>;
-    return offerHref ? (
-      <Link key={row.id} href={offerHref} className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">{card}</Link>
+    return offerTarget ? (
+      <Link key={row.id} href={offerTarget.href} className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">{card}</Link>
     ) : (
       <article key={row.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {card}

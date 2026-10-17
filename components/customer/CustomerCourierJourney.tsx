@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, MapPinned, MessageSquareText, PackageCheck, Star, WalletCards } from "lucide-react";
 import { rateCustomerDeliveryAction } from "@/modules/orders/services/order.actions";
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
 
 export default function CustomerCourierJourney({ orderId, deliveryStatus, paymentStatus, receivedBy, proofNote, proofAt, rating, review }: {
   orderId: string;
@@ -27,7 +28,7 @@ export default function CustomerCourierJourney({ orderId, deliveryStatus, paymen
     setSaving(true);
     setMessage("");
     const result = await rateCustomerDeliveryAction({ orderId, rating: selectedRating, review: comment });
-    setMessage(result.success ? "Thank you for rating your courier." : result.error || "Your rating could not be saved.");
+    setMessage(result.success ? "Thank you for rating your courier." : getCustomerErrorMessage(result.error, "Your rating could not be saved. Please try again."));
     setSaving(false);
     if (result.success) router.refresh();
   }

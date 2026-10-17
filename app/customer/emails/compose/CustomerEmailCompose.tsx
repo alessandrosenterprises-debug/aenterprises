@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import {
   Loader2,
   Mail,
@@ -98,9 +100,7 @@ export default function CustomerEmailCompose({
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to send email."
+        getCustomerErrorMessage(err, "Unable to send email.")
       );
       setSending(false);
     }

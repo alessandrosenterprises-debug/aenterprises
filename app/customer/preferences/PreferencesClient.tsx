@@ -1,5 +1,7 @@
 "use client";
 
+import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
+
 import { useState } from "react";
 import {
   Bell,
@@ -101,9 +103,7 @@ export default function PreferencesClient({
       setPreferences(previousPreferences);
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to save your preference."
+        getCustomerErrorMessage(err, "Unable to save your preference.")
       );
     } finally {
       setSaving(false);
