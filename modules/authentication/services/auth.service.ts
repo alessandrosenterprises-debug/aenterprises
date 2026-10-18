@@ -16,10 +16,28 @@ class AuthService {
     email,
     password,
   }: SignInCredentials) {
-    return await supabase.auth.signInWithPassword({
+    const result = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
+    if (result.error || !result.data.user) return result;
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("active, role_id, roles(name)")
+      .eq("auth_user_id", result.data.user.id)
+      .maybeSingle();
+    const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
+
+    if (profileError || profile?.active !== true || !profile.role_id || !role?.name || role.name === "Customer") {
+      await supabase.auth.signOut();
+      return {
+        data: { user: null, session: null },
+        error: new Error("This account does not have an active staff role. Sign in through the Customer Portal if you are a customer."),
+      };
+    }
+
+    return result;
   }
 
   /**
@@ -51,6 +69,21 @@ class AuthService {
     }
 
     const userId = result.data.user.id;
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("active, role_id, roles(name)")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+    const profileRole = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
+
+    if (profileError || (profile?.role_id && profileRole?.name !== "Customer")) {
+      await supabase.auth.signOut();
+      return {
+        data: { user: null, session: null },
+        error: new Error("This is a staff account. Sign in through the Alessandro Enterprises staff portal."),
+      };
+    }
 
     /*
      * Verify that this Auth user is linked

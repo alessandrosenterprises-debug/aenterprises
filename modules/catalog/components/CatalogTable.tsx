@@ -1,6 +1,6 @@
 "use client";
 import { Select } from "@/components/ui/select";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { deleteEnterpriseCatalogItem } from "../services/enterprise-catalog.client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -29,24 +29,28 @@ interface Business {
 interface CatalogTableProps {
   items: EnterpriseCatalogItem[];
   businesses: Business[];
-  initialBusinessFilter?: string;
+  categories?: string[];
+  initialBusinessId?: string;
 }
 
 export default function CatalogTable({
   items,
   businesses,
-  initialBusinessFilter = "",
+  categories = [],
+  initialBusinessId = "",
 }: CatalogTableProps) {
   const [search, setSearch] = useState("");
 
   const [businessFilter, setBusinessFilter] =
-  useState(initialBusinessFilter);
+  useState(initialBusinessId);
 
 const [categoryFilter, setCategoryFilter] =
   useState("");
 
 const [statusFilter, setStatusFilter] =
   useState("");
+
+const [typeFilter, setTypeFilter] = useState("");
 
   const router = useRouter();
 
@@ -80,7 +84,7 @@ const [statusFilter, setStatusFilter] =
 }
 
   function handleExportCSV() {
-    const rows = items.map((item) => ({
+    const rows = filteredItems.map((item) => ({
       Name: item.name,
       Business: item.businesses?.name ?? "",
       Type: item.item_type,
@@ -92,7 +96,7 @@ const [statusFilter, setStatusFilter] =
   }
 
   function handleExportExcel() {
-    const rows = items.map((item) => ({
+    const rows = filteredItems.map((item) => ({
       Name: item.name,
       Business: item.businesses?.name ?? "",
       Type: item.item_type,
@@ -104,7 +108,7 @@ const [statusFilter, setStatusFilter] =
   }
 
   function handleExportPDF() {
-    const rows = items.map((item) => ({
+    const rows = filteredItems.map((item) => ({
       Name: item.name,
       Business: item.businesses?.name ?? "",
       Type: item.item_type,
@@ -115,13 +119,7 @@ const [statusFilter, setStatusFilter] =
     exportToPDF("Enterprise Catalog", rows);
   }
 
-const businessOptions = [
-  ...new Set(
-    items.map(
-      (item) => item.businesses?.name ?? ""
-    )
-  ),
-].filter(Boolean);
+const businessOptions = Array.from(new Map(businesses.map((business) => [business.id, business])).values());
 
 const categoryOptions = [
   ...new Set(
@@ -131,16 +129,11 @@ const categoryOptions = [
   ),
 ].filter(Boolean);
 
-const statusOptions = [
-  ...new Set(
-    items.map((item) => item.status)
-  ),
-];
+const typeOptions = [...new Set(items.map((item) => item.item_type).filter(Boolean))];
+const statusOptions = ["Active", "Inactive"];
 
- const filteredItems = useMemo(() => {
-  const query = search.toLowerCase();
-
-  return items.filter((item) => {
+const query = search.toLowerCase();
+const filteredItems = items.filter((item) => {
     const matchesSearch =
       !query ||
       item.name.toLowerCase().includes(query) ||
@@ -148,11 +141,12 @@ const statusOptions = [
         .toLowerCase()
         .includes(query) ||
       item.item_type.toLowerCase().includes(query) ||
+      (item.category ?? "").toLowerCase().includes(query) ||
       item.status.toLowerCase().includes(query);
 
     const matchesBusiness =
       !businessFilter ||
-      item.businesses?.name === businessFilter;
+      item.businesses?.id === businessFilter;
 
     const matchesCategory =
       !categoryFilter ||
@@ -162,20 +156,16 @@ const statusOptions = [
       !statusFilter ||
       item.status === statusFilter;
 
+    const matchesType = !typeFilter || item.item_type === typeFilter;
+
     return (
       matchesSearch &&
       matchesBusiness &&
       matchesCategory &&
-      matchesStatus
+      matchesStatus &&
+      matchesType
     );
-  });
-}, [
-  items,
-  search,
-  businessFilter,
-  categoryFilter,
-  statusFilter,
-]); 
+});
   return (
     <>
       <AEDataTable
@@ -190,13 +180,22 @@ const statusOptions = [
     <>
       <Select
         options={[
+          { label: "All Types", value: "" },
+          ...typeOptions.map((type) => ({ label: type === "financial" ? "Financial offer" : type, value: type })),
+        ]}
+        value={typeFilter}
+        onChange={(e) => setTypeFilter(e.target.value)}
+      />
+
+      <Select
+        options={[
           {
             label: "All Businesses",
             value: "",
           },
-          ...businessOptions.map((name) => ({
-            label: name,
-            value: name,
+          ...businessOptions.map((business) => ({
+            label: business.name,
+            value: business.id,
           })),
         ]}
         value={businessFilter}
@@ -246,6 +245,7 @@ const statusOptions = [
           setBusinessFilter("");
           setCategoryFilter("");
           setStatusFilter("");
+          setTypeFilter("");
         }}
         className="rounded-xl border border-slate-300 px-4 py-3 transition hover:bg-slate-100"
       >
@@ -256,6 +256,7 @@ const statusOptions = [
 >
   <CatalogModal
     businesses={businesses}
+    categories={categories}
   />
 </AEDataTableToolbar>
         }
@@ -279,7 +280,7 @@ const statusOptions = [
 </th>
 
 <th className="px-6 py-4 text-center font-semibold">
-  Stock
+  Inventory
 </th>
 
 <th className="px-6 py-4 text-right font-semibold">
@@ -303,7 +304,7 @@ const statusOptions = [
                 colSpan={8}
                 className="py-12 text-center text-slate-500"
               >
-                {search
+                {search || businessFilter || categoryFilter || statusFilter || typeFilter
                   ? "No matching catalog items found."
                   : "No catalog items yet."}
               </td>
@@ -334,7 +335,7 @@ const statusOptions = [
   </div>
 
   <div className="text-sm text-slate-500 capitalize">
-    {item.item_type}
+    {item.item_type === "financial" ? "Financial offer" : item.item_type === "service" ? "Service" : "Product"}
   </div>
 </td>
 
@@ -349,13 +350,17 @@ const statusOptions = [
 </td>
 
 <td className="px-6 py-4 text-center">
-  {item.quantity <= 0 ? (
+  {item.item_type !== "product" ? (
+    <span className="text-xs text-slate-400">Not tracked</span>
+  ) : item.quantity == null ? (
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">Not set</span>
+  ) : item.quantity <= 0 ? (
     <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-      Out
+      Out of stock
     </span>
   ) : item.quantity <= 5 ? (
     <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
-      {item.quantity} Low
+      Low stock · {item.quantity}
     </span>
   ) : (
     <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
@@ -486,8 +491,9 @@ const statusOptions = [
       </AEDetailsModal>
       <CatalogModal
   businesses={businesses}
+  categories={categories}
   mode="edit"
-  item={selectedItem}
+  item={selectedItem ?? undefined}
   open={editOpen}
   onClose={() => {
     setEditOpen(false);

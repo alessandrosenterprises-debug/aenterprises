@@ -188,6 +188,34 @@ export async function getConfigurationLoanProducts(): Promise<
   return (data ?? []) as CustomerLoanProduct[];
 }
 
+/** Load every configured product so historical terms keep their proper label. */
+export async function getAllConfigurationLoanProducts(): Promise<CustomerLoanProduct[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("loan_products")
+    .select(`
+      id,
+      name,
+      description,
+      min_amount,
+      max_amount,
+      interest_rate,
+      repayment_period,
+      requires_collateral,
+      status,
+      created_at,
+      updated_at
+    `)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("All loan products loading error:", getSupabaseErrorDetails(error));
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as CustomerLoanProduct[];
+}
+
 /* ============================================================
    GET LOAN TERMS FOR ONE PRODUCT
    ============================================================ */

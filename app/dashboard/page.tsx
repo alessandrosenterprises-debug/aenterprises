@@ -4,9 +4,11 @@ import QuickActions from "@/modules/dashboard/components/QuickActions";
 import BusinessStatus from "@/modules/dashboard/components/BusinessStatus";
 import Reminders from "@/modules/dashboard/components/Reminders";
 import DashboardOperationsOverview from "@/modules/dashboard/components/DashboardOperationsOverview";
+import StaffWorkspace from "@/modules/dashboard/components/StaffWorkspace";
 
 import {
   getDashboardStats,
+  getDashboardStaffAccess,
 } from "@/modules/dashboard/services/dashboard.service";
 
 import {
@@ -30,10 +32,12 @@ export default async function DashboardPage({
     profile,
     stats,
     bookings,
+    staffAccess,
   ] = await Promise.all([
     getCurrentProfile(),
     getDashboardStats(params?.date),
     getBookings(),
+    getDashboardStaffAccess(),
   ]);
 
   const isManagementUser =
@@ -43,6 +47,11 @@ export default async function DashboardPage({
   return (
     <>
       <WelcomeBanner profile={profile} />
+      <StaffWorkspace
+        stats={stats}
+        permissionKeys={staffAccess.permissionKeys}
+        isSuperAdministrator={!staffAccess.accessControlEnabled || staffAccess.isSuperAdministrator}
+      />
       <DashboardOperationsOverview stats={stats} />
 
       {/* OPERATIONS CENTER */}

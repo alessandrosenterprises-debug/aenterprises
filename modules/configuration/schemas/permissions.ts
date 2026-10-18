@@ -10,6 +10,12 @@ export const permissionsSchema: ConfigurationSchema = {
 
   fields: [
     {
+      key: "permission_key",
+      label: "Permission Key",
+      type: "text",
+      required: true,
+    },
+    {
       key: "module",
       label: "Module",
       type: "text",

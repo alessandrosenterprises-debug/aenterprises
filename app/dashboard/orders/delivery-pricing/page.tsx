@@ -11,9 +11,8 @@ export default async function DeliveryPricingPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  const { data: profile } = await supabase.from("profiles").select("roles(name)").eq("auth_user_id", user.id).eq("active", true).maybeSingle();
-  const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
-  if (role?.name !== "Super Administrator" && role?.name !== "Enterprise Manager") redirect("/dashboard");
+  const { data: canManagePricing } = await supabase.rpc("has_permission", { required_permission: "deliveries.manage" });
+  if (!canManagePricing) redirect("/dashboard/access-denied");
 
   const settings = await getDeliveryPricingSettings();
   return <div className="space-y-5">

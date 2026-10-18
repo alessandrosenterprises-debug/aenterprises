@@ -1,5 +1,7 @@
 ﻿import { createClient } from "@/lib/supabase/server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
+
 import type {
   CustomerLoanApplication,
   CustomerLoanApplicationInput,
@@ -15,16 +17,6 @@ type RepaymentFrequency =
   | "Weekly"
   | "Bi-Weekly"
   | "Monthly";
-
-/**
- * Enterprise roles allowed to approve customer loans.
- *
- * These values correspond to the normalized names
- * stored in public.roles.
- */
-type LoanApprovalRole =
-  | "super administrator"
-  | "enterprise manager";
 
 /**
  * Determine the repayment frequency from the loan product name.
@@ -335,52 +327,8 @@ async function getLoanApprover() {
     );
   }
 
-  /**
-   * Load the assigned role from public.roles.
-   */
-  const {
-    data: roleRecord,
-    error: roleError,
-  } = await supabase
-    .from("roles")
-    .select("id, name")
-    .eq("id", profile.role_id)
-    .maybeSingle();
-
-  if (roleError) {
-    throw new Error(
-      `Unable to verify your role: ${roleError.message}`
-    );
-  }
-
-  if (!roleRecord) {
-    throw new Error(
-      "Your assigned role could not be found."
-    );
-  }
-
-  const roleName = roleRecord.name
-    .trim()
-    .toLowerCase();
-
-  /**
-   * Only these enterprise roles can approve
-   * customer loans.
-   */
-  const allowedRoles: LoanApprovalRole[] = [
-    "super administrator",
-    "enterprise manager",
-  ];
-
-  if (
-    !allowedRoles.includes(
-      roleName as LoanApprovalRole
-    )
-  ) {
-    throw new Error(
-      "You do not have permission to approve customer loans."
-    );
-  }
+  const { data: canApproveLoans, error: permissionError } = await supabase.rpc("has_permission", { required_permission: "loans.approve" });
+  if (permissionError || !canApproveLoans) throw new Error("You do not have permission to approve customer loans.");
 
   return {
     id: profile.id as string,
@@ -390,7 +338,7 @@ async function getLoanApprover() {
       user.email ??
       "Unknown Approver",
 
-    role: roleName,
+    role: "Loan Approver",
   };
 }
 
@@ -502,6 +450,7 @@ export async function createCustomerLoanApplication(
   input: CustomerLoanApplicationInput
 ): Promise<CustomerLoanApplication> {
   const supabase = await createClient();
+  const adminSupabase = createAdminClient();
 
   const requestedAmount = Number(
     input.requested_amount
@@ -516,6 +465,10 @@ export async function createCustomerLoanApplication(
     );
   }
 
+  if (!input.loan_product_id || !input.loan_product_term_id) {
+    throw new Error("Select an active loan product and one of its active repayment terms.");
+  }
+
   /**
    * Load selected loan product.
    *
@@ -526,7 +479,7 @@ export async function createCustomerLoanApplication(
     data: product,
     error: productError,
   } = input.loan_product_id
-    ? await supabase
+    ? await adminSupabase
         .from("loan_products")
         .select(`
           id,
@@ -572,6 +525,32 @@ export async function createCustomerLoanApplication(
     );
   }
 
+  const { data: selectedTerm, error: termError } = await adminSupabase
+    .from("loan_product_terms")
+    .select("id, loan_product_id, period_days, interest_rate, active")
+    .eq("id", input.loan_product_term_id)
+    .eq("loan_product_id", input.loan_product_id)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (termError) throw new Error(`Unable to verify repayment term: ${termError.message}`);
+  if (!selectedTerm) throw new Error("The selected repayment term is no longer available for this loan product.");
+
+  if (product?.requires_collateral && !input.collateral_id) {
+    throw new Error("This loan product requires an approved collateral item.");
+  }
+
+  if (input.collateral_id) {
+    const { data: collateral, error: collateralError } = await adminSupabase
+      .from("collateral_catalogue")
+      .select("id")
+      .eq("id", input.collateral_id)
+      .eq("active", true)
+      .maybeSingle();
+    if (collateralError) throw new Error(`Unable to verify collateral: ${collateralError.message}`);
+    if (!collateral) throw new Error("The selected collateral is no longer available.");
+  }
+
   if (
     product?.min_amount !== null &&
     product?.min_amount !== undefined &&
@@ -594,20 +573,9 @@ export async function createCustomerLoanApplication(
     );
   }
 
-  const interestRate =
-    input.interest_rate ??
-    product?.interest_rate ??
-    null;
-
-  const repaymentPeriod =
-    input.repayment_period ??
-    product?.repayment_period ??
-    null;
-
-  const collateralRequired =
-    input.collateral_required ??
-    product?.requires_collateral ??
-    false;
+  const interestRate = Number(selectedTerm.interest_rate);
+  const repaymentPeriod = Number(selectedTerm.period_days);
+  const collateralRequired = Boolean(product?.requires_collateral);
 
   /**
    * Determine repayment frequency.
@@ -642,6 +610,11 @@ export async function createCustomerLoanApplication(
     });
 
   const now = new Date();
+  const applicationDate = input.application_date ?? now.toISOString().split("T")[0];
+  const dueDateObject = new Date(`${applicationDate}T00:00:00`);
+  if (Number.isNaN(dueDateObject.getTime())) throw new Error("Enter a valid loan application date.");
+  dueDateObject.setDate(dueDateObject.getDate() + repaymentPeriod);
+  const dueDate = `${dueDateObject.getFullYear()}-${String(dueDateObject.getMonth() + 1).padStart(2, "0")}-${String(dueDateObject.getDate()).padStart(2, "0")}`;
 
   const applicationNumber =
     `LN-${now.getFullYear()}${String(
@@ -673,10 +646,7 @@ export async function createCustomerLoanApplication(
           input.application_source,
 
         application_date:
-          input.application_date ??
-          now
-            .toISOString()
-            .split("T")[0],
+          applicationDate,
 
         loan_type:
           input.loan_type,
@@ -714,7 +684,7 @@ export async function createCustomerLoanApplication(
           input.account_operator_id ?? null,
 
         due_date:
-          input.due_date ?? null,
+          dueDate,
 
         residential_address:
           input.residential_address?.trim() ||

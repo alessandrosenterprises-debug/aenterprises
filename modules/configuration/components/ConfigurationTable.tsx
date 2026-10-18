@@ -123,8 +123,16 @@ export default function ConfigurationTable({
                         <span className="mt-0.5 font-normal text-slate-500">{Number(row.latitude).toFixed(5)}, {Number(row.longitude).toFixed(5)}</span>
                       </a>
                     ) : <span className="text-slate-400">Not pinned</span>
+                  ) : column.key === "loan_readiness" ? (
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${row[column.key] === "Ready" ? "bg-emerald-50 text-emerald-700" : row[column.key] === "Needs active terms" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+                      {String(row[column.key] ?? "-")}
+                    </span>
                   ) : column.key === "logo_url" && row[column.key] ? (
                     <img src={String(row[column.key])} alt={`${row.name ?? "Business"} logo`} className="h-10 w-10 rounded-lg border border-slate-200 bg-white object-contain p-1" />
+                  ) : typeof row[column.key] === "boolean" ? (
+                    <span className={row[column.key] ? "font-semibold text-emerald-700" : "text-slate-500"}>
+                      {row[column.key] ? "Yes" : "No"}
+                    </span>
                   ) : String(row[column.key] ?? "-")}
                 </td>
               ))}

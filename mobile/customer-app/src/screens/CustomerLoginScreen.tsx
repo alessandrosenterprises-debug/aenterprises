@@ -5,6 +5,9 @@ import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../services/supabase";
 import { theme } from "../theme";
 
+const isNetworkFailure = (message: string) => /fetch failed|failed to fetch|network|unable to resolve host|timed? ?out|connection/i.test(message);
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export function CustomerLoginScreen({
   onSignedIn,
   onOpenWebsite,
@@ -25,24 +28,41 @@ export function CustomerLoginScreen({
     setBusy(true);
     setError("");
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      let signInResult: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>> | null = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        signInResult = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (!signInResult.error || !isNetworkFailure(signInResult.error.message) || attempt === 2) break;
+        await wait(attempt === 0 ? 900 : 2_000);
+      }
+      if (!signInResult) throw new Error("Temporary connection problem");
+      const { data, error: signInError } = signInResult;
       if (signInError || !data.session) {
         const message = signInError?.message ?? "";
-        const networkFailure = /fetch failed|failed to fetch|network|unable to resolve host|timed? ?out|connection/i.test(message);
-        setError(networkFailure ? "We’re having trouble connecting. Check your internet connection and try again." : "We couldn’t sign you in. Check your email and password, then try again.");
+        setError(isNetworkFailure(message) ? "We’re having trouble connecting. Check your internet connection and try again." : "We couldn’t sign you in. Check your email and password, then try again.");
         return;
       }
 
-      const { data: customer, error: customerError } = await supabase
-        .from("customers")
-        .select("is_active, status")
-        .eq("auth_user_id", data.session.user.id)
-        .maybeSingle();
+      // Retry only this safe customer read when the network is intermittent.
+      let customer: { is_active: boolean | null; status: string | null } | null = null;
+      let customerError: { message: string } | null = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const result = await supabase.from("customers").select("is_active, status").eq("auth_user_id", data.session.user.id).maybeSingle();
+        customer = result.data;
+        customerError = result.error;
+        if (!customerError || !isNetworkFailure(customerError.message) || attempt === 2) break;
+        await wait(attempt === 0 ? 900 : 2_000);
+      }
 
       if (customerError) {
-        await supabase.auth.signOut();
         const networkFailure = /fetch failed|failed to fetch|network|unable to resolve host|timed? ?out|connection/i.test(customerError.message);
-        setError(networkFailure ? "We’re having trouble connecting. Check your internet connection and try again." : "We couldn’t verify your customer account right now. Please try again.");
+        if (networkFailure) {
+          // Keep the newly created Supabase session so retrying after a brief
+          // outage does not force the customer to enter credentials again.
+          onSignedIn(data.session);
+        } else {
+          await supabase.auth.signOut();
+          setError("We couldn’t verify your customer account right now. Please try again.");
+        }
         return;
       }
       if (customer?.is_active !== true || customer.status?.toLowerCase() !== "active") {
@@ -60,8 +80,8 @@ export function CustomerLoginScreen({
   }
 
   return (
-    <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
         <View style={styles.brand}>
           <Image source={require("../../assets/app-icon.png")} style={styles.logo} resizeMode="contain" />
           <Text style={styles.brandName}>ALESSANDRO</Text>

@@ -89,6 +89,9 @@ export interface CustomerLoanApplicationInput {
 
   loan_product_id?: string | null;
 
+  /** Selected configured repayment option; used for server-side validation. */
+  loan_product_term_id?: string | null;
+
   application_source: CustomerLoanApplicationSource;
 
   application_date?: string;

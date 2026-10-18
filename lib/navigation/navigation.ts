@@ -49,7 +49,7 @@ export const navigation: NavigationItem[] = [
     icon: LayoutDashboard,
   },
   {
-    title: "Enterprise Businesses",
+    title: "Management",
     icon: Building2,
     children: [
       { title: "Enterprise Overview", href: "/dashboard/enterprise", icon: Building },
@@ -59,10 +59,11 @@ export const navigation: NavigationItem[] = [
       { title: "Alessandro Mobile Money", href: "/dashboard/enterprise/mobile-money", icon: Smartphone },
       { title: "Alessandro Soft Loans", href: "/dashboard/enterprise/soft-loans", icon: HandCoins },
       { title: "Alessandro Tech Solutions", href: "/dashboard/enterprise/tech-solutions", icon: Laptop },
+      { title: "Enterprise Reports", href: "/dashboard/reports", icon: BarChart3 },
     ],
   },
   {
-    title: "Tech Solutions",
+    title: "Customer & Technology Services",
     icon: Laptop,
     children: [
       { title: "Tech Solutions Consultations", href: "/dashboard/enterprise/tech-solutions/consultations", icon: MessageCircle },
@@ -71,13 +72,19 @@ export const navigation: NavigationItem[] = [
     ],
   },
   {
-    title: "Human Resources (HR)",
+    title: "Staff Management",
+    icon: UserCog,
+    children: [
+      { title: "Employees", href: "/dashboard/hr/employees", icon: UserCog },
+      { title: "Departments", href: "/dashboard/hr/departments", icon: Building2 },
+    ],
+  },
+  {
+    title: "HR Management",
     icon: UsersRound,
     children: [
       { title: "HR Overview", href: "/dashboard/hr", icon: UsersRound },
-      { title: "Employees", href: "/dashboard/hr/employees", icon: UserCog },
       { title: "Rider Management", href: "/dashboard/hr/riders", icon: Bike },
-      { title: "Departments", href: "/dashboard/hr/departments", icon: Building2 },
       { title: "Leave & Attendance", href: "/dashboard/hr/leave-attendance", icon: CalendarCheck },
       { title: "Employee Documents", href: "/dashboard/hr/documents", icon: FolderOpen },
       { title: "Loans & Advances", href: "/dashboard/hr/loans-advances", icon: HandCoins },
@@ -102,7 +109,8 @@ export const navigation: NavigationItem[] = [
       { title: "Bookings", href: "/dashboard/bookings", icon: CalendarDays },
       { title: "Customer Orders", href: "/dashboard/orders", icon: ShoppingBag },
       { title: "My Deliveries", href: "/dashboard/orders/my-deliveries", icon: Bike },
-      { title: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+      { title: "Delivery & Rider Reports", href: "/dashboard/orders/delivery-reports", icon: BarChart3, permission: "orders.view" },
+      { title: "Customer Reviews", href: "/dashboard/orders/reviews", icon: MessageCircle, permission: "orders.view" },
     ],
   },
   {

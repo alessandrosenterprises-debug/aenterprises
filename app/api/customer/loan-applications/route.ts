@@ -4,6 +4,7 @@ import {
   createAdminClient,
   createClient,
 } from "@/lib/supabase/server";
+import { toE164PhoneNumber } from "@/modules/loans/utils/phone-number";
 
 const BUCKET = "loan-identity-documents";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -383,6 +384,7 @@ export async function POST(request: Request) {
       .select(`
         id,
         auth_user_id,
+        phone,
         is_active
       `)
       .eq("auth_user_id", user.id)
@@ -406,6 +408,14 @@ export async function POST(request: Request) {
       );
     }
 
+    if (
+      !user.phone_confirmed_at ||
+      !toE164PhoneNumber(user.phone) ||
+      toE164PhoneNumber(user.phone) !== toE164PhoneNumber(customer.phone)
+    ) {
+      throw new Error("Verify the phone number saved on your customer profile before submitting your loan application.");
+    }
+
     /*
      * Resolve the active loan product.
      *
@@ -422,6 +432,7 @@ export async function POST(request: Request) {
         name,
         min_amount,
         max_amount,
+        requires_collateral,
         status
       `)
       .eq("id", productId)
@@ -438,6 +449,12 @@ export async function POST(request: Request) {
       throw new Error(
         "The selected loan service is no longer available.",
       );
+    }
+
+    const noCollateral =
+      !collateralIdRaw || collateralIdRaw.toLowerCase() === "none";
+    if (product.requires_collateral && noCollateral) {
+      throw new Error("This loan product requires an approved collateral item.");
     }
 
     if (
@@ -502,10 +519,6 @@ export async function POST(request: Request) {
      *   id = null
      *   worth = null
      */
-    const noCollateral =
-      !collateralIdRaw ||
-      collateralIdRaw.toLowerCase() === "none";
-
     let collateralId: string | null = null;
     let collateralWorth: number | null = null;
 
@@ -672,7 +685,7 @@ export async function POST(request: Request) {
           totalPayable,
 
         collateral_required:
-          !noCollateral,
+          Boolean(product.requires_collateral),
 
         collateral_description:
           null,

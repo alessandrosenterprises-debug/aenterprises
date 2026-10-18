@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request,
   });
 
@@ -44,7 +44,27 @@ export async function updateSession(request: NextRequest) {
    *
    * Do not remove this call.
    */
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/dashboard") && pathname !== "/dashboard/access-denied") {
+    if (user) {
+      const { getDashboardPermission } = await import("@/lib/navigation/route-permissions");
+      const requiredPermission = getDashboardPermission(pathname);
+      const { data: allowed, error } = await supabase.rpc("has_permission", {
+        required_permission: requiredPermission,
+      });
+      // Let existing deployments keep working until the access-control migration is applied.
+      if (!error && allowed === false) {
+        const destination = request.nextUrl.clone();
+        destination.pathname = "/dashboard/access-denied";
+        destination.search = "";
+        const deniedResponse = NextResponse.redirect(destination);
+        response.cookies.getAll().forEach((cookie) => deniedResponse.cookies.set(cookie));
+        return deniedResponse;
+      }
+    }
+  }
 
   return response;
 }

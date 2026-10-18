@@ -27,10 +27,12 @@ export default function BusinessCatalogItemForm({
   business,
   collectionUrl,
   item,
+  categories = [],
 }: {
   business: BusinessCatalogBusiness;
   collectionUrl: string;
   item?: BusinessCatalogRecord;
+  categories?: string[];
 }) {
   const router = useRouter();
   const schema = useMemo(() => resolveCatalogSchema(business.slug), [business.slug]);
@@ -85,7 +87,7 @@ export default function BusinessCatalogItemForm({
       <div className="border-b border-slate-100 p-6"><div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#03162F] text-white">{isService ? "S" : "P"}</div><div><h2 className="text-xl font-black text-[#03162F]">{isService ? "Service Information" : "Product Information"}</h2><p className="mt-1 text-sm text-slate-500">{isService ? `Enter the details customers and staff use for this ${business.name} service.` : `Enter the basic information for this ${business.name} product.`}</p></div></div></div>
       <div className="grid gap-6 p-6 md:grid-cols-2">
         <div className="md:col-span-2"><label htmlFor="name" className="mb-2 block text-sm font-bold text-[#03162F]">{isService ? "Service Name" : "Product Name"}{isService && " *"}</label><input id="name" required {...register("name", { required: true })} placeholder={isService ? "e.g. Haircut" : "e.g. Classic Denim Jacket"} className={fieldClass} /></div>
-        <div><label htmlFor="category" className="mb-2 block text-sm font-bold text-[#03162F]">Category</label><input id="category" {...register("category")} placeholder={isService ? "e.g. Haircut" : "e.g. Clothing"} className={fieldClass} /></div>
+        <div><label htmlFor="category" className="mb-2 block text-sm font-bold text-[#03162F]">Category</label><input id="category" list={`catalog-categories-${business.id}`} {...register("category")} placeholder={isService ? "e.g. Haircut" : "e.g. Clothing"} className={fieldClass} /><datalist id={`catalog-categories-${business.id}`}>{categories.map((category) => <option key={category} value={category} />)}</datalist><p className="mt-1.5 text-xs text-slate-500">Choose a managed category or enter a new one.</p></div>
         <div><label htmlFor="status" className="mb-2 block text-sm font-bold text-[#03162F]">Status</label><select id="status" {...register("status")} className={fieldClass}><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
         <div><label htmlFor="base_price" className="mb-2 block text-sm font-bold text-[#03162F]">{isService ? "Service Price (ZMW) *" : "Price"}</label><div className="relative"><span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">ZMW</span><input id="base_price" type="number" min="0" step="0.01" required={isService} {...register("base_price", { valueAsNumber: true })} placeholder="0.00" className={`${fieldClass} pl-16`} /></div><p className="mt-2 text-xs text-slate-400">{isService ? "Enter the standard customer price in Zambian Kwacha." : "Leave empty if the price has not been set."}</p></div>
         {!isService && <div><label htmlFor="quantity" className="mb-2 block text-sm font-bold text-[#03162F]">Quantity</label><input id="quantity" type="number" min="0" step="1" {...register("quantity", { valueAsNumber: true })} placeholder="e.g. 25" className={fieldClass} /><p className="mt-2 text-xs text-slate-400">Enter the available stock quantity.</p></div>}

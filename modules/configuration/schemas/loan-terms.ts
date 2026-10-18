@@ -19,23 +19,12 @@ export const loanTermsSchema: ConfigurationSchema = {
 
   {
     key: "period_days",
-    label: "Repayment Period",
-    type: "select",
+    label: "Repayment Period (Days)",
+    type: "number",
     required: true,
-    options: [
-      {
-        label: "7 Days",
-        value: "7",
-      },
-      {
-        label: "15 Days",
-        value: "15",
-      },
-      {
-        label: "31 Days",
-        value: "31",
-      },
-    ],
+    min: 1,
+    step: 1,
+    placeholder: "e.g. 31",
   },
 
   {
@@ -43,12 +32,14 @@ export const loanTermsSchema: ConfigurationSchema = {
     label: "Interest Rate (%)",
     type: "number",
     required: true,
+    min: 0,
+    step: 0.01,
     placeholder: "e.g. 30",
   },
 
   {
     key: "active",
-    label: "Active",
+    label: "Available to customers",
     type: "boolean",
   },
 ],

@@ -6,7 +6,7 @@ export const loanProductsSchema: ConfigurationSchema = {
   title: "Loan Products",
 
   description:
-    "Configure loan products, limits and repayment requirements.",
+    "Define customer-facing loan types, eligible amount limits and collateral rules. Add repayment periods and interest rates separately under Loan Terms.",
 
   fields: [
     {
@@ -24,21 +24,15 @@ export const loanProductsSchema: ConfigurationSchema = {
       key: "min_amount",
       label: "Minimum Amount (ZMW)",
       type: "number",
+      min: 0,
+      step: 0.01,
     },
     {
       key: "max_amount",
       label: "Maximum Amount (ZMW)",
       type: "number",
-    },
-    {
-      key: "interest_rate",
-      label: "Interest Rate (%)",
-      type: "number",
-    },
-    {
-      key: "repayment_period",
-      label: "Repayment Period",
-      type: "number",
+      min: 0,
+      step: 0.01,
     },
     {
       key: "requires_collateral",
@@ -49,6 +43,7 @@ export const loanProductsSchema: ConfigurationSchema = {
       key: "status",
       label: "Status",
       type: "select",
+      required: true,
       options: [
         {
           label: "Active",

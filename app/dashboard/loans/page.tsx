@@ -48,6 +48,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
     customersResult,
     collateralsResult,
     operatorsResult,
+    loanProductsResult,
     loanTermsResult,
     loansResult,
   ] = await Promise.all([
@@ -111,6 +112,12 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
       .order("name", {
         ascending: true,
       }),
+
+    adminSupabase
+      .from("loan_products")
+      .select("id, name, min_amount, max_amount, requires_collateral, status")
+      .eq("status", "Active")
+      .order("name", { ascending: true }),
 
     /*
      * ========================================================
@@ -226,6 +233,10 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
     );
   }
 
+  if (loanProductsResult.error) {
+    console.error("Loan products loading error:", loanProductsResult.error);
+  }
+
   if (loansResult.error) {
     console.error(
       "Customer loans loading error:",
@@ -248,25 +259,13 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
   const operators =
     operatorsResult.data ?? [];
 
+  const loanProducts = loanProductsResult.data ?? [];
+
   const loanTerms =
     loanTermsResult.data ?? [];
 
   const loans =
     loansResult.data ?? [];
-
-  /*
-   * ==========================================================
-   * DEBUG LOAN TERMS
-   *
-   * This confirms exactly what is being passed to
-   * CustomerLoanApplicationForm.
-   * ==========================================================
-   */
-
-  console.log(
-    "ACTIVE LOAN TERMS:",
-    loanTerms
-  );
 
   /*
    * ==========================================================
@@ -541,6 +540,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
           customers={customers}
           collaterals={collaterals}
           operators={operators}
+          loanProducts={loanProducts}
           loanTerms={loanTerms}
         />
 

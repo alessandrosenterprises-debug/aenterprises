@@ -11,16 +11,6 @@ const ALLOWED_STATUSES = [
 
 type ConsultationStatus = (typeof ALLOWED_STATUSES)[number];
 
-const AEOS_ROLES = [
-  "Super Admin",
-  "Super Administrator",
-  "System Admin",
-  "Enterprise Manager",
-  "Business Manager",
-  "Department Manager",
-  "Supervisor",
-];
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -44,52 +34,13 @@ export async function PATCH(
     }
 
     // ---------------------------------------------------------
-    // 2. Verify AEOS staff permissions
+    // 2. Verify the current staff permission
     // ---------------------------------------------------------
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select(
-        `
-        id,
-        auth_user_id,
-        active,
-        role_id,
-        roles:role_id (
-          id,
-          name,
-          status
-        )
-      `
-      )
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
+    const { data: canManageContent, error: permissionError } = await supabase.rpc("has_permission", {
+      required_permission: "businesses.manage",
+    });
 
-    if (profileError) {
-      console.error("Consultation profile lookup error:", profileError);
-
-      return NextResponse.json(
-        { error: "Unable to verify your AEOS permissions." },
-        { status: 500 }
-      );
-    }
-
-    if (!profile || !profile.active) {
-      return NextResponse.json(
-        { error: "You do not have permission to update consultations." },
-        { status: 403 }
-      );
-    }
-
-    const role = Array.isArray(profile.roles)
-      ? profile.roles[0]
-      : profile.roles;
-
-    if (
-      !role ||
-      !role.status ||
-      role.status !== "Active" ||
-      !AEOS_ROLES.includes(role.name)
-    ) {
+    if (permissionError || !canManageContent) {
       return NextResponse.json(
         { error: "You do not have permission to update consultations." },
         { status: 403 }

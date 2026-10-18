@@ -20,6 +20,7 @@ import DynamicCatalogFields from "./DynamicCatalogFields";
 
 import { resolveCatalogSchema } from "../utils/schema-resolver";
 import { BusinessCatalogSchema } from "../types/catalog";
+import type { EnterpriseCatalogItem } from "../types/enterprise-catalog";
 
 interface Business {
   id: string;
@@ -29,8 +30,9 @@ interface Business {
 
 interface EnterpriseCatalogFormProps {
   businesses: Business[];
+  categories?: string[];
   mode?: "create" | "edit";
-  item?: any;
+  item?: EnterpriseCatalogItem;
   lockedBusinessId?: string;
   onSuccess?: (savedItemId: string) => void;
 }
@@ -49,6 +51,7 @@ interface CatalogFormData {
 
 export default function EnterpriseCatalogForm({
   businesses,
+  categories = [],
   mode = "create",
   item,
   lockedBusinessId,
@@ -64,6 +67,7 @@ export default function EnterpriseCatalogForm({
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { isSubmitting },
   } = useForm<CatalogFormData>({
     defaultValues: {
@@ -81,7 +85,23 @@ export default function EnterpriseCatalogForm({
   });
 
   const businessId = watch("business_id");
+  const itemType = watch("item_type");
   const imageUrl = watch("image_url");
+
+  useEffect(() => {
+    reset({
+      ...((item?.attributes && typeof item.attributes === "object") ? item.attributes : {}),
+      business_id: item?.business_id ?? lockedBusinessId ?? "",
+      item_type: item?.item_type ?? "",
+      category: item?.category ?? "",
+      name: item?.name ?? "",
+      description: item?.description ?? "",
+      base_price: item?.base_price ?? 0,
+      quantity: item?.quantity ?? 0,
+      status: item?.status ?? "Active",
+      image_url: item?.image_url ?? "",
+    });
+  }, [item, lockedBusinessId, reset]);
 
   useEffect(() => {
     const business =
@@ -97,10 +117,10 @@ export default function EnterpriseCatalogForm({
 
     setSchema(resolvedSchema);
 
-    if (resolvedSchema) {
+    if (resolvedSchema && !(mode === "edit" && item?.business_id === businessId)) {
       setValue("item_type", resolvedSchema.itemType);
     }
-  }, [businessId, businesses, setValue]);
+  }, [businessId, businesses, item?.business_id, mode, setValue]);
 
   const businessOptions = useMemo(
     () =>
@@ -111,12 +131,35 @@ export default function EnterpriseCatalogForm({
     [businesses]
   );
 
+  const itemTypeOptions = useMemo(() => {
+    const selectedBusiness = businesses.find((business) => business.id === businessId);
+    const selectedSchema = selectedBusiness
+      ? resolveCatalogSchema(selectedBusiness.slug ?? selectedBusiness.name)
+      : null;
+    if (!selectedSchema) return [];
+    // Tech Solutions provides both retail products and bookable services.
+    if (selectedSchema.business === "tech-solutions") {
+      return [
+        { label: "Product", value: "product" },
+        { label: "Service", value: "service" },
+      ];
+    }
+    return [{
+      label: selectedSchema.itemType === "financial" ? "Financial offer" : selectedSchema.itemType,
+      value: selectedSchema.itemType,
+    }];
+  }, [businessId, businesses]);
+
   async function onSubmit(data: CatalogFormData) {
   try {
-    const payload: EnterpriseCatalogPayload =
-  buildCatalogPayload(
-    data as Record<string, any>,
-    schema
+  if (!data.business_id || !data.name.trim()) {
+    toast.error("Choose a business and enter an item name.");
+    return;
+  }
+  const matchingSchema = schema?.itemType === data.item_type ? schema : null;
+  const payload: EnterpriseCatalogPayload = buildCatalogPayload(
+    data as unknown as Record<string, unknown>,
+    matchingSchema,
   );
 
     let savedItemId = item?.id as string | undefined;
@@ -174,51 +217,65 @@ export default function EnterpriseCatalogForm({
           />
         )}
 
-        <Input
+        <Select
           label="Item Type"
-          readOnly
+          options={itemTypeOptions}
+          required
           {...register("item_type")}
         />
 
         <Input
           label="Category"
           placeholder="Category"
+          list="enterprise-catalog-categories"
           {...register("category")}
         />
+        <datalist id="enterprise-catalog-categories">
+          {categories.map((category) => <option key={category} value={category} />)}
+        </datalist>
 
         <Input
           label="Name"
           placeholder="Item Name"
+          required
           {...register("name")}
         />
 
         <Input
           type="number"
-          label="Base Price (ZMW)"
+          label={itemType === "service" ? "Service Price (ZMW)" : itemType === "financial" ? "Starting Amount (ZMW)" : "Unit Price (ZMW)"}
           placeholder="0.00"
+          min={0}
+          step="0.01"
           {...register("base_price", {
             valueAsNumber: true,
           })}
         />
 
-        {schema?.itemType === "product" && <Input
+        {itemType === "product" && <Input
           type="number"
           label="Quantity"
           placeholder="0"
+          min={0}
+          step="1"
           {...register("quantity", {
             valueAsNumber: true,
           })}
         />}
 
-        <Input
+        <Select
           label="Status"
-          placeholder="Active"
+          options={[
+            { label: "Active", value: "Active" },
+            { label: "Inactive", value: "Inactive" },
+          ]}
+          required
           {...register("status")}
         />
 
         <div className="md:col-span-2">
   <label className="mb-2 block text-sm font-semibold text-slate-700">
-    {schema?.itemType === "service" ? "Service Image" : schema?.itemType === "financial" ? "Loan Product Image" : "Product Image"}
+    {itemType === "service" ? "Service Image" : itemType === "financial" ? "Financial Offer Image" : "Product Image"}
   </label>
 
   <ImageUpload
@@ -239,7 +296,7 @@ export default function EnterpriseCatalogForm({
         {...register("description")}
       />
 
-      {schema && (
+      {schema && schema.itemType === itemType && (
         <div className="rounded-2xl border border-slate-200 p-6">
           <h3 className="mb-4 text-lg font-semibold text-[#03162F]">
             {schema.title} Details

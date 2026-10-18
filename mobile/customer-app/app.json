@@ -8,6 +8,7 @@
     "icon": "./assets/app-icon.png",
     "android": {
       "package": "com.alessandroenterprises.customer",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -22,7 +23,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "versionCode": 6
+      "versionCode": 7
     },
     "plugins": [
       [
@@ -59,7 +60,7 @@
         "expo-notifications",
         {
           "color": "#D4AF37",
-          "defaultChannel": "customer-updates"
+          "defaultChannel": "customer-updates-v2"
         }
       ]
     ],

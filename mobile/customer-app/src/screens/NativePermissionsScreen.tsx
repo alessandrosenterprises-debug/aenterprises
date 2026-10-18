@@ -36,7 +36,7 @@ const permissionRequests: Record<PermissionKey, () => Promise<PermissionState>> 
   photos: () => ImagePicker.requestMediaLibraryPermissionsAsync(),
 };
 
-export function NativePermissionsScreen({ onBack }: { onBack: () => void }) {
+export function NativePermissionsScreen({ onBack, onNotificationsEnabled }: { onBack: () => void; onNotificationsEnabled?: () => void }) {
   const [states, setStates] = useState<Partial<Record<PermissionKey, PermissionState>>>({});
   const [busy, setBusy] = useState<PermissionKey | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,11 +69,21 @@ export function NativePermissionsScreen({ onBack }: { onBack: () => void }) {
     try {
       const result = await permissionRequests[key]();
       setStates((previous) => ({ ...previous, [key]: result }));
-      if (key === "notifications" && result?.granted && Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync("customer-updates", {
-          name: "Customer updates",
-          importance: Notifications.AndroidImportance.DEFAULT,
-        });
+      if (key === "notifications" && result?.granted) {
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("customer-updates-v2", {
+            name: "Customer updates",
+            description: "Bookings, orders, delivery, and account updates",
+            importance: Notifications.AndroidImportance.MAX,
+            sound: "default",
+            vibrationPattern: [0, 250, 150, 250],
+            enableVibrate: true,
+            enableLights: true,
+            lightColor: "#D4AF37",
+            showBadge: true,
+          });
+        }
+        onNotificationsEnabled?.();
       }
     } catch {
       Alert.alert("Couldn’t update permission", "Please try again from this screen or your device settings.");

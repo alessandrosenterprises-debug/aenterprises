@@ -175,49 +175,29 @@ export async function getDeliveryRiders(): Promise<DeliveryRider[]> {
 }
 
 export async function isOrdersAdministrator(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("active, roles(name)")
-    .eq("auth_user_id", userId)
-    .eq("active", true)
-    .maybeSingle();
-  const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
-  return role?.name === "Super Administrator" || role?.name === "Enterprise Manager";
+  void userId;
+  const { data } = await supabase.rpc("has_permission", { required_permission: "orders.view" });
+  return data === true;
+}
+
+export async function canManageOrders(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.rpc("has_permission", { required_permission: "orders.manage" });
+  return data === true;
+}
+
+export async function canManageDeliveryPricing(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.rpc("has_permission", { required_permission: "deliveries.manage" });
+  return data === true;
 }
 
 export async function canManageDeliveryRiders(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("active, roles(name)")
-    .eq("auth_user_id", userId)
-    .eq("active", true)
-    .maybeSingle();
-  const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
-  const allowedRoles = [
-    "Super Administrator",
-    "Enterprise Manager",
-    "Administrator",
-    "HR",
-    "HR Manager",
-    "HR Administrator",
-    "Human Resources",
-    "Human Resources (HR)",
-    "Human Resources Manager",
-  ];
-  if (allowedRoles.includes(role?.name ?? "")) return true;
-
-  const { data: employee } = await supabase
-    .from("employees")
-    .select("department_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!employee?.department_id) return false;
-  const { data: department } = await supabase
-    .from("departments")
-    .select("name")
-    .eq("id", employee.department_id)
-    .maybeSingle();
-  return /human resources|\bhr\b/i.test(department?.name ?? "");
+  void userId;
+  const { data } = await supabase.rpc("has_permission", { required_permission: "deliveries.manage" });
+  if (data === true) return true;
+  const { data: employeeManagement } = await supabase.rpc("has_permission", { required_permission: "employees.manage" });
+  if (employeeManagement === true) return true;
+  const { data: hrManagement } = await supabase.rpc("has_permission", { required_permission: "hr.manage" });
+  return hrManagement === true;
 }
 
 export async function getManagedOrders(): Promise<ManagedOrder[]> {

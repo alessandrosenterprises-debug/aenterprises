@@ -9,6 +9,7 @@ import {
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -48,6 +49,9 @@ interface Operator {
 interface LoanProduct {
   id: string;
   name: string;
+  min_amount: number | null;
+  max_amount: number | null;
+  requires_collateral: boolean;
 }
 
 interface LoanTerm {
@@ -63,6 +67,7 @@ interface CustomerLoanApplicationFormProps {
   customers: Customer[];
   collaterals: Collateral[];
   operators: Operator[];
+  loanProducts: LoanProduct[];
   loanTerms: LoanTerm[];
   onSuccess?: () => void;
 }
@@ -84,6 +89,7 @@ interface FormValues {
   collateral_id: string;
   collateral_worth: string;
 
+  loan_product_id: string;
   repayment_period: string;
   account_operator_id: string;
 
@@ -239,6 +245,7 @@ export default function CustomerLoanApplicationForm({
   customers,
   collaterals,
   operators,
+  loanProducts,
   loanTerms,
   onSuccess,
 }: CustomerLoanApplicationFormProps) {
@@ -298,6 +305,7 @@ export default function CustomerLoanApplicationForm({
       collateral_id: "",
       collateral_worth: "",
 
+      loan_product_id: "",
       repayment_period: "",
       account_operator_id: "",
 
@@ -324,6 +332,9 @@ export default function CustomerLoanApplicationForm({
   const selectedTermId = watch(
     "repayment_period"
   );
+
+  const selectedProductId = watch("loan_product_id");
+  const selectedCollateralId = watch("collateral_id");
 
   const applicationDate = watch(
     "application_date"
@@ -360,20 +371,26 @@ export default function CustomerLoanApplicationForm({
      ACTIVE LOAN TERMS
      ========================================================== */
 
+  const selectedProduct = useMemo(
+    () => loanProducts.find((product) => product.id === selectedProductId) ?? null,
+    [loanProducts, selectedProductId],
+  );
+
   const activeLoanTerms = useMemo(() => {
     return [...(loanTerms ?? [])]
       .filter(
         (term) =>
           term.active === true &&
           Boolean(term.id) &&
-          Number(term.period_days) > 0
+          Number(term.period_days) > 0 &&
+          term.loan_product_id === selectedProductId
       )
       .sort(
         (a, b) =>
           Number(a.period_days) -
           Number(b.period_days)
       );
-  }, [loanTerms]);
+  }, [loanTerms, selectedProductId]);
 
   /* ==========================================================
      SELECTED LOAN TERM
@@ -583,14 +600,19 @@ export default function CustomerLoanApplicationForm({
      ========================================================== */
 
   const collateralOptions =
-    collaterals
+    [
+      ...(selectedProduct && !selectedProduct.requires_collateral
+        ? [{ label: "None", value: "none" }]
+        : []),
+      ...collaterals
       .filter(
         (item) => item.active
       )
       .map((item) => ({
         label: item.name,
         value: item.id,
-      }));
+      })),
+    ];
 
   /* ==========================================================
      OPERATOR OPTIONS
@@ -620,6 +642,11 @@ export default function CustomerLoanApplicationForm({
       value: term.id,
     }));
 
+  const loanProductOptions = loanProducts.map((product) => ({
+    label: product.name,
+    value: product.id,
+  }));
+
   /* ==========================================================
      SUBMIT
      ========================================================== */
@@ -628,6 +655,12 @@ export default function CustomerLoanApplicationForm({
     data: FormValues
   ) {
     try {
+      const loanProduct = selectedProduct;
+      if (!loanProduct) {
+        toast.error("Please select a loan product.");
+        return;
+      }
+
       /* ------------------------------------------------------
          CUSTOMER
          ------------------------------------------------------ */
@@ -813,6 +846,11 @@ export default function CustomerLoanApplicationForm({
         return;
       }
 
+      if (loanProduct.requires_collateral && data.collateral_id === "none") {
+        toast.error("This loan product requires an approved collateral item.");
+        return;
+      }
+
       /* ------------------------------------------------------
          PRINCIPAL
          ------------------------------------------------------ */
@@ -957,8 +995,10 @@ export default function CustomerLoanApplicationForm({
           data.customer_id,
 
         loan_product_id:
-          selectedTerm.loan_product_id ??
-          null,
+          loanProduct.id,
+
+        loan_product_term_id:
+          selectedTerm.id,
 
         application_source:
           "Walk-in",
@@ -985,14 +1025,13 @@ export default function CustomerLoanApplicationForm({
           null,
 
         collateral_required:
-          true,
+          loanProduct.requires_collateral,
 
         collateral_description:
           null,
 
         collateral_id:
-          data.collateral_id ||
-          null,
+          data.collateral_id === "none" ? null : data.collateral_id || null,
 
         collateral_worth:
           data.collateral_worth
@@ -1167,7 +1206,7 @@ export default function CustomerLoanApplicationForm({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Capture the customer's identity
+            Capture the customer&apos;s identity
             documents, residential address,
             and next of kin information.
           </p>
@@ -1182,7 +1221,7 @@ export default function CustomerLoanApplicationForm({
 
           <p className="mb-4 text-sm text-slate-500">
             Capture clear images of both
-            sides of the customer's NRC.
+            sides of the customer&apos;s NRC.
           </p>
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -1441,7 +1480,7 @@ export default function CustomerLoanApplicationForm({
           </h3>
 
           <p className="mb-4 text-sm text-slate-500">
-            Enter the customer's current
+            Enter the customer&apos;s current
             residential address.
           </p>
 
@@ -1575,6 +1614,25 @@ export default function CustomerLoanApplicationForm({
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
+          <Select
+            label="Loan Product *"
+            placeholder={loanProducts.length ? "Select Loan Product" : "No active loan products"}
+            options={loanProductOptions}
+            disabled={loanProducts.length === 0}
+            {...register("loan_product_id", {
+              required: "Please select a loan product.",
+              onChange: (event) => {
+                const nextProductId = event.target.value;
+                const firstProductTerm = loanTerms
+                  .filter((term) => term.active === true && term.loan_product_id === nextProductId)
+                  .sort((a, b) => Number(a.period_days) - Number(b.period_days))[0];
+                setValue("repayment_period", firstProductTerm?.id ?? "");
+                setValue("collateral_id", "");
+                setValue("collateral_worth", "");
+              },
+            })}
+          />
+
           <Input
             type="date"
             label="Loan Date *"
@@ -1624,14 +1682,15 @@ export default function CustomerLoanApplicationForm({
                 activeLoanTerms.length >
                 0
                   ? "Select Loan Term"
-                  : "No active loan terms configured"
+                  : selectedProduct
+                    ? "No active terms for this product"
+                    : "Select a loan product first"
               }
               options={
                 loanTermOptions
               }
               disabled={
-                activeLoanTerms.length ===
-                0
+                !selectedProduct || activeLoanTerms.length === 0
               }
               {...register(
                 "repayment_period",
@@ -1642,10 +1701,9 @@ export default function CustomerLoanApplicationForm({
               )}
             />
 
-            {activeLoanTerms.length ===
-              0 && (
+            {selectedProduct && activeLoanTerms.length === 0 && (
               <p className="mt-2 text-xs text-red-600">
-                No active loan terms are configured, so a loan cannot be created yet. Add an active term in <a href="/dashboard/configuration/loanTerms" className="font-semibold underline">Loan Terms settings</a>.
+                No active repayment terms are configured for {selectedProduct.name}. Add an active term for this product in <Link href="/dashboard/configuration/loan-terms" className="font-semibold underline">Loan Terms settings</Link>.
               </p>
             )}
           </div>
@@ -1738,30 +1796,36 @@ export default function CustomerLoanApplicationForm({
 
         <div className="grid gap-6 md:grid-cols-2">
           <Select
-            label="Collateral *"
-            placeholder="Select Collateral"
+            label={selectedProduct?.requires_collateral ? "Collateral *" : "Collateral (optional) *"}
+            placeholder={selectedProduct ? "Select collateral option" : "Select a loan product first"}
             options={
               collateralOptions
             }
+            disabled={!selectedProduct}
             {...register(
               "collateral_id",
               {
-                required:
-                  "Please select the collateral.",
+                  required: "Please select a collateral option.",
               }
             )}
           />
 
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            label="Collateral Worth (ZMW)"
-            placeholder="Enter estimated worth"
-            {...register(
-              "collateral_worth"
-            )}
-          />
+          {selectedProduct?.requires_collateral === false && (
+            <p className="text-xs leading-5 text-slate-500 md:col-span-2">
+              This product allows applications with no collateral. Choose None or select an approved collateral item.
+            </p>
+          )}
+
+          {selectedCollateralId !== "none" && (
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              label="Collateral Worth (ZMW)"
+              placeholder="Enter estimated worth"
+              {...register("collateral_worth")}
+            />
+          )}
         </div>
       </section>
 

@@ -22,6 +22,10 @@ export interface ConfigurationField {
 
   placeholder?: string;
 
+  min?: number;
+
+  step?: number | "any";
+
   options?: {
     label: string;
     value: string;

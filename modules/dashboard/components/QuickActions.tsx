@@ -6,7 +6,6 @@ import {
   BarChart3,
   Building2,
   CalendarDays,
-  ClipboardList,
   Package,
   Settings,
   Users,
@@ -41,7 +40,7 @@ const quickActions: QuickAction[] = [
   {
     title: "Manage Products",
     description: "Manage products and services.",
-    href: "/dashboard/products",
+    href: "/dashboard/catalog",
     icon: Package,
   },
   {

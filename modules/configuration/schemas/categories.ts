@@ -6,7 +6,7 @@ export const categoriesSchema: ConfigurationSchema = {
   title: "Categories",
 
   description:
-    "Manage categories used across products and services.",
+    "Keep catalog categories consistent. Active categories are suggested when staff add or edit products and services.",
 
   fields: [
     {
@@ -24,6 +24,7 @@ export const categoriesSchema: ConfigurationSchema = {
       key: "status",
       label: "Status",
       type: "select",
+      required: true,
       options: [
         {
           label: "Active",

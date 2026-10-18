@@ -193,11 +193,8 @@ export default function ConfigurationForm({
                   type="number"
                   placeholder={field.placeholder}
                   required={field.required}
-                  step={
-                    field.type === "currency"
-                      ? "0.01"
-                      : "any"
-                  }
+                  min={field.min}
+                  step={field.step ?? (field.type === "currency" ? "0.01" : "any")}
                   {...register(field.key)}
                 />
               );

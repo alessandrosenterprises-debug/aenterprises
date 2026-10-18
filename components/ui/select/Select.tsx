@@ -53,13 +53,15 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           `}
           {...props}
         >
-          <option value="">
-            {placeholder}
-          </option>
+          {!options.some((option) => option.value === "") && (
+            <option key="placeholder" value="">
+              {placeholder}
+            </option>
+          )}
 
-          {options.map((option) => (
+          {options.map((option, index) => (
             <option
-              key={option.value}
+              key={`option-${index}`}
               value={option.value}
             >
               {option.label}

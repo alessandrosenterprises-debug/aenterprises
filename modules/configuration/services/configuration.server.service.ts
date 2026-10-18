@@ -35,7 +35,7 @@ export async function getConfiguration(
   // Branches are created through the signed-in admin session. Read them
   // through that same session so the branches RLS policy can expose the
   // administrator's rows even when the optional service key is misconfigured.
-  const supabase = table === "branches"
+  const supabase = ["branches", "roles", "permissions"].includes(table)
     ? userSupabase
     : createAdminClient();
 
@@ -70,4 +70,51 @@ export async function getConfiguration(
     string,
     unknown
   >[];
+}
+
+export interface CategoryUsageCount {
+  products: number;
+  services: number;
+}
+
+export async function getActiveCategoryNames(): Promise<string[]> {
+  const rows = await getConfiguration("categories");
+  return rows
+    .filter((row) => String(row.status ?? "Active").toLocaleLowerCase() === "active")
+    .map((row) => String(row.name ?? "").trim())
+    .filter(Boolean)
+    .sort((left, right) => left.localeCompare(right));
+}
+
+/** Return catalog usage keyed by a normalized category name. */
+export async function getCategoryUsageCounts(): Promise<Map<string, CategoryUsageCount>> {
+  const supabase = createAdminClient();
+  const usage = new Map<string, CategoryUsageCount>();
+  const pageSize = 1000;
+
+  for (let start = 0; ; start += pageSize) {
+    const { data, error } = await supabase
+      .from("enterprise_catalog")
+      .select("id, category, item_type")
+      .order("id", { ascending: true })
+      .range(start, start + pageSize - 1);
+
+    if (error) {
+      console.error("Failed to load category usage:", error.message);
+      throw new Error("Unable to load category usage from the catalog.");
+    }
+
+    for (const item of data ?? []) {
+      const key = String(item.category ?? "").trim().toLocaleLowerCase();
+      if (!key) continue;
+      const count = usage.get(key) ?? { products: 0, services: 0 };
+      const itemType = String(item.item_type ?? "").trim().toLocaleLowerCase();
+      if (itemType === "product" || !itemType) count.products += 1;
+      else if (itemType === "service") count.services += 1;
+      usage.set(key, count);
+    }
+
+    if (!data || data.length < pageSize) break;
+  }
+  return usage;
 }

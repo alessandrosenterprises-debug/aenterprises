@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import Modal from "@/components/ui/modal/Modal";
 import EnterpriseCatalogForm from "./EnterpriseCatalogForm";
+import type { EnterpriseCatalogItem } from "../types/enterprise-catalog";
 
 interface Business {
   id: string;
@@ -12,10 +13,11 @@ interface Business {
 
 interface CatalogModalProps {
   businesses: Business[];
+  categories?: string[];
 
   mode?: "create" | "edit";
 
-  item?: any;
+  item?: EnterpriseCatalogItem;
 
   open?: boolean;
 
@@ -24,6 +26,7 @@ interface CatalogModalProps {
 
 export default function CatalogModal({
   businesses,
+  categories = [],
   mode = "create",
   item,
   open,
@@ -64,6 +67,7 @@ export default function CatalogModal({
       >
         <EnterpriseCatalogForm
           businesses={businesses}
+          categories={categories}
           mode={mode}
           item={item}
           onSuccess={handleClose}

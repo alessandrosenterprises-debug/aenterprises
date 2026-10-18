@@ -169,9 +169,14 @@ export default function ConfigurationManager({
         return;
       }
 
-      const payload = {
-        ...values,
-      };
+      // Only submit fields that belong to this configuration form. Some
+      // pages enrich table rows with calculated display-only values (for
+      // example loan_products.active_term_count and loan_readiness). Those
+      // values are not database columns and must never reach Supabase.
+      const editableKeys = new Set(schema.fields.map((field) => field.key));
+      const payload = Object.fromEntries(
+        Object.entries(values).filter(([key]) => editableKeys.has(key)),
+      ) as Record<string, any>;
 
       /*
        * loan_product_name is a UI-only display field.
@@ -327,6 +332,14 @@ export default function ConfigurationManager({
     }),
   };
 
+  const formDefaultValues = editingRow ?? (
+    schema.table === "loan_products"
+      ? { status: "Inactive", requires_collateral: false }
+      : schema.table === "loan_product_terms"
+        ? { active: true }
+        : undefined
+  );
+
   return (
     <>
       <ConfigurationTable
@@ -463,9 +476,7 @@ export default function ConfigurationManager({
             <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
               <ConfigurationForm
                 schema={formSchema}
-                defaultValues={
-                  editingRow ?? undefined
-                }
+                defaultValues={formDefaultValues}
                 onSubmit={handleSubmit}
               />
             </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isOrdersAdministrator, type DeliveryPricingSettings } from "./order.service";
+import { canManageDeliveryPricing, canManageOrders, type DeliveryPricingSettings } from "./order.service";
 
 export async function saveDeliveryPricingAction(input: DeliveryPricingSettings): Promise<{ success: boolean; error?: string }> {
   if (!Number.isFinite(input.base_fee) || input.base_fee < 0
@@ -21,7 +21,7 @@ export async function saveDeliveryPricingAction(input: DeliveryPricingSettings):
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !(await isOrdersAdministrator(supabase, user.id))) return { success: false, error: "You do not have permission to change delivery rates." };
+  if (!user || !(await canManageDeliveryPricing(supabase))) return { success: false, error: "You do not have permission to change delivery rates." };
   const { error } = await supabase.rpc("save_delivery_pricing_settings", {
     p_pricing_mode: input.pricing_mode,
     p_base_fee: input.base_fee,
@@ -55,7 +55,7 @@ export async function updateOrderAction(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !(await isOrdersAdministrator(supabase, user.id))) return { success: false, error: "You do not have permission to manage orders." };
+  if (!user || !(await canManageOrders(supabase))) return { success: false, error: "You do not have permission to manage orders." };
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -131,7 +131,7 @@ export async function createAdminOrderAction(input: {
 }): Promise<{ success: boolean; error?: string; orderId?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !(await isOrdersAdministrator(supabase, user.id))) {
+  if (!user || !(await canManageOrders(supabase))) {
     return { success: false, error: "You do not have permission to create orders." };
   }
   if ((!input.customerId && !input.newCustomer) || !input.businessId || !["Pickup", "Delivery"].includes(input.fulfillmentMethod)) {

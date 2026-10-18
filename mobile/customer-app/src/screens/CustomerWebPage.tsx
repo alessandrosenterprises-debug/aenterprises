@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, BackHandler, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, BackHandler, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import WebView, { type WebViewNavigation } from "react-native-webview";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseUrl } from "../services/supabase";
@@ -19,10 +19,18 @@ export function CustomerWebPage({
   onNavigationStateChange: (state: WebViewNavigation) => void;
 }) {
   const ref = useRef<WebView>(null);
+  const retryCount = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const uri = useMemo(() => path.startsWith("http") ? path : `${CUSTOMER_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`, [path]);
+  useEffect(() => {
+    retryCount.current = 0;
+    setFailed(false);
+    setLoading(true);
+    return () => { if (retryTimer.current) clearTimeout(retryTimer.current); };
+  }, [uri]);
   const injectedAuthCookie = useMemo(() => {
     const supabaseUrl = getSupabaseUrl();
     if (!session || !supabaseUrl) return "true;";
@@ -59,6 +67,44 @@ export function CustomerWebPage({
     return false;
   }
 
+  function handleLoadError() {
+    if (retryTimer.current) return;
+    setLoading(false);
+    if (retryCount.current < 4) {
+      retryCount.current += 1;
+      const delay = [1500, 4000, 9000, 16000][retryCount.current - 1];
+      retryTimer.current = setTimeout(() => {
+        retryTimer.current = null;
+        setFailed(false);
+        setLoading(true);
+        ref.current?.reload();
+      }, delay);
+    } else {
+      setFailed(true);
+    }
+  }
+
+  useEffect(() => {
+    if (!failed) return;
+    const retryPage = () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+      retryTimer.current = setTimeout(() => {
+        retryTimer.current = null;
+        retryCount.current = 0;
+        setFailed(false);
+        setLoading(true);
+        ref.current?.reload();
+      }, 500);
+    };
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") retryPage();
+    });
+    // Keep checking in the background: on a weak or intermittent connection,
+    // the page recovers by itself without requiring the customer to tap Retry.
+    const retryInterval = setInterval(retryPage, 15_000);
+    return () => { subscription.remove(); clearInterval(retryInterval); };
+  }, [failed]);
+
   return (
     <View style={styles.container}>
       <WebView
@@ -71,6 +117,7 @@ export function CustomerWebPage({
         geolocationEnabled
         domStorageEnabled
         cacheEnabled
+        cacheMode="LOAD_CACHE_ELSE_NETWORK"
         setSupportMultipleWindows={false}
         overScrollMode="never"
         bounces={false}
@@ -80,8 +127,10 @@ export function CustomerWebPage({
         onShouldStartLoadWithRequest={shouldStart}
         onLoadStart={() => { setLoading(true); setFailed(false); }}
         onLoadEnd={() => setLoading(false)}
-        onError={() => { setLoading(false); setFailed(true); }}
-        onHttpError={(event) => { if (event.nativeEvent.statusCode >= 500) { setLoading(false); setFailed(true); } }}
+        onLoad={() => { retryCount.current = 0; if (retryTimer.current) clearTimeout(retryTimer.current); retryTimer.current = null; }}
+        onError={handleLoadError}
+        onHttpError={(event) => { if (event.nativeEvent.statusCode >= 500) handleLoadError(); }}
+        renderError={() => <View style={styles.errorOverlay}><Text style={styles.errorTitle}>This page is taking longer than usual</Text><Text style={styles.errorText}>Check your connection and try again.</Text><Pressable accessibilityRole="button" onPress={() => { retryCount.current = 0; setFailed(false); setLoading(true); ref.current?.reload(); }} style={styles.retry}><Text style={styles.retryText}>Try again</Text></Pressable></View>}
       />
       {failed && <View style={styles.errorOverlay}><Text style={styles.errorTitle}>We couldn’t load this page</Text><Text style={styles.errorText}>Check your connection and try again.</Text><Pressable accessibilityRole="button" onPress={() => { setFailed(false); setLoading(true); ref.current?.reload(); }} style={styles.retry}><Text style={styles.retryText}>Try again</Text></Pressable></View>}
       {loading && !failed && <View pointerEvents="none" style={styles.loading}><ActivityIndicator size="small" color={theme.colors.gold} /></View>}

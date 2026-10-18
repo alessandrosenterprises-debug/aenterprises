@@ -9,12 +9,16 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
+import { toE164PhoneNumber } from "@/modules/loans/utils/phone-number";
 import {
   ArrowLeft,
   ArrowRight,
   Camera,
   CheckCircle2,
   FileCheck2,
+  KeyRound,
+  Phone,
   ShieldCheck,
   RotateCcw,
   X,
@@ -55,6 +59,7 @@ interface CustomerProfile {
   customer_id?: string;
   customer?: {
     id?: string;
+    phone?: string | null;
   } | null;
   profile?: {
     customer_id?: string;
@@ -126,6 +131,13 @@ export default function CustomerLoanApplicationForm({
 
   const [customerId, setCustomerId] = useState("");
   const [profileLoading, setProfileLoading] = useState(true);
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [phoneChallenge, setPhoneChallenge] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [sendingPhoneCode, setSendingPhoneCode] = useState(false);
+  const [verifyingPhoneCode, setVerifyingPhoneCode] = useState(false);
+  const [phoneMessage, setPhoneMessage] = useState("");
 
   const [productId, setProductId] = useState("");
   const [termId, setTermId] = useState("");
@@ -230,6 +242,17 @@ export default function CustomerLoanApplicationForm({
         }
 
         setCustomerId(id);
+        const phone = data.customer?.phone?.trim() ?? "";
+        setCustomerPhone(phone);
+
+        const { data: authData } = await supabase.auth.getUser();
+        const authPhone = toE164PhoneNumber(authData.user?.phone);
+        const profilePhone = toE164PhoneNumber(phone);
+        setPhoneVerified(Boolean(
+          authData.user?.phone_confirmed_at &&
+          authPhone &&
+          authPhone === profilePhone
+        ));
       } catch (err) {
         if (!mounted) return;
 
@@ -890,6 +913,11 @@ export default function CustomerLoanApplicationForm({
       return false;
     }
 
+    if (selectedProduct?.requires_collateral && collateralId === "none") {
+      setError("This loan product requires collateral. Please select an item from the list.");
+      return false;
+    }
+
     if (
       collateralId !== "none" &&
       collateralWorth
@@ -936,8 +964,75 @@ export default function CustomerLoanApplicationForm({
     );
   };
 
+  const sendPhoneVerificationCode = async () => {
+    const phone = toE164PhoneNumber(customerPhone);
+    if (!phone || phone.length < 10) {
+      setPhoneMessage("Add a valid phone number to your customer profile before applying.");
+      return;
+    }
+
+    try {
+      setSendingPhoneCode(true);
+      setPhoneMessage("");
+      setPhoneVerified(false);
+      setPhoneCode("");
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      const samePhone = toE164PhoneNumber(authData.user?.phone) === phone;
+      const { error: otpError } = samePhone
+        ? await supabase.auth.resend({ type: "phone_change", phone })
+        : await supabase.auth.updateUser({ phone });
+      if (otpError) throw otpError;
+      setPhoneChallenge(phone);
+      setPhoneMessage(`A verification code was sent to ${phone}.`);
+    } catch {
+      setPhoneMessage("We could not send a code. Check the phone number or try again later.");
+    } finally {
+      setSendingPhoneCode(false);
+    }
+  };
+
+  const verifyPhoneCode = async () => {
+    if (!phoneChallenge || !/^\d{6}$/.test(phoneCode.trim())) {
+      setPhoneMessage("Enter the six-digit code sent to your phone.");
+      return;
+    }
+
+    try {
+      setVerifyingPhoneCode(true);
+      setPhoneMessage("");
+      const { data, error: otpError } = await supabase.auth.verifyOtp({
+        phone: phoneChallenge,
+        token: phoneCode.trim(),
+        type: "phone_change",
+      });
+      if (otpError) throw otpError;
+
+      const verifiedUser = data.user ?? (await supabase.auth.getUser()).data.user;
+      const verified = Boolean(
+        verifiedUser?.phone_confirmed_at &&
+        toE164PhoneNumber(verifiedUser.phone) === phoneChallenge &&
+        phoneChallenge === toE164PhoneNumber(customerPhone)
+      );
+      if (!verified) throw new Error("Phone verification could not be confirmed.");
+
+      setPhoneVerified(true);
+      setPhoneMessage("Phone number verified.");
+    } catch {
+      setPhoneVerified(false);
+      setPhoneMessage("That code could not be verified. Check it and try again.");
+    } finally {
+      setVerifyingPhoneCode(false);
+    }
+  };
+
   const submitApplication = async () => {
     if (!validateStep(3)) {
+      return;
+    }
+
+    if (!phoneVerified) {
+      setError("Verify your phone number before submitting this application.");
       return;
     }
 
@@ -1335,10 +1430,10 @@ export default function CustomerLoanApplicationForm({
               <select
                 value={productId}
                 onChange={(event) => {
-                  setProductId(
-                    event.target.value,
-                  );
-                  setTermId("");
+                  const nextProductId = event.target.value;
+                  const nextProduct = products.find((product) => product.id === nextProductId);
+                  setProductId(nextProductId);
+                  setTermId(nextProduct?.terms.find((term) => term.active)?.id ?? "");
                 }}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
               >
@@ -1394,6 +1489,11 @@ export default function CustomerLoanApplicationForm({
                   </option>
                 ))}
               </select>
+              {selectedTerm && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Prefilled from this product’s terms. Choose another option to change the rate or repayment period.
+                </p>
+              )}
             </div>
 
             <div>
@@ -1669,8 +1769,9 @@ export default function CustomerLoanApplicationForm({
             </h2>
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Collateral is optional. You may select None if
-              you do not have collateral.
+              {selectedProduct?.requires_collateral
+                ? "This loan product requires an eligible collateral item."
+                : "Select an eligible collateral item, or choose None if this loan does not require collateral."}
             </p>
 
             <div className="mt-6 space-y-4">
@@ -1697,9 +1798,9 @@ export default function CustomerLoanApplicationForm({
                     Select collateral option
                   </option>
 
-                  <option value="none">
-                    None
-                  </option>
+                  {!selectedProduct?.requires_collateral && (
+                    <option value="none">None</option>
+                  )}
 
                   {collaterals.map(
                     (collateral) => (
@@ -1720,7 +1821,7 @@ export default function CustomerLoanApplicationForm({
                 )}
               </div>
 
-              {collateralId === "none" && (
+              {collateralId === "none" && !selectedProduct?.requires_collateral && (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                   <p className="text-xs font-bold text-emerald-700">
                     No collateral selected
@@ -1781,6 +1882,38 @@ export default function CustomerLoanApplicationForm({
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${phoneVerified ? "bg-emerald-100 text-emerald-700" : "bg-[#03162F] text-[#D4AF37]"}`}>
+                  {phoneVerified ? <CheckCircle2 className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-black text-[#03162F]">Verify your phone</h3>
+                  <p className="mt-1 text-xs text-slate-600">{customerPhone || "Add a phone number to your customer profile to continue."}</p>
+                </div>
+                {phoneVerified && <span className="text-xs font-bold text-emerald-700">Verified</span>}
+              </div>
+              {!phoneVerified && (
+                <>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={sendPhoneVerificationCode} disabled={sendingPhoneCode || !customerPhone} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-[#03162F] disabled:opacity-50">
+                      {sendingPhoneCode ? "Sending…" : phoneChallenge ? "Resend code" : "Send code"}
+                    </button>
+                    {phoneChallenge && (
+                      <>
+                        <input aria-label="Phone verification code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={phoneCode} onChange={(event) => setPhoneCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit code" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" />
+                        <button type="button" onClick={verifyPhoneCode} disabled={verifyingPhoneCode || phoneCode.length !== 6} className="inline-flex items-center gap-2 rounded-xl bg-[#03162F] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
+                          <KeyRound className="h-3.5 w-3.5" /> {verifyingPhoneCode ? "Checking…" : "Verify"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {phoneMessage && <p role="status" className="mt-2 text-xs text-slate-600">{phoneMessage}</p>}
+                </>
+              )}
+              {phoneVerified && phoneMessage && <p role="status" className="mt-2 text-xs text-emerald-700">{phoneMessage}</p>}
+            </div>
+
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#03162F] text-[#D4AF37]">
                 <ShieldCheck className="h-5 w-5" />

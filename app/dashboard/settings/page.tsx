@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase/client";
 import ImageUpload from "@/components/ui/image-upload/ImageUpload";
@@ -65,6 +66,7 @@ interface CompanySettings {
   description: string;
   logo_url: string;
   phone: string;
+  whatsapp: string;
   email: string;
   address: string;
   city: string;
@@ -247,6 +249,7 @@ const defaultCompanySettings: CompanySettings = {
   description: "",
   logo_url: "",
   phone: "",
+  whatsapp: "",
   email: "",
   address: "",
   city: "Lusaka",
@@ -341,6 +344,7 @@ const defaultProfileSettings: ProfileSettings = {
 ============================================================ */
 
 export default function SettingsPage() {
+  const router = useRouter();
     useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -359,7 +363,18 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] =
     useState<SettingsSection>("enterprise");
 
+  useEffect(() => {
+    const requestedSection = new URLSearchParams(window.location.search).get("section");
+    if (settingsSections.some((section) => section.id === requestedSection)) {
+      const timer = window.setTimeout(() => {
+        setActiveSection(requestedSection as SettingsSection);
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
+
   const [saved, setSaved] = useState(false);
+  const [dirtySections, setDirtySections] = useState<Set<SettingsSection>>(new Set());
 
   const [loading, setLoading] = useState(true);
 
@@ -459,6 +474,7 @@ export default function SettingsPage() {
               description,
               logo_url,
               phone,
+              whatsapp,
               email,
               address,
               city,
@@ -647,6 +663,9 @@ export default function SettingsPage() {
               phone:
                 companyData.phone ??
                 "",
+              whatsapp:
+                companyData.whatsapp ??
+                "",
               email:
                 companyData.email ??
                 "",
@@ -772,6 +791,7 @@ export default function SettingsPage() {
         setProfile(
           loadedProfile
         );
+        setDirtySections(new Set());
       } catch (loadError) {
         console.error(
           "Failed to load settings:",
@@ -816,8 +836,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged("enterprise");
   }
 
   /* ==========================================================
@@ -840,8 +859,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged("customer-app");
   }
 
   /* ==========================================================
@@ -864,8 +882,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged("website");
   }
 
   /* ==========================================================
@@ -888,8 +905,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged("businesses");
   }
 
   /* ==========================================================
@@ -912,8 +928,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged("communications");
   }
 
   /* ==========================================================
@@ -936,8 +951,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged("appearance");
   }
 
   /* ==========================================================
@@ -960,8 +974,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged(activeSection === "security" ? "security" : "system");
   }
 
   /* ==========================================================
@@ -981,8 +994,7 @@ export default function SettingsPage() {
       })
     );
 
-    setSaved(false);
-    setError("");
+    markChanged("profile");
   }
 
   /* ==========================================================
@@ -1007,6 +1019,10 @@ export default function SettingsPage() {
 
       phone:
         companySettings.phone.trim() ||
+        null,
+
+      whatsapp:
+        companySettings.whatsapp.trim() ||
         null,
 
       email:
@@ -1039,6 +1055,9 @@ export default function SettingsPage() {
 
       active:
         companySettings.active,
+
+      updated_at:
+        new Date().toISOString(),
     };
 
     if (companySettings.id) {
@@ -1060,6 +1079,7 @@ export default function SettingsPage() {
             description,
             logo_url,
             phone,
+            whatsapp,
             email,
             address,
             city,
@@ -1089,6 +1109,8 @@ export default function SettingsPage() {
             data.logo_url ?? "",
           phone:
             data.phone ?? "",
+          whatsapp:
+            data.whatsapp ?? "",
           email:
             data.email ?? "",
           address:
@@ -1131,6 +1153,7 @@ export default function SettingsPage() {
             description,
             logo_url,
             phone,
+            whatsapp,
             email,
             address,
             city,
@@ -1160,6 +1183,8 @@ export default function SettingsPage() {
             data.logo_url ?? "",
           phone:
             data.phone ?? "",
+          whatsapp:
+            data.whatsapp ?? "",
           email:
             data.email ?? "",
           address:
@@ -1495,27 +1520,16 @@ export default function SettingsPage() {
     setError("");
 
     try {
-      if (activeSection === "enterprise") {
+      const dirty = dirtySections;
+      if (dirty.has("enterprise")) {
         await saveCompanySettings();
       }
 
-      if (
-        activeSection ===
-          "customer-app" ||
-        activeSection ===
-          "website" ||
-        activeSection ===
-          "businesses" ||
-        activeSection ===
-          "communications" ||
-        activeSection ===
-          "appearance" ||
-        activeSection === "system"
-      ) {
+      if (["customer-app", "website", "businesses", "communications", "appearance", "system", "security"].some((section) => dirty.has(section as SettingsSection))) {
         await savePlatformSettings();
       }
 
-      if (activeSection === "profile") {
+      if (dirty.has("profile")) {
         await saveProfileSettings();
       }
 
@@ -1530,6 +1544,7 @@ export default function SettingsPage() {
        */
 
       setSaved(true);
+      setDirtySections(new Set());
 
       window.setTimeout(() => {
         setSaved(false);
@@ -1689,9 +1704,34 @@ export default function SettingsPage() {
      REFRESH SETTINGS
   ========================================================== */
 
-  function markChanged() {
+  function markChanged(section: SettingsSection = activeSection) {
     setSaved(false);
     setError("");
+    setDirtySections((current) => new Set(current).add(section));
+  }
+
+  function resetPlatformSection(section: "customer-app" | "website" | "appearance") {
+    const sectionName = section === "customer-app" ? "Customer App" : section;
+    if (!window.confirm(`Restore default ${sectionName} settings? Select Save Changes to apply the reset.`)) return;
+    if (section === "customer-app") {
+      setPlatformSettings((current) => ({ ...current, customer_app: defaultCustomerAppSettings }));
+      setAppLogo("");
+    } else if (section === "website") {
+      setPlatformSettings((current) => ({ ...current, website: defaultWebsiteSettings }));
+      setWebsiteLogo("");
+    } else {
+      setPlatformSettings((current) => ({ ...current, appearance: defaultAppearanceSettings }));
+    }
+    markChanged(section);
+  }
+
+  function resetBranding() {
+    if (!window.confirm("Restore default enterprise branding? Select Save Changes to apply the reset.")) return;
+    setCompanySettings((current) => ({ ...current, tagline: defaultCompanySettings.tagline, description: "", logo_url: "" }));
+    setCompanyLogo("");
+    setPlatformSettings((current) => ({ ...current, appearance: defaultAppearanceSettings }));
+    markChanged("enterprise");
+    markChanged("appearance");
   }
 
   /* ==========================================================
@@ -1715,7 +1755,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full min-h-[70vh] items-center justify-center">
+      <div className="flex h-[calc(100dvh-169px)] min-h-0 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <RefreshCw className="h-8 w-8 animate-spin text-[#03162F]" />
 
@@ -1732,31 +1772,33 @@ export default function SettingsPage() {
   ========================================================== */
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+    <div className="flex h-[calc(100dvh-169px)] min-h-0 flex-col overflow-hidden bg-[#F3F5F8] p-3 sm:p-5">
 
       {/* =====================================================
           FIXED SETTINGS HEADER
       ===================================================== */}
 
-      <header className="relative z-30 shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-4 shadow-sm sm:px-6">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <header className="sticky top-0 z-40 mb-4 shrink-0 overflow-hidden rounded-2xl bg-[#03162F] px-5 py-5 shadow-lg shadow-slate-900/10 sm:mb-5 sm:px-7 sm:py-6">
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(ellipse_at_top_right,rgba(212,175,55,0.18),transparent_68%)]" />
+        <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
 
           <div className="flex min-w-0 items-center gap-3">
 
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#03162F] text-white shadow-sm">
-              <Settings className="h-5 w-5" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37] text-[#03162F] shadow-md shadow-black/15">
+              <Settings className="h-5 w-5" strokeWidth={2.3} />
             </div>
 
             <div className="min-w-0">
 
-              <h1 className="text-2xl font-bold text-[#03162F] sm:text-3xl">
-                Enterprise Settings
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#D4AF37]">
+                Alessandro Enterprises · Control Center
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-[28px]">
+                Enterprise settings
               </h1>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Control your Alessandro
-                Enterprises platform from one
-                place.
+              <p className="mt-1 text-sm text-slate-300">
+                Manage company details, customer experience, and platform operations.
               </p>
 
             </div>
@@ -1770,9 +1812,10 @@ export default function SettingsPage() {
             }
             disabled={
               saving ||
-              loading
+              loading ||
+              dirtySections.size === 0
             }
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#03162F] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0A2852] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-5 py-3 text-sm font-bold text-[#03162F] shadow-md shadow-black/10 transition hover:bg-[#E3C250] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/50 disabled:shadow-none"
           >
 
             {saving ? (
@@ -1788,7 +1831,7 @@ export default function SettingsPage() {
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                Save Changes
+                Save changes{dirtySections.size > 0 ? ` · ${dirtySections.size}` : ""}
               </>
             )}
 
@@ -1829,7 +1872,7 @@ export default function SettingsPage() {
           SETTINGS WORKSPACE
       ===================================================== */}
 
-      <div className="grid min-h-0 flex-1 gap-6 overflow-hidden p-4 sm:p-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-hidden sm:gap-5 lg:grid-cols-[258px_minmax(0,1fr)] lg:grid-rows-1">
 
         {/* ===================================================
             LEFT SETTINGS NAVIGATION
@@ -1837,27 +1880,31 @@ export default function SettingsPage() {
 
         <aside
           className="
+            settings-scrollbar
             min-h-0
-            overflow-y-auto
+            overflow-x-auto
+            overflow-y-hidden
             overscroll-contain
             rounded-2xl
             border
-            border-slate-200
+            border-slate-200/80
             bg-white
-            p-3
+            p-2.5
             shadow-sm
+            shadow-slate-900/5
+            lg:overflow-x-hidden
+            lg:overflow-y-auto
+            lg:p-3
           "
         >
 
-          <div className="px-3 pb-3 pt-2">
-
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Enterprise Control Center
-            </p>
+          <div className="hidden px-3 pb-4 pt-2 lg:block">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Settings workspace</p>
+            <p className="mt-1 text-sm font-semibold text-[#03162F]">Configuration</p>
 
           </div>
 
-          <div className="space-y-1">
+          <div className="flex min-w-max gap-2 lg:min-w-0 lg:flex-col lg:gap-1">
 
             {settingsSections.map(
               (section) => {
@@ -1878,9 +1925,9 @@ export default function SettingsPage() {
                         section.id
                       )
                     }
-                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                    className={`group flex min-w-[190px] items-center gap-3 rounded-xl px-3 py-2.5 text-left transition lg:min-w-0 lg:w-full lg:px-3 lg:py-3 ${
                       isActive
-                        ? "bg-[#03162F] text-white shadow-sm"
+                        ? "bg-[#F7F2DF] text-[#03162F] shadow-sm ring-1 ring-[#D4AF37]/40"
                         : "text-slate-600 hover:bg-slate-50 hover:text-[#03162F]"
                     }`}
                   >
@@ -1888,8 +1935,8 @@ export default function SettingsPage() {
                     <div
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                         isActive
-                          ? "bg-white/10 text-white"
-                          : "bg-slate-100 text-[#03162F]"
+                          ? "bg-[#D4AF37] text-[#03162F]"
+                          : "bg-slate-100 text-slate-600 group-hover:bg-slate-200"
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -1900,7 +1947,7 @@ export default function SettingsPage() {
                       <p
                         className={`text-sm font-semibold ${
                           isActive
-                            ? "text-white"
+                            ? "text-[#03162F]"
                             : "text-[#03162F]"
                         }`}
                       >
@@ -1908,11 +1955,7 @@ export default function SettingsPage() {
                       </p>
 
                       <p
-                        className={`mt-0.5 hidden text-[11px] leading-4 xl:block ${
-                          isActive
-                            ? "text-slate-300"
-                            : "text-slate-400"
-                        }`}
+                        className={`mt-0.5 hidden text-[11px] leading-4 xl:block ${isActive ? "text-slate-600" : "text-slate-400"}`}
                       >
                         {
                           section.description
@@ -1924,7 +1967,7 @@ export default function SettingsPage() {
                     <ChevronRight
                       className={`h-4 w-4 shrink-0 transition ${
                         isActive
-                          ? "text-white"
+                          ? "text-[#D4AF37]"
                           : "text-slate-300 group-hover:translate-x-0.5 group-hover:text-slate-500"
                       }`}
                     />
@@ -1936,23 +1979,22 @@ export default function SettingsPage() {
 
           </div>
 
-          <div className="mt-4 border-t border-slate-100 pt-4">
+          <div className="mt-4 hidden border-t border-slate-100 pt-4 lg:block">
 
-            <div className="rounded-xl bg-emerald-50 p-3">
+            <div className="rounded-xl border border-[#D4AF37]/25 bg-[#FBF8EC] p-3">
 
               <div className="flex items-center gap-2">
 
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
 
-                <p className="text-xs font-bold text-emerald-800">
-                  System Operational
+                  <p className="text-xs font-bold text-[#03162F]">
+                  Settings Connected
                 </p>
 
               </div>
 
-              <p className="mt-1 text-[11px] leading-4 text-emerald-700">
-                Your enterprise platform
-                is running normally.
+              <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                Settings loaded from your enterprise workspace.
               </p>
 
             </div>
@@ -1967,14 +2009,17 @@ export default function SettingsPage() {
 
         <section
           className="
+            flex
             min-h-0
             min-w-0
+            flex-col
             overflow-hidden
             rounded-2xl
             border
-            border-slate-200
+            border-slate-200/80
             bg-white
             shadow-sm
+            shadow-slate-900/5
           "
         >
 
@@ -1984,7 +2029,7 @@ export default function SettingsPage() {
 
             <div className="flex items-start gap-4">
 
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#03162F] text-white">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#03162F] text-[#D4AF37]">
 
                 <ActiveIcon className="h-6 w-6" />
 
@@ -1992,7 +2037,8 @@ export default function SettingsPage() {
 
               <div className="min-w-0">
 
-                <h2 className="text-xl font-bold text-[#03162F]">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#B18A12]">Configuration area</p>
+                <h2 className="text-xl font-bold tracking-tight text-[#03162F]">
                   {active.title}
                 </h2>
 
@@ -2010,7 +2056,9 @@ export default function SettingsPage() {
               SCROLLING SETTINGS CONTENT
           ================================================= */}
 
-          <div className="min-h-0 h-[calc(100%-89px)] overflow-y-auto overscroll-contain">
+          <div
+            className="settings-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          >
 
             {/* =================================================
                 ENTERPRISE PROFILE
@@ -2065,6 +2113,15 @@ export default function SettingsPage() {
                           "phone",
                           value
                         )
+                      }
+                    />
+
+                    <SettingInput
+                      label="WhatsApp"
+                      value={companySettings.whatsapp}
+                      placeholder="+260 ..."
+                      onChange={(value) =>
+                        updateCompanyField("whatsapp", value)
                       }
                     />
 
@@ -3295,18 +3352,21 @@ export default function SettingsPage() {
                       icon={Users}
                       title="User Management"
                       description="Manage administrator and staff accounts."
+                      onClick={() => router.push("/dashboard/employees")}
                     />
 
                     <ActionSetting
                       icon={ShieldCheck}
                       title="Roles & Permissions"
                       description="Control what each role can access."
+                      onClick={() => router.push("/dashboard/configuration/roles")}
                     />
 
                     <ActionSetting
                       icon={Lock}
                       title="Security Policies"
-                      description="Configure password and authentication policies."
+                      description="Review configured access permissions."
+                      onClick={() => router.push("/dashboard/configuration/permissions")}
                     />
 
                   </div>
@@ -3415,25 +3475,25 @@ export default function SettingsPage() {
                     <StatusCard
                       icon={Database}
                       title="Database"
-                      status="Operational"
+                      status="Settings loaded"
                     />
 
                     <StatusCard
                       icon={Monitor}
                       title="Dashboard"
-                      status="Operational"
+                      status="Available"
                     />
 
                     <StatusCard
                       icon={Globe}
                       title="Website"
-                      status="Operational"
+                      status="Settings ready"
                     />
 
                     <StatusCard
                       icon={Smartphone}
                       title="Customer App"
-                      status="Operational"
+                      status="Settings ready"
                     />
 
                   </div>
@@ -3509,7 +3569,21 @@ export default function SettingsPage() {
                     <ActionSetting
                       icon={Database}
                       title="Export Enterprise Data"
-                      description="Export supported enterprise information."
+                      description="Download your company profile and saved platform settings."
+                      onClick={() => {
+                        const payload = {
+                          exported_at: new Date().toISOString(),
+                          company: companySettings,
+                          platform: platformSettings,
+                        };
+                        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = "alessandro-enterprise-settings.json";
+                        link.click();
+                        URL.revokeObjectURL(url);
+                      }}
                     />
 
                     <ActionSetting
@@ -3525,6 +3599,7 @@ export default function SettingsPage() {
                       icon={Mail}
                       title="Email Configuration"
                       description="Manage system email configuration."
+                      onClick={() => router.push("/dashboard/emails")}
                     />
 
                   </div>
@@ -3582,21 +3657,25 @@ export default function SettingsPage() {
                     <DangerAction
                       title="Reset Dashboard Appearance"
                       description="Restore dashboard appearance settings."
+                      onClick={() => resetPlatformSection("appearance")}
                     />
 
                     <DangerAction
                       title="Reset Customer App Configuration"
                       description="Restore customer app preferences."
+                      onClick={() => resetPlatformSection("customer-app")}
                     />
 
                     <DangerAction
                       title="Reset Website Configuration"
                       description="Restore website presentation settings."
+                      onClick={() => resetPlatformSection("website")}
                     />
 
                     <DangerAction
                       title="Restore Default Branding"
                       description="Restore the default enterprise branding configuration."
+                      onClick={resetBranding}
                     />
 
                   </div>
@@ -3627,26 +3706,13 @@ export default function SettingsPage() {
 
                       <button
                         type="button"
-                        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
-                        onClick={() => {
-
-                          const confirmed =
-                            window.confirm(
-                              "Factory reset has not been enabled yet. This action will only be connected after a protected reset workflow is implemented."
-                            );
-
-                          if (confirmed) {
-                            window.alert(
-                              "Protected factory reset is not enabled yet."
-                            );
-                          }
-
-                        }}
+                        disabled
+                        className="mt-4 inline-flex cursor-not-allowed items-center gap-2 rounded-xl bg-slate-300 px-5 py-3 text-sm font-semibold text-slate-600"
                       >
 
                         <RotateCcw className="h-4 w-4" />
 
-                        Factory Reset
+                        Full Reset Unavailable
 
                       </button>
 
@@ -3707,29 +3773,20 @@ function SettingGroup({
   children: ReactNode;
 }) {
   return (
-    <div>
-
-      <div className="mb-4">
-
-        <h3 className="text-base font-bold text-[#03162F]">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
+      <header className="border-b border-slate-200 bg-slate-50/80 px-5 py-4 sm:px-6">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#B18A12]">Settings</p>
+        <h3 className="mt-1 text-base font-bold tracking-tight text-[#03162F]">
           {title}
         </h3>
-
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm leading-5 text-slate-500">
           {description}
         </p>
-
+      </header>
+      <div className="space-y-5 p-5 sm:p-6">
+        {children}
       </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white">
-
-        <div className="p-5">
-          {children}
-        </div>
-
-      </div>
-
-    </div>
+    </section>
   );
 }
 
@@ -3757,7 +3814,7 @@ function SettingInput({
   return (
     <label className="block">
 
-      <span className="mb-2 block text-sm font-semibold text-[#03162F]">
+      <span className="mb-2 block text-[13px] font-semibold text-slate-700">
         {label}
       </span>
 
@@ -3772,7 +3829,7 @@ function SettingInput({
             event.target.value
           )
         }
-        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#03162F] outline-none transition placeholder:text-slate-400 focus:border-[#D4AF37] focus:ring-4 focus:ring-yellow-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm text-[#03162F] shadow-sm shadow-slate-900/[0.02] outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-[#D4AF37]/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
       />
 
     </label>
@@ -3797,7 +3854,7 @@ function SettingTextarea({
   return (
     <label className="mt-5 block">
 
-      <span className="mb-2 block text-sm font-semibold text-[#03162F]">
+      <span className="mb-2 block text-[13px] font-semibold text-slate-700">
         {label}
       </span>
 
@@ -3810,7 +3867,7 @@ function SettingTextarea({
             event.target.value
           )
         }
-        className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#03162F] outline-none transition placeholder:text-slate-400 focus:border-[#D4AF37] focus:ring-4 focus:ring-yellow-50"
+        className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-sm leading-6 text-[#03162F] shadow-sm shadow-slate-900/[0.02] outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-[#D4AF37]/10"
       />
 
     </label>
@@ -3855,7 +3912,7 @@ function PasswordInput({
               event.target.value
             )
           }
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-[#03162F] outline-none transition focus:border-[#D4AF37] focus:ring-4 focus:ring-yellow-50"
+      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 pr-12 text-sm text-[#03162F] outline-none transition focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-[#D4AF37]/10"
         />
 
         <button
@@ -3922,7 +3979,7 @@ function ToggleSetting({
 
   return (
     <div
-      className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 transition hover:bg-slate-50"
+      className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:bg-slate-50/70"
     >
       <div className="min-w-0">
         <p className="text-sm font-semibold text-[#03162F]">
@@ -3942,7 +3999,7 @@ function ToggleSetting({
         onClick={handleToggle}
         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-[#D4AF37]/20 ${
           isChecked
-            ? "bg-emerald-500"
+          ? "bg-[#03162F]"
             : "bg-slate-300"
         }`}
       >
@@ -4060,19 +4117,17 @@ function ActionSetting({
 function DangerAction({
   title,
   description,
+  onClick,
 }: {
   title: string;
   description: string;
+  onClick: () => void;
 }) {
   return (
     <button
       type="button"
       className="group flex w-full items-center justify-between gap-4 rounded-xl border border-red-100 bg-red-50/50 p-4 text-left transition hover:border-red-300 hover:bg-red-50"
-      onClick={() => {
-        window.alert(
-          `${title} will be connected to the protected configuration reset workflow.`
-        );
-      }}
+      onClick={onClick}
     >
 
       <div className="min-w-0">

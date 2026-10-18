@@ -6,9 +6,6 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
-  MapPin,
-  UserRound,
-  CheckCircle2,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -206,7 +203,6 @@ export default async function BookingServicePage({
         active
       `)
       .eq("business_id", service.business_id)
-      .eq("active", true)
       .order("name", {
         ascending: true,
       });
@@ -218,7 +214,7 @@ export default async function BookingServicePage({
     );
   }
 
-  const branches = (branchData ?? []) as Branch[];
+  const branches = ((branchData ?? []) as Branch[]).filter((branch) => branch.active !== false);
 
   // ============================================================
   // EMPLOYEES
@@ -227,10 +223,7 @@ export default async function BookingServicePage({
   // The booking form can later filter them by branch.
   // ============================================================
 
-  const { data: employeeData, error: employeeError } =
-    await supabase
-      .from("employees")
-      .select(`
+  const employeeFields = `
         id,
         business_id,
         branch_id,
@@ -239,13 +232,13 @@ export default async function BookingServicePage({
         position,
         is_active,
         status
-      `)
-      .eq("business_id", service.business_id)
-      .eq("is_active", true)
-      .eq("status", "Active")
-      .order("full_name", {
-        ascending: true,
-      });
+      `;
+  const employeeQueries = [
+    supabase.from("employees").select(employeeFields).eq("business_id", service.business_id).order("full_name", { ascending: true }),
+    ...(branches.length ? [supabase.from("employees").select(employeeFields).in("branch_id", branches.map((branch) => branch.id)).order("full_name", { ascending: true })] : []),
+  ];
+  const employeeResults = await Promise.all(employeeQueries);
+  const employeeError = employeeResults.find((result) => result.error)?.error;
 
   if (employeeError) {
     console.error(
@@ -254,7 +247,8 @@ export default async function BookingServicePage({
     );
   }
 
-  const employees = (employeeData ?? []) as Employee[];
+  const employees = [...new Map(employeeResults.flatMap((result) => (result.data ?? []) as Employee[]).map((employee) => [employee.id, employee])).values()]
+    .filter((employee) => employee.is_active !== false && employee.status?.trim().toLowerCase() !== "inactive");
 
   // ============================================================
   // SERVICE DETAILS

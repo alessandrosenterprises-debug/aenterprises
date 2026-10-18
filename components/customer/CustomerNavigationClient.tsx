@@ -259,7 +259,7 @@ export default function CustomerNavigationClient() {
         throw new Error("Sign out failed");
       }
 
-      router.push("/customer/login");
+      router.push("/customer/login?loggedOut=1");
       router.refresh();
     } catch (error) {
       console.error(

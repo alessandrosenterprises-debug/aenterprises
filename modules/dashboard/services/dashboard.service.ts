@@ -32,6 +32,44 @@ function recordError(label: string, error: unknown) {
   if (error) console.error(`Dashboard ${label} error:`, error);
 }
 
+export async function getDashboardStaffAccess() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { permissionKeys: [], isSuperAdministrator: false, accessControlEnabled: false };
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role_id, roles(name)")
+    .eq("auth_user_id", user.id)
+    .eq("active", true)
+    .maybeSingle();
+  if (profileError || !profile?.role_id) {
+    recordError("staff access", profileError);
+    return { permissionKeys: [], isSuperAdministrator: false, accessControlEnabled: false };
+  }
+
+  const role = Array.isArray(profile.roles) ? profile.roles[0] : profile.roles;
+  const { data: assignments, error } = await supabase
+    .from("role_permissions")
+    .select("permissions(permission_key)")
+    .eq("role_id", profile.role_id);
+  if (error) {
+    recordError("staff permissions", error);
+    return { permissionKeys: [], isSuperAdministrator: role?.name === "Super Administrator", accessControlEnabled: false };
+  }
+
+  const permissionKeys = (assignments ?? []).flatMap((assignment) => {
+    const permission = Array.isArray(assignment.permissions) ? assignment.permissions[0] : assignment.permissions;
+    return permission?.permission_key ? [permission.permission_key] : [];
+  });
+
+  return {
+    permissionKeys,
+    isSuperAdministrator: role?.name === "Super Administrator",
+    accessControlEnabled: true,
+  };
+}
+
 export async function getDashboardStats(requestedDate?: string) {
   const supabase = await createClient();
   const currentDate = dateInLusaka(new Date());
@@ -52,6 +90,10 @@ export async function getDashboardStats(requestedDate?: string) {
     employeesResult,
     catalogResult,
     customersResult,
+    incomingOrdersResult,
+    openLoansResult,
+    activeDeliveriesResult,
+    pendingConsultationsResult,
   ] = await Promise.all([
     supabase.from("businesses").select("id, name, slug, logo_url, active").order("name"),
     supabase.from("bookings").select("id, business_id, booking_date, status, amount, payment_status, created_at").gte("booking_date", firstDay).lte("booking_date", selectedDate),
@@ -62,6 +104,10 @@ export async function getDashboardStats(requestedDate?: string) {
     supabase.from("employees").select("id, business_id, status, is_active, created_at"),
     supabase.from("enterprise_catalog").select("id, business_id, name, item_type, quantity, status"),
     supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", selectedDayStart).lt("created_at", nextDayStart),
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "Pending"),
+    supabase.from("customer_loan_applications").select("id", { count: "exact", head: true }).in("status", ["Pending", "Under Review"]),
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq("fulfillment_method", "Delivery").not("rider_employee_id", "is", null).not("delivery_status", "in", '("Delivered","Delivery Failed")').not("status", "in", '("Completed","Cancelled")'),
+    supabase.from("technology_consultation_requests").select("id", { count: "exact", head: true }).eq("status", "Pending"),
   ]);
 
   recordError("businesses", businessesResult.error);
@@ -73,6 +119,10 @@ export async function getDashboardStats(requestedDate?: string) {
   recordError("employees", employeesResult.error);
   recordError("catalog stock", catalogResult.error);
   recordError("new customers", customersResult.error);
+  recordError("incoming orders", incomingOrdersResult.error);
+  recordError("open loan applications", openLoansResult.error);
+  recordError("active deliveries", activeDeliveriesResult.error);
+  recordError("pending consultations", pendingConsultationsResult.error);
 
   const businesses = businessesResult.data ?? [];
   const bookings = bookingsResult.data ?? [];
@@ -156,6 +206,10 @@ export async function getDashboardStats(requestedDate?: string) {
     bookingsToday: selectedDayBookings.length,
     requestsToday: selectedDayOrders.length + selectedDayConsultations.length + selectedDayLoanRequests.length,
     pendingBookings: pendingBookings.length,
+    incomingOrders: incomingOrdersResult.count ?? 0,
+    openLoans: openLoansResult.count ?? 0,
+    activeDeliveries: activeDeliveriesResult.count ?? 0,
+    pendingConsultations: pendingConsultationsResult.count ?? 0,
     todayRevenue: selectedDayRevenue,
     businessCards,
     dailyActivity,

@@ -13,7 +13,7 @@ export interface EnterpriseCatalogItem {
 
   base_price: number;
 
-  quantity: number;
+  quantity: number | null;
 
   status: string;
 
