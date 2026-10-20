@@ -1,6 +1,7 @@
 import { KeyRound, UsersRound } from "lucide-react";
 import { getAccessControlData } from "@/modules/administration/services/access-control.service";
 import AccessControlWorkspace from "@/modules/administration/components/AccessControlWorkspace";
+import CreateStaffAccountForm from "@/modules/administration/components/CreateStaffAccountForm";
 
 export default async function AccessControlPage() {
   const data = await getAccessControlData();
@@ -15,6 +16,7 @@ export default async function AccessControlPage() {
           <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2"><UsersRound className="h-4 w-4 text-[#D4AF37]" />{data.staff.length} active staff accounts</span>
         </div>
       </header>
+      <CreateStaffAccountForm roles={data.roles} viewerRoleName={data.viewerRoleName} />
       <AccessControlWorkspace {...data} />
     </main>
   );

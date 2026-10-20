@@ -326,7 +326,7 @@ export async function createConfigurationAction(
     insertValues.name = String(insertValues.name ?? "").trim();
     await validateLoanProduct(supabase, insertValues);
     if (String(insertValues.status ?? "Inactive") === "Active") {
-      throw new Error("Create the product as inactive, add and activate its repayment terms, then activate the product.");
+      return { error: "Save this loan product as Inactive first. Then add and activate at least one repayment term under Loan Terms. After that, edit this product and set it to Active." };
     }
   }
   if (table === "categories") {
@@ -551,7 +551,11 @@ export async function updateConfigurationAction(
         .maybeSingle();
       if (currentProductError) throwActionError("read", table, currentProductError);
       if (currentProduct?.status !== "Active") {
-        await ensureLoanProductHasActiveTerms(supabase, id);
+        try {
+          await ensureLoanProductHasActiveTerms(supabase, id);
+        } catch (error) {
+          return { error: error instanceof Error ? error.message : "Activate at least one repayment term before activating this product." };
+        }
       }
     }
   }

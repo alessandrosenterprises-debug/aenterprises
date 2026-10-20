@@ -15,7 +15,7 @@ export function getDashboardPermission(pathname: string): string {
   if (pathname.startsWith("/dashboard/hr")) return "hr.manage";
   if (pathname.startsWith("/dashboard/employees")) return "employees.view";
   if (pathname.startsWith("/dashboard/customers")) return "customers.view";
-  if (pathname.startsWith("/dashboard/loans")) return "customers.manage";
+  if (pathname.startsWith("/dashboard/loans")) return "loans.approve";
   if (pathname.startsWith("/dashboard/orders/my-deliveries")) return "deliveries.manage";
   if (pathname.startsWith("/dashboard/orders/riders") || pathname.startsWith("/dashboard/orders/delivery-pricing")) return "deliveries.manage";
   if (pathname.startsWith("/dashboard/orders")) return "orders.view";

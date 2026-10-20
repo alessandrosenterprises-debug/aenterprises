@@ -55,7 +55,15 @@ export async function updateOrderAction(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !(await canManageOrders(supabase))) return { success: false, error: "You do not have permission to manage orders." };
+  if (!user) return { success: false, error: "Please sign in to update this order." };
+
+  const hasDeliveryUpdates = Boolean(updates.delivery_status) || Object.hasOwn(updates, "rider_employee_id") || Object.hasOwn(updates, "delivery_fee");
+  const canManageOrderRecords = await canManageOrders(supabase);
+  const { data: deliveryPermission } = await supabase.rpc("has_permission", { required_permission: "deliveries.manage" });
+  const canManageDeliveryRecords = deliveryPermission === true;
+  if (!canManageOrderRecords && (!hasDeliveryUpdates || !canManageDeliveryRecords || updates.status || updates.payment_status)) {
+    return { success: false, error: "You do not have permission to manage this order." };
+  }
 
   const { data: order, error: orderError } = await supabase
     .from("orders")

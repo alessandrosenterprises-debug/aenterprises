@@ -47,6 +47,71 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  const isCustomerRoute = pathname.startsWith("/customer");
+  const isCustomerArea = isCustomerRoute
+    && !pathname.startsWith("/customer/login")
+    && !pathname.startsWith("/customer/register");
+
+  if (user && (pathname.startsWith("/dashboard") || isCustomerRoute)) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("active, role_id, roles(name,status)")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
+    const hasActiveStaffRole = !profileError && profile?.active === true && Boolean(profile.role_id) && role?.name !== undefined && role.name !== "Customer" && (role.status ?? "Active") === "Active";
+    let hasActiveCustomerAccount = false;
+
+    if (isCustomerRoute && !hasActiveStaffRole && !profileError && profile?.active === true && (role?.name === "Customer" || !profile.role_id)) {
+      const { data: customer, error: customerError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .eq("is_active", true)
+        .ilike("status", "active")
+        .maybeSingle();
+      hasActiveCustomerAccount = !customerError && Boolean(customer);
+    }
+
+    if (pathname.startsWith("/dashboard") && pathname !== "/dashboard/access-denied" && !hasActiveStaffRole) {
+      const destination = request.nextUrl.clone();
+      destination.pathname = "/login";
+      destination.search = "?account=staff-required";
+      const deniedResponse = NextResponse.redirect(destination);
+      response.cookies.getAll().forEach((cookie) => deniedResponse.cookies.set(cookie));
+      return deniedResponse;
+    }
+
+    if (isCustomerRoute && hasActiveStaffRole) {
+      const destination = request.nextUrl.clone();
+      destination.pathname = "/dashboard";
+      destination.search = "";
+      const deniedResponse = NextResponse.redirect(destination);
+      response.cookies.getAll().forEach((cookie) => deniedResponse.cookies.set(cookie));
+      return deniedResponse;
+    }
+
+    if (isCustomerRoute && hasActiveCustomerAccount) {
+      const destination = request.nextUrl.clone();
+      destination.pathname = "/customer";
+      destination.search = "";
+      if (pathname === "/customer/login" || pathname === "/customer/register") {
+        const signedInResponse = NextResponse.redirect(destination);
+        response.cookies.getAll().forEach((cookie) => signedInResponse.cookies.set(cookie));
+        return signedInResponse;
+      }
+    }
+
+    if (isCustomerArea && !hasActiveCustomerAccount) {
+      const destination = request.nextUrl.clone();
+      destination.pathname = "/customer/login";
+      destination.search = "?account=customer-required";
+      const deniedResponse = NextResponse.redirect(destination);
+      response.cookies.getAll().forEach((cookie) => deniedResponse.cookies.set(cookie));
+      return deniedResponse;
+    }
+  }
+
   if (pathname.startsWith("/dashboard") && pathname !== "/dashboard/access-denied") {
     if (user) {
       const { getDashboardPermission } = await import("@/lib/navigation/route-permissions");
@@ -54,8 +119,7 @@ export async function updateSession(request: NextRequest) {
       const { data: allowed, error } = await supabase.rpc("has_permission", {
         required_permission: requiredPermission,
       });
-      // Let existing deployments keep working until the access-control migration is applied.
-      if (!error && allowed === false) {
+      if (error || allowed !== true) {
         const destination = request.nextUrl.clone();
         destination.pathname = "/dashboard/access-denied";
         destination.search = "";

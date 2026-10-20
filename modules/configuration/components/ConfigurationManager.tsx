@@ -199,20 +199,30 @@ export default function ConfigurationManager({
       }
 
       if (editingRow?.id) {
-        await updateConfigurationAction(
+        const result = await updateConfigurationAction(
           schema.table,
           editingRow.id,
           payload
         );
 
+        if ("error" in result) {
+          toast.error(result.error);
+          return;
+        }
+
         toast.success(
           `${schema.title} updated successfully.`
         );
       } else {
-        await createConfigurationAction(
+        const result = await createConfigurationAction(
           schema.table,
           payload
         );
+
+        if ("error" in result) {
+          toast.error(result.error);
+          return;
+        }
 
         toast.success(
           `${schema.title} created successfully.`

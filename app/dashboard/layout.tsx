@@ -25,13 +25,16 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role_id, roles(name)")
+    .select("id, role_id, active, roles(name,status)")
     .eq("auth_user_id", user.id)
     .eq("active", true)
     .maybeSingle();
   const profileRole = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
+  if (!profile || profile.active !== true || !profile.role_id || !profileRole?.name || profileRole.name === "Customer" || (profileRole.status ?? "Active") !== "Active") {
+    redirect("/login?account=staff-required");
+  }
   const isSuperAdministrator = profileRole?.name === "Super Administrator";
-  const { data: assignedPermissions, error: permissionLoadError } = profile?.role_id
+  const { data: assignedPermissions } = profile?.role_id
     ? await supabase.from("role_permissions").select("permissions(permission_key)").eq("role_id", profile.role_id)
     : { data: [] };
   const permissionKeys = (assignedPermissions ?? []).flatMap((assignment) => {
@@ -39,5 +42,5 @@ export default async function DashboardLayout({
     return permission?.permission_key ? [permission.permission_key] : [];
   });
 
-  return <AppLayout permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} accessControlEnabled={Boolean(profile?.role_id) && !permissionLoadError}>{children}</AppLayout>;
+  return <AppLayout permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} accessControlEnabled={Boolean(profile.role_id)}>{children}</AppLayout>;
 }

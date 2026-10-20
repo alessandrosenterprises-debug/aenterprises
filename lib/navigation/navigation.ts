@@ -118,6 +118,7 @@ export const navigation: NavigationItem[] = [
     icon: SlidersHorizontal,
     children: [
       { title: "Roles & Permissions", href: "/dashboard/configuration/roles", icon: ShieldCheck },
+      { title: "Staff Accounts", href: "/dashboard/administration/access", icon: UserCog, permission: "access.manage_permissions" },
       { title: "Permissions", href: "/dashboard/configuration/permissions", icon: ShieldCheck },
       { title: "Businesses", href: "/dashboard/configuration/businesses", icon: BriefcaseBusiness },
       { title: "Branches", href: "/dashboard/configuration/branches", icon: Building2 },

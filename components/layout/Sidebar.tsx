@@ -14,7 +14,7 @@ function isCurrentPath(pathname: string, href?: string) {
 
 const permissionByHref: Record<string, string> = {
   "/dashboard": "dashboard.view", "/dashboard/enterprise": "businesses.view", "/dashboard/enterprise/content": "businesses.manage",
-  "/dashboard/customers": "customers.view", "/dashboard/loans": "customers.manage", "/dashboard/hr": "hr.manage",
+  "/dashboard/customers": "customers.view", "/dashboard/loans": "loans.approve", "/dashboard/hr": "hr.manage",
   "/dashboard/hr/employees": "employees.view", "/dashboard/hr/riders": "employees.manage", "/dashboard/hr/departments": "hr.manage",
   "/dashboard/hr/leave-attendance": "hr.manage", "/dashboard/hr/documents": "hr.manage", "/dashboard/hr/loans-advances": "hr.manage",
   "/dashboard/hr/payroll": "hr.manage", "/dashboard/hr/reports": "reports.view", "/dashboard/emails": "communications.manage",

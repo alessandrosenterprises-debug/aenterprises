@@ -24,12 +24,12 @@ class AuthService {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("active, role_id, roles(name)")
+      .select("active, role_id, roles(name,status)")
       .eq("auth_user_id", result.data.user.id)
       .maybeSingle();
     const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
 
-    if (profileError || profile?.active !== true || !profile.role_id || !role?.name || role.name === "Customer") {
+    if (profileError || profile?.active !== true || !profile.role_id || !role?.name || role.name === "Customer" || (role.status ?? "Active") !== "Active") {
       await supabase.auth.signOut();
       return {
         data: { user: null, session: null },
@@ -77,7 +77,7 @@ class AuthService {
       .maybeSingle();
     const profileRole = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
 
-    if (profileError || (profile?.role_id && profileRole?.name !== "Customer")) {
+    if (profileError || profile?.active === false || (profile?.role_id && profileRole?.name !== "Customer")) {
       await supabase.auth.signOut();
       return {
         data: { user: null, session: null },

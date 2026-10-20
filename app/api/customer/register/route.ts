@@ -106,6 +106,20 @@ export async function POST(request: Request) {
 
     const userId = authData.user.id;
 
+    const { data: customerRole, error: customerRoleError } = await supabase
+      .from("roles")
+      .select("id")
+      .eq("name", "Customer")
+      .maybeSingle();
+
+    if (customerRoleError || !customerRole) {
+      await supabase.auth.admin.deleteUser(userId);
+      return NextResponse.json(
+        { error: "Customer access is not configured yet. Please contact support." },
+        { status: 503 }
+      );
+    }
+
     /*
      * Create the customer profile.
      */
@@ -118,6 +132,7 @@ export async function POST(request: Request) {
         display_name: `${firstName} ${lastName}`,
         email,
         phone,
+        role_id: customerRole.id,
         active: true,
       });
 

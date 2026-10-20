@@ -31,18 +31,16 @@ export default async function DashboardPage({
   const [
     profile,
     stats,
-    bookings,
     staffAccess,
   ] = await Promise.all([
     getCurrentProfile(),
     getDashboardStats(params?.date),
-    getBookings(),
     getDashboardStaffAccess(),
   ]);
 
-  const isManagementUser =
-    profile?.role === "Super Administrator" ||
-    profile?.role === "Operations Manager";
+  const isManagementUser = ["Super Administrator", "Enterprise Manager", "Operations Manager", "Business Manager"].includes(profile?.role ?? "");
+  const canManageBookings = staffAccess.permissionKeys.includes("bookings.manage") || staffAccess.isSuperAdministrator;
+  const bookings = canManageBookings ? await getBookings() : [];
 
   return (
     <>
@@ -50,12 +48,12 @@ export default async function DashboardPage({
       <StaffWorkspace
         stats={stats}
         permissionKeys={staffAccess.permissionKeys}
-        isSuperAdministrator={!staffAccess.accessControlEnabled || staffAccess.isSuperAdministrator}
+        isSuperAdministrator={staffAccess.isSuperAdministrator}
       />
-      <DashboardOperationsOverview stats={stats} />
+      {isManagementUser && <DashboardOperationsOverview stats={stats} />}
 
       {/* OPERATIONS CENTER */}
-      <div className="space-y-6">
+      {canManageBookings && <div className="space-y-6">
         <OperationsCenter bookings={bookings} selectedDate={stats.date} />
 
         {/* REMINDERS + RECENT ACTIVITY */}
@@ -73,7 +71,7 @@ export default async function DashboardPage({
             <BusinessStatus />
           )}
         </div>
-      </div>
+      </div>}
     </>
   );
 }
