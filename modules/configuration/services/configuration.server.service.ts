@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 /* ============================================================
    GET CONFIGURATION
@@ -32,12 +31,9 @@ export async function getConfiguration(
     );
   }
 
-  // Branches are created through the signed-in admin session. Read them
-  // through that same session so the branches RLS policy can expose the
-  // administrator's rows even when the optional service key is misconfigured.
-  const supabase = ["branches", "roles", "permissions"].includes(table)
-    ? userSupabase
-    : createAdminClient();
+  // Configuration data is also read through the signed-in session so any
+  // role and business/branch RLS restrictions remain in force.
+  const supabase = userSupabase;
 
   const {
     data,
@@ -88,7 +84,7 @@ export async function getActiveCategoryNames(): Promise<string[]> {
 
 /** Return catalog usage keyed by a normalized category name. */
 export async function getCategoryUsageCounts(): Promise<Map<string, CategoryUsageCount>> {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const usage = new Map<string, CategoryUsageCount>();
   const pageSize = 1000;
 

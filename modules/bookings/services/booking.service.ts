@@ -167,7 +167,7 @@ export async function getBookings(): Promise<Booking[]> {
   const rows = (data ?? []) as unknown[];
 
   return rows.map((item) => {
-    const row = item as Record<string, any>;
+    const row = item as Record<string, unknown>;
 
     return {
       ...row,
@@ -509,7 +509,7 @@ export async function getBookingsForReport({
   const rows = (data ?? []) as unknown[];
 
   return rows.map((item) => {
-    const row = item as Record<string, any>;
+    const row = item as Record<string, unknown>;
 
     return {
       ...row,

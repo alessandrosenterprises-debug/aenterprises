@@ -10,6 +10,7 @@ import {
 
 import SearchInput from "@/components/ui/search/SearchInput";
 import NotificationCenter from "@/components/layout/NotificationCenter";
+import OperationsSessionControl from "@/components/layout/OperationsSessionControl";
 import UserProfile from "./UserProfile";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
@@ -44,7 +45,7 @@ function BrandWord({
    HEADER
 ============================================================ */
 
-export default function Header() {
+export default function Header({ permissionKeys = [] }: { permissionKeys?: string[] }) {
   /*
    * Company branding is currently kept as the AEOS default
    * because the database does not currently contain a
@@ -62,6 +63,7 @@ export default function Header() {
   tagline: "The Name That Covers All",
   logo_url: "",
 });
+const [logoLoaded, setLogoLoaded] = useState(false);
 
 useEffect(() => {
   let mounted = true;
@@ -82,6 +84,7 @@ useEffect(() => {
     }
 
     if (data && mounted) {
+      setLogoLoaded(false);
       setCompany({
         company_name:
           data.company_name?.trim() || "Alessandro Enterprises",
@@ -173,28 +176,33 @@ useEffect(() => {
               rounded-2xl
               border-2
               border-[#D4AF37]
+              relative
               bg-white
               shadow-[0_4px_18px_rgba(0,0,0,0.35)]
             "
           >
-            {company.logo_url ? (
-              <img
-                src={company.logo_url}
-                alt={`${company.company_name} logo`}
-                className="
-                  h-full
-                  w-full
-                  object-contain
-                  p-2
-                "
-              />
-            ) : (
+            {!logoLoaded && (
               <Building2
                 className="
                   h-8
                   w-8
                   text-[#03162F]
                 "
+              />
+            )}
+            {company.logo_url && (
+              <img
+                src={company.logo_url}
+                alt={`${company.company_name} logo`}
+                onLoad={() => setLogoLoaded(true)}
+                onError={() => {
+                  setLogoLoaded(false);
+                  setCompany((current) => ({
+                    ...current,
+                    logo_url: "",
+                  }));
+                }}
+                className={`absolute h-full w-full object-contain p-2 transition-opacity duration-150 ${logoLoaded ? "opacity-100" : "opacity-0"}`}
               />
             )}
           </div>
@@ -344,6 +352,7 @@ useEffect(() => {
           lg:px-6
         "
       >
+        <OperationsSessionControl canOpen={permissionKeys.includes("operations.open")} />
         {/* SYSTEM ONLINE */}
 
         <div

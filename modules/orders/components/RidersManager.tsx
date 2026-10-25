@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bike, Pencil, Phone, UserRound } from "lucide-react";
 import EmployeeModal from "@/modules/employees/components/EmployeeModal";
 import type { Employee } from "@/modules/employees/services/employee.service";
+import type { EmployeeBranchOption, EmployeeManagerOption } from "@/modules/employees/services/employee.service";
 import type { RiderAccountOption } from "../services/order.service";
 
 type Business = { id: string; name: string };
@@ -14,11 +15,15 @@ export default function RidersManager({
   employees,
   businesses,
   departments,
+  branches,
+  storeManagers,
   accountOptions,
 }: {
   employees: Employee[];
   businesses: Business[];
   departments: Department[];
+  branches: EmployeeBranchOption[];
+  storeManagers: EmployeeManagerOption[];
   accountOptions: RiderAccountOption[];
 }) {
   const router = useRouter();
@@ -35,7 +40,7 @@ export default function RidersManager({
           <span className="rounded-xl bg-white/10 p-3 text-[#D4AF37]"><Bike className="h-6 w-6" /></span>
           <div><h2 className="text-xl font-bold">Delivery riders</h2><p className="mt-1 max-w-2xl text-sm text-white/65">Manage the active staff who can be assigned to customer deliveries.</p></div>
         </div>
-        {departments.length > 0 && <EmployeeModal key="new-rider" businesses={businesses} departments={departments} accountOptions={accountOptions} buttonLabel="Add rider" initialPosition="Delivery Rider" />}
+        {departments.length > 0 && <EmployeeModal key="new-rider" businesses={businesses} departments={departments} branches={branches} storeManagers={storeManagers} accountOptions={accountOptions} buttonLabel="Add rider" initialPosition="Delivery Rider" />}
       </section>
 
       {departments.length === 0 && <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Create an HR department before adding a rider. Rider records use AEOS employee records so delivery assignments stay connected to staff management.</p>}
@@ -66,7 +71,7 @@ export default function RidersManager({
         )}
       </section>
 
-      {selectedRider && <EmployeeModal key={selectedRider.id} businesses={businesses} departments={departments} accountOptions={selectedRider.user_id && !accountOptions.some((account) => account.auth_user_id === selectedRider.user_id) ? [...accountOptions, { auth_user_id: selectedRider.user_id, display_name: "Current linked account", email: "" }] : accountOptions} mode="edit" open employee={selectedRider} onClose={() => { setSelectedRider(null); router.refresh(); }} />}
+      {selectedRider && <EmployeeModal key={selectedRider.id} businesses={businesses} departments={departments} branches={branches} storeManagers={storeManagers} accountOptions={selectedRider.user_id && !accountOptions.some((account) => account.auth_user_id === selectedRider.user_id) ? [...accountOptions, { auth_user_id: selectedRider.user_id, display_name: "Current linked account", email: "" }] : accountOptions} mode="edit" open employee={selectedRider} onClose={() => { setSelectedRider(null); router.refresh(); }} />}
     </div>
   );
 }

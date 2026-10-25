@@ -17,7 +17,6 @@ import {
   Edit3,
   Eye,
   Loader2,
-  MoreVertical,
   Plus,
   RefreshCw,
   Trash2,
@@ -785,6 +784,8 @@ export default function BookingManager({
           View Details
         </button>
 
+        {booking.status !== "Completed" && <>
+
         <button
           type="button"
           onClick={() =>
@@ -829,9 +830,7 @@ export default function BookingManager({
         )}
 
         {booking.status !==
-          "Cancelled" &&
-          booking.status !==
-            "Completed" && (
+          "Cancelled" && (
             <button
               type="button"
               onClick={() =>
@@ -862,6 +861,7 @@ export default function BookingManager({
           <Trash2 className="h-4 w-4" />
           Delete
         </button>
+        </>}
       </div>,
       document.body
     );
@@ -1481,7 +1481,7 @@ export default function BookingManager({
             )}
 
             <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
-              <button
+              {booking.status !== "Completed" && <button
                 type="button"
                 onClick={() =>
                   openEdit(booking)
@@ -1490,7 +1490,7 @@ export default function BookingManager({
               >
                 <Edit3 className="h-4 w-4" />
                 Edit
-              </button>
+              </button>}
 
               <button
                 type="button"

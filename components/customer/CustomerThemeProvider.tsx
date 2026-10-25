@@ -55,9 +55,6 @@ export default function CustomerThemeProvider({
     }
 
     applyTheme(preferredAppearance);
-    if (preferredAppearance !== appearance) {
-      setAppearance(preferredAppearance);
-    }
     root.dataset.customerApp = "true";
 
     const handlePreferenceChange = (event: Event) => {

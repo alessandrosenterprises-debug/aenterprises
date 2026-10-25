@@ -55,7 +55,7 @@ export default function BusinessPosts({
           </h2>
 
           <p className="mt-1.5 text-sm text-slate-500">
-            Stay up to date with what's happening.
+             Stay up to date with what&apos;s happening.
           </p>
         </div>
 

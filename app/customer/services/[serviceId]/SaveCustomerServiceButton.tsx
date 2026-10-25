@@ -1,21 +1,31 @@
 "use client";
 
 import { Bookmark, BookmarkCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const SAVED_SERVICES_KEY = "aeos:saved-customer-services";
+const SAVED_SERVICES_EVENT = "aeos:saved-customer-services-change";
+
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(SAVED_SERVICES_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(SAVED_SERVICES_EVENT, callback);
+  };
+}
+
+function getSavedSnapshot(serviceId: string) {
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(SAVED_SERVICES_KEY) || "[]");
+    return Array.isArray(stored) && stored.includes(serviceId);
+  } catch {
+    return false;
+  }
+}
 
 export default function SaveCustomerServiceButton({ serviceId }: { serviceId: string }) {
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    try {
-      const current = JSON.parse(window.localStorage.getItem(SAVED_SERVICES_KEY) || "[]");
-      setSaved(Array.isArray(current) && current.includes(serviceId));
-    } catch {
-      setSaved(false);
-    }
-  }, [serviceId]);
+  const saved = useSyncExternalStore(subscribe, () => getSavedSnapshot(serviceId), () => false);
 
   function toggleSaved() {
     try {
@@ -23,10 +33,9 @@ export default function SaveCustomerServiceButton({ serviceId }: { serviceId: st
       const current: string[] = Array.isArray(stored) ? stored.filter((id): id is string => typeof id === "string") : [];
       const next = saved ? current.filter((id) => id !== serviceId) : [...new Set([...current, serviceId])];
       window.localStorage.setItem(SAVED_SERVICES_KEY, JSON.stringify(next));
-      setSaved(!saved);
+      window.dispatchEvent(new Event(SAVED_SERVICES_EVENT));
     } catch {
-      // Keep the action available if browser storage is disabled.
-      setSaved(!saved);
+      // The control remains available, but persistence requires browser storage.
     }
   }
 

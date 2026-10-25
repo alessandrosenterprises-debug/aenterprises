@@ -413,6 +413,7 @@ export default function LeaveTypesTable({
       ===================================================== */}
 
       <LeaveTypeModal
+        key={`create-${createOpen}`}
         open={createOpen}
         mode="create"
         onClose={() => {
@@ -426,6 +427,7 @@ export default function LeaveTypesTable({
       ===================================================== */}
 
       <LeaveTypeModal
+        key={`edit-${editOpen}-${selectedLeaveType?.id ?? "new"}`}
         open={editOpen}
         mode="edit"
         leaveType={selectedLeaveType}
@@ -566,7 +568,7 @@ export default function LeaveTypesTable({
             <p className="text-slate-600">
               Are you sure you want to delete{" "}
               <span className="font-semibold text-slate-900">
-                "{selectedLeaveType.name}"
+                 &quot;{selectedLeaveType.name}&quot;
               </span>
               ?
             </p>

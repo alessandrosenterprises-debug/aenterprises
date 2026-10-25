@@ -11,6 +11,10 @@ export type ConfigurationFieldType =
   | "phone"
   | "image";
 
+// React Hook Form's FieldValues is the shared indexable shape used by the
+// schema-driven configuration forms and their table rows.
+export type ConfigurationValues = import("react-hook-form").FieldValues;
+
 export interface ConfigurationField {
   key: string;
 

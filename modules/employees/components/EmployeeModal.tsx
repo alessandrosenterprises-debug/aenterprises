@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import Modal from "@/components/ui/modal/Modal";
 import EmployeeForm from "./EmployeeForm";
+import type { Employee, EmployeeBranchOption, EmployeeManagerOption } from "@/modules/employees/services/employee.service";
 
 interface Business {
   id: string;
@@ -18,13 +19,15 @@ interface Department {
 interface EmployeeModalProps {
   businesses: Business[];
   departments: Department[];
+  branches: EmployeeBranchOption[];
+  storeManagers: EmployeeManagerOption[];
   accountOptions?: { auth_user_id: string; display_name: string; email: string }[];
 
   mode?: "create" | "edit";
   buttonLabel?: string;
   initialPosition?: string;
 
-  employee?: any;
+  employee?: Partial<Employee> & { id?: string };
   open?: boolean;
   onClose?: () => void;
 }
@@ -32,6 +35,8 @@ interface EmployeeModalProps {
 export default function EmployeeModal({
   businesses,
   departments,
+  branches,
+  storeManagers,
   accountOptions,
   mode = "create",
   buttonLabel = "+ Add Employee",
@@ -76,6 +81,8 @@ export default function EmployeeModal({
         <EmployeeForm
           businesses={businesses}
           departments={departments}
+          branches={branches}
+          storeManagers={storeManagers}
           accountOptions={accountOptions}
           mode={mode}
           initialPosition={initialPosition}

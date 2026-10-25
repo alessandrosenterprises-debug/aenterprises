@@ -265,7 +265,11 @@ export default function SoftLoansLoanOverview({
                     "Loan Application"}
                 </p>
 
-                <p className="mt-2 text-2xl font-black text-[#03162F]">
+                <p className="mt-2 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                  {latestLoan.status === "Rejected" ? "Requested amount" : "Loan amount"}
+                </p>
+
+                <p className="mt-1 text-2xl font-black text-[#03162F]">
                   {formatMoney(
                     latestLoan.approved_amount ??
                       latestLoan.requested_amount,
@@ -286,6 +290,14 @@ export default function SoftLoansLoanOverview({
               </span>
             </div>
 
+            {latestLoan.status === "Rejected" ? (
+              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-red-700">Application decision</p>
+                <p className="mt-2 text-sm leading-5 text-red-800">
+                  {latestLoan.rejection_reason || "Your application was not approved. Please contact our team if you need more information."}
+                </p>
+              </div>
+            ) : (
             <div className="mt-5 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-slate-50 p-3">
                 <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
@@ -311,6 +323,7 @@ export default function SoftLoansLoanOverview({
                 </p>
               </div>
             </div>
+            )}
 
             <div className="mt-4 flex items-center justify-between text-xs font-bold text-[#03162F]">
               <span>

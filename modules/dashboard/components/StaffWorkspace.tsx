@@ -3,8 +3,15 @@ import {
   ArrowRight,
   Bike,
   CalendarDays,
+  Clock3,
   HandCoins,
   Mail,
+  FileText,
+  UsersRound,
+  WalletCards,
+  BarChart3,
+  UserRoundPlus,
+  MessageSquareText,
   MessageSquare,
   ShoppingBag,
 } from "lucide-react";
@@ -38,6 +45,13 @@ export default function StaffWorkspace({
     { title: "Consultations", description: "Respond to service requests", href: "/dashboard/enterprise/tech-solutions/consultations", permission: "businesses.view", count: stats.pendingConsultations, icon: MessageSquare, urgent: true },
     { title: "Emails", description: "Read and respond to email", href: "/dashboard/emails", permission: "communications.manage", icon: Mail },
     { title: "Customer messages", description: "Reply to open conversations", href: "/dashboard/messages", permission: "communications.manage", icon: MessageSquare },
+    { title: "Customer records", description: "Assist with customer accounts", href: "/dashboard/customers", permission: "customers.view", icon: UserRoundPlus },
+    { title: "Staff directory", description: "Review employee records", href: "/dashboard/hr/employees", permission: "employees.view", icon: UsersRound },
+    { title: "Attendance & leave", description: "Handle team attendance and leave", href: "/dashboard/hr/leave-attendance", permission: "hr.manage", icon: Clock3 },
+    { title: "Employee documents", description: "Review staff documents", href: "/dashboard/hr/documents", permission: "hr.manage", icon: FileText },
+    { title: "Payroll", description: "Work with payroll records", href: "/dashboard/hr/payroll", permission: "hr.manage", icon: WalletCards },
+    { title: "Reports", description: "Review operational reports", href: "/dashboard/reports", permission: "reports.view", icon: BarChart3 },
+    { title: "Customer reviews", description: "Read order feedback", href: "/dashboard/orders/reviews", permission: "orders.view", icon: MessageSquareText },
   ];
 
   const visibleActions = actions.filter((action) => isSuperAdministrator || permissionKeys.includes(action.permission));

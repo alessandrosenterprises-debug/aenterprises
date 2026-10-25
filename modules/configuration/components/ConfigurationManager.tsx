@@ -18,7 +18,7 @@ import {
   saveCompanySettingsAction,
 } from "@/app/dashboard/configuration/actions";
 
-import { ConfigurationSchema } from "../types/configuration";
+import { ConfigurationSchema, type ConfigurationValues } from "../types/configuration";
 
 interface Business {
   id: string;
@@ -27,7 +27,7 @@ interface Business {
 
 interface ConfigurationManagerProps {
   schema: ConfigurationSchema;
-  initialRows: Record<string, any>[];
+  initialRows: ConfigurationValues[];
   columns: {
     key: string;
     label: string;
@@ -45,9 +45,9 @@ export default function ConfigurationManager({
 
   const [showForm, setShowForm] = useState(false);
   const [editingRow, setEditingRow] =
-    useState<Record<string, any> | null>(null);
+    useState<ConfigurationValues | null>(null);
   const [viewingRow, setViewingRow] =
-    useState<Record<string, any> | null>(null);
+    useState<ConfigurationValues | null>(null);
 
   const isCompanySettings =
     schema.table === "company_settings";
@@ -79,7 +79,7 @@ export default function ConfigurationManager({
     setShowForm(true);
   }
 
-  function handleView(row: Record<string, any>) {
+  function handleView(row: ConfigurationValues) {
     setShowForm(false);
     setEditingRow(null);
 
@@ -93,7 +93,7 @@ export default function ConfigurationManager({
     }
   }
 
-  function handleEdit(row: Record<string, any>) {
+  function handleEdit(row: ConfigurationValues) {
     setViewingRow(null);
 
     if (schema.table === "businesses") {
@@ -142,7 +142,7 @@ export default function ConfigurationManager({
   }
 
   async function handleSubmit(
-    values: Record<string, any>
+    values: ConfigurationValues
   ) {
     try {
       /*
@@ -176,7 +176,7 @@ export default function ConfigurationManager({
       const editableKeys = new Set(schema.fields.map((field) => field.key));
       const payload = Object.fromEntries(
         Object.entries(values).filter(([key]) => editableKeys.has(key)),
-      ) as Record<string, any>;
+      ) as ConfigurationValues;
 
       /*
        * loan_product_name is a UI-only display field.
@@ -231,21 +231,18 @@ export default function ConfigurationManager({
 
       closeForm();
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Configuration save error:",
         error
       );
 
-      toast.error(
-        error?.message ??
-          `Failed to save ${schema.title}.`
-      );
+      toast.error(error instanceof Error ? error.message : `Failed to save ${schema.title}.`);
     }
   }
 
   async function handleDelete(
-    row: Record<string, any>
+    row: ConfigurationValues
   ) {
     /*
      * Company Settings is the enterprise singleton.
@@ -306,16 +303,13 @@ export default function ConfigurationManager({
       );
 
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         "Configuration delete error:",
         error
       );
 
-      toast.error(
-        error?.message ??
-          `Failed to delete ${schema.title}.`
-      );
+      toast.error(error instanceof Error ? error.message : `Failed to delete ${schema.title}.`);
     }
   }
 

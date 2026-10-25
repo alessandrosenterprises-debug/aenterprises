@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function requireBusinessContentAdmin() {
   const supabase = await createClient();
@@ -13,5 +13,7 @@ export async function requireBusinessContentAdmin() {
   const { data: canManageContent, error: permissionError } = await supabase.rpc("has_permission", { required_permission: "businesses.manage" });
   if (permissionError || !canManageContent) throw new Error("Your role does not allow business content changes.");
 
-  return createAdminClient();
+  // Keep the caller's JWT and effective staff token so database RLS can
+  // enforce business and branch assignments on every content operation.
+  return supabase;
 }

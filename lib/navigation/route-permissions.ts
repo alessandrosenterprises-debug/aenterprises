@@ -1,5 +1,10 @@
 export function getDashboardPermission(pathname: string): string {
   if (pathname === "/dashboard") return "dashboard.view";
+  if (pathname.startsWith("/dashboard/accounts/invoices")) return "billing.view";
+  if (pathname.startsWith("/dashboard/accounts")) return "accounts.view";
+  if (pathname.startsWith("/dashboard/stock")) return "stock.view";
+  if (pathname.startsWith("/dashboard/reports/submissions")) return "reports.submit";
+  if (pathname.startsWith("/dashboard/administration/monitoring")) return "access.view_audit";
   if (pathname.startsWith("/dashboard/administration/activity")) return "access.view_audit";
   if (pathname.startsWith("/dashboard/administration/access")) return "access.manage_permissions";
   if (pathname.startsWith("/dashboard/administration")) return "access.manage_roles";
@@ -11,12 +16,16 @@ export function getDashboardPermission(pathname: string): string {
   if (pathname.startsWith("/dashboard/enterprise")) return "businesses.view";
   if (pathname.startsWith("/dashboard/hr/employees")) return "employees.view";
   if (pathname.startsWith("/dashboard/hr/riders")) return "employees.manage";
+  if (pathname.startsWith("/dashboard/hr/payroll/payslips")) return "hr.manage";
   if (pathname.startsWith("/dashboard/departments")) return "hr.manage";
   if (pathname.startsWith("/dashboard/hr")) return "hr.manage";
   if (pathname.startsWith("/dashboard/employees")) return "employees.view";
   if (pathname.startsWith("/dashboard/customers")) return "customers.view";
   if (pathname.startsWith("/dashboard/loans")) return "loans.approve";
   if (pathname.startsWith("/dashboard/orders/my-deliveries")) return "deliveries.manage";
+  if (pathname.startsWith("/dashboard/reports/cash-reconciliation/cashiers") || pathname.startsWith("/dashboard/reports/cash-reconciliation/modes")) return "cash.manage";
+  if (pathname.startsWith("/dashboard/reports/cash-reconciliation/account-review")) return "cash.finalize";
+  if (pathname.startsWith("/dashboard/reports/cash-reconciliation")) return "reports.view";
   if (pathname.startsWith("/dashboard/orders/riders") || pathname.startsWith("/dashboard/orders/delivery-pricing")) return "deliveries.manage";
   if (pathname.startsWith("/dashboard/orders")) return "orders.view";
   if (pathname.startsWith("/dashboard/bookings")) return "bookings.view";
@@ -26,4 +35,18 @@ export function getDashboardPermission(pathname: string): string {
   if (pathname.startsWith("/dashboard/website")) return "configuration.manage";
   if (pathname.startsWith("/dashboard/payroll")) return "hr.manage";
   return "dashboard.view";
+}
+
+export function getDashboardPermissions(pathname: string): string[] {
+  if (pathname.startsWith("/dashboard/accounts/invoices")) return ["billing.view", "billing.manage"];
+  if (pathname.startsWith("/dashboard/stock")) return ["stock.view", "stock.manage", "stock.purchase", "stock.count"];
+  if (pathname.startsWith("/dashboard/hr/payroll/payslips")) return ["hr.manage", "accounts.payroll"];
+  if (pathname.startsWith("/dashboard/accounts")) return ["accounts.view"];
+  if (pathname.startsWith("/dashboard/reports/submissions")) return ["reports.submit", "reports.review"];
+  if (pathname.startsWith("/dashboard/reports/cash-reconciliation")) {
+    if (pathname.startsWith("/dashboard/reports/cash-reconciliation/cashiers") || pathname.startsWith("/dashboard/reports/cash-reconciliation/modes")) return ["cash.manage"];
+    if (pathname.startsWith("/dashboard/reports/cash-reconciliation/account-review")) return ["cash.finalize"];
+    return ["reports.view", "cash.reconcile", "cash.review", "cash.manage"];
+  }
+  return [getDashboardPermission(pathname)];
 }

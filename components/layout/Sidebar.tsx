@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSyncExternalStore } from "react";
 
 import { navigation, type NavigationItem } from "@/lib/navigation";
-import { getDashboardPermission } from "@/lib/navigation/route-permissions";
+import { getDashboardPermission, getDashboardPermissions } from "@/lib/navigation/route-permissions";
+
+const subscribeToNothing = () => () => {};
 
 function isCurrentPath(pathname: string, href?: string) {
   // A section landing page (for example HR Overview) must not stay selected
@@ -34,9 +37,15 @@ function itemPermission(item: NavigationItem) {
   return item.permission ?? (item.href ? permissionByHref[item.href] ?? getDashboardPermission(item.href) : undefined);
 }
 
+function itemPermissions(item: NavigationItem) {
+  if (item.href) return item.permission ? [item.permission] : permissionByHref[item.href] ? [permissionByHref[item.href]] : getDashboardPermissions(item.href);
+  const permission = itemPermission(item);
+  return permission ? [permission] : [];
+}
+
 function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, applyAccess }: { item: NavigationItem; pathname: string; permissionKeys: string[]; isSuperAdministrator: boolean; applyAccess: boolean }) {
   if (item.children?.length) {
-    const visibleChildren = item.children.filter((child) => !applyAccess || isSuperAdministrator || !itemPermission(child) || permissionKeys.includes(itemPermission(child)!));
+    const visibleChildren = item.children.filter((child) => (!child.superAdminOnly || isSuperAdministrator) && (!applyAccess || isSuperAdministrator || itemPermissions(child).length === 0 || itemPermissions(child).some((permission) => permissionKeys.includes(permission))));
     if (visibleChildren.length === 0) return null;
     const activeChild = visibleChildren.some((child) => isCurrentPath(pathname, child.href));
 
@@ -66,7 +75,7 @@ function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, app
     );
   }
 
-  if (applyAccess && !isSuperAdministrator && itemPermission(item) && !permissionKeys.includes(itemPermission(item)!)) return null;
+  if (applyAccess && !isSuperAdministrator && itemPermissions(item).length > 0 && !itemPermissions(item).some((permission) => permissionKeys.includes(permission))) return null;
   const active = isCurrentPath(pathname, item.href);
 
   return (
@@ -82,13 +91,29 @@ function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, app
 export default function Sidebar({ permissionKeys, isSuperAdministrator, accessControlEnabled }: { permissionKeys: string[]; isSuperAdministrator: boolean; accessControlEnabled: boolean }) {
   const pathname = usePathname();
   const applyAccess = accessControlEnabled;
+  // Role assignments and the effective operator session are resolved on the
+  // server. Keep the first browser render neutral so a refreshed session can
+  // never hydrate against a different set of permission-filtered links.
+  const hydrated = useSyncExternalStore(subscribeToNothing, () => true, () => false);
 
   return (
     <aside className="sticky top-0 z-40 flex h-full w-[280px] min-w-[280px] shrink-0 flex-col overflow-hidden border-r border-[#8F6500]/35 bg-[#B8860B] text-[#03162F] shadow-[4px_0_18px_rgba(3,22,47,0.12)]">
       <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
-        <div className="flex flex-col gap-2.5">
-          {navigation.map((item) => <SidebarItem key={item.title} item={item} pathname={pathname} permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} applyAccess={applyAccess} />)}
-        </div>
+        {hydrated ? (
+          <div className="flex flex-col gap-2.5">
+            {navigation.map((item) => <SidebarItem key={item.title} item={item} pathname={pathname} permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} applyAccess={applyAccess} />)}
+          </div>
+        ) : (
+          <div aria-hidden="true" className="flex flex-col gap-2.5">
+            {navigation.map((item) => (
+              <div key={item.title} className="space-y-2 px-2 py-2">
+                <div className="h-2 w-20 rounded bg-[#03162F]/15" />
+                <div className="h-7 rounded-md bg-white/20" />
+                {item.children && <div className="h-7 rounded-md bg-white/15" />}
+              </div>
+            ))}
+          </div>
+        )}
       </nav>
 
       <div className="shrink-0 border-t border-[#8F6500]/35 px-5 py-4">

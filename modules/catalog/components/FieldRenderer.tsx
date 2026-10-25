@@ -3,26 +3,27 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
+import type { FieldPath, FieldValues, UseFormRegister } from "react-hook-form";
 
 import { CatalogField } from "../types/catalog";
 
-interface FieldRendererProps {
+interface FieldRendererProps<TFieldValues extends FieldValues> {
   field: CatalogField;
 
-  register: any;
+  register: UseFormRegister<TFieldValues>;
 }
 
-export default function FieldRenderer({
+export default function FieldRenderer<TFieldValues extends FieldValues>({
   field,
   register,
-}: FieldRendererProps) {
+}: FieldRendererProps<TFieldValues>) {
   switch (field.type) {
     case "textarea":
       return (
         <Textarea
           label={field.label}
           placeholder={field.placeholder}
-          {...register(field.key)}
+          {...register(field.key as FieldPath<TFieldValues>)}
         />
       );
 
@@ -32,7 +33,7 @@ export default function FieldRenderer({
           label={field.label}
           placeholder={field.placeholder}
           options={field.options ?? []}
-          {...register(field.key)}
+          {...register(field.key as FieldPath<TFieldValues>)}
         />
       );
 
@@ -41,7 +42,7 @@ export default function FieldRenderer({
         <label className="flex items-center gap-3">
           <input
             type="checkbox"
-            {...register(field.key)}
+            {...register(field.key as FieldPath<TFieldValues>)}
           />
 
           <span>{field.label}</span>
@@ -54,7 +55,7 @@ export default function FieldRenderer({
           type="number"
           label={field.label}
           placeholder={field.placeholder}
-          {...register(field.key)}
+          {...register(field.key as FieldPath<TFieldValues>)}
         />
       );
 
@@ -64,7 +65,7 @@ export default function FieldRenderer({
           type="number"
           label={field.label}
           placeholder="0.00"
-          {...register(field.key)}
+          {...register(field.key as FieldPath<TFieldValues>)}
         />
       );
 
@@ -73,7 +74,7 @@ export default function FieldRenderer({
         <Input
           type="date"
           label={field.label}
-          {...register(field.key)}
+          {...register(field.key as FieldPath<TFieldValues>)}
         />
       );
 
@@ -82,7 +83,7 @@ export default function FieldRenderer({
         <Input
           label={field.label}
           placeholder="Image URL"
-          {...register(field.key)}
+          {...register(field.key as FieldPath<TFieldValues>)}
         />
       );
 
@@ -91,7 +92,7 @@ export default function FieldRenderer({
         <Input
           label={field.label}
           placeholder={field.placeholder}
-          {...register(field.key)}
+          {...register(field.key as FieldPath<TFieldValues>)}
         />
       );
   }

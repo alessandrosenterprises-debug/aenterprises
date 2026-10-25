@@ -67,10 +67,13 @@ export async function updateOrderAction(
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id, business_id, fulfillment_method, rider_employee_id, delivery_status")
+    .select("id, business_id, fulfillment_method, rider_employee_id, delivery_status, status")
     .eq("id", orderId)
     .maybeSingle();
   if (orderError || !order) return { success: false, error: "Order not found." };
+  if (order.status === "Completed" || order.delivery_status === "Delivered") {
+    return { success: false, error: "Completed orders are read-only." };
+  }
 
   const isDelivery = order.fulfillment_method?.toLowerCase() === "delivery";
   if (Object.hasOwn(updates, "delivery_fee")) {
@@ -119,6 +122,10 @@ export async function updateOrderAction(
   if (updates.delivery_status) {
     updateData.delivery_status = updates.delivery_status;
     if (updates.delivery_status === "Delivered") updateData.status = "Completed";
+  }
+  if (updateData.status === "Completed" || updateData.delivery_status === "Delivered") {
+    const { error: stockError } = await supabase.rpc("post_completed_order_stock", { p_order_id: orderId });
+    if (stockError) return { success: false, error: stockError.message };
   }
   const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
   if (error) return { success: false, error: error.message };
@@ -291,6 +298,16 @@ export async function updateAssignedRiderOrderAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Please sign in to update this delivery." };
 
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("status,delivery_status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (orderError || !order) return { success: false, error: "Delivery could not be found." };
+  if (order.status === "Completed" || order.delivery_status === "Delivered") {
+    return { success: false, error: "Completed deliveries are read-only." };
+  }
+
   const { error } = await supabase.rpc("update_assigned_order_delivery", {
     p_order_id: orderId,
     p_status: status,
@@ -312,6 +329,15 @@ export async function completeAssignedDeliveryWithProofAction(input: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Please sign in to complete this delivery." };
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("status,delivery_status")
+    .eq("id", input.orderId)
+    .maybeSingle();
+  if (orderError || !order) return { success: false, error: "Delivery could not be found." };
+  if (order.status === "Completed" || order.delivery_status === "Delivered") {
+    return { success: false, error: "Completed deliveries are read-only." };
+  }
   const { error } = await supabase.rpc("complete_assigned_delivery_with_proof", {
     p_order_id: input.orderId,
     p_received_by: input.receivedBy.trim(),

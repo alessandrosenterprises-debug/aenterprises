@@ -1,20 +1,20 @@
 "use client";
 
-import { UseFormRegister } from "react-hook-form";
+import { FieldValues, UseFormRegister } from "react-hook-form";
 
 import { BusinessCatalogSchema } from "../types/catalog";
 import FieldRenderer from "./FieldRenderer";
 
-interface DynamicCatalogFieldsProps {
+interface DynamicCatalogFieldsProps<TFieldValues extends FieldValues> {
   schema: BusinessCatalogSchema;
 
-  register: UseFormRegister<any>;
+  register: UseFormRegister<TFieldValues>;
 }
 
-export default function DynamicCatalogFields({
+export default function DynamicCatalogFields<TFieldValues extends FieldValues>({
   schema,
   register,
-}: DynamicCatalogFieldsProps) {
+}: DynamicCatalogFieldsProps<TFieldValues>) {
   if (!schema.fields.length) {
     return null;
   }

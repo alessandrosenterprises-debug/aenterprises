@@ -15,7 +15,7 @@ interface CustomerModalProps {
 
   mode?: "create" | "edit";
 
-  customer?: any;
+  customer?: React.ComponentProps<typeof CustomerForm>["customer"];
   open?: boolean;
 onClose?: () => void;
 }

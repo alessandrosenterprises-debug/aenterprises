@@ -197,23 +197,6 @@ export default function EmployeeDocumentModal({
       value: employee.id,
     }));
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    setForm(
-      getInitialForm(document)
-    );
-
-    setSelectedFile(null);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value =
-        "";
-    }
-  }, [isOpen, document]);
-
   function updateField(
     field: keyof FormState,
     value: string

@@ -77,6 +77,11 @@ export default function CustomerLoansTable({
   const [approvalLoan, setApprovalLoan] =
     useState<CustomerLoanApplication | null>(null);
 
+  const [rejectionLoan, setRejectionLoan] =
+    useState<CustomerLoanApplication | null>(null);
+
+  const [rejectionReason, setRejectionReason] = useState("");
+
   const [approvedAmount, setApprovedAmount] =
     useState("");
 
@@ -250,22 +255,16 @@ export default function CustomerLoansTable({
    * ==========================================================
    */
 
-  async function reject(
-    loan: CustomerLoanApplication
-  ) {
-    const reason = window.prompt(
-      "Enter rejection reason:"
-    );
+  function reject(loan: CustomerLoanApplication) {
+    setRejectionReason("");
+    setRejectionLoan(loan);
+  }
 
-    if (reason === null) {
-      return;
-    }
-
-    if (!reason.trim()) {
+  async function handleRejectLoan() {
+    if (!rejectionLoan || !rejectionReason.trim()) {
       toast.error(
         "A rejection reason is required."
       );
-
       return;
     }
 
@@ -273,13 +272,16 @@ export default function CustomerLoansTable({
       setProcessing(true);
 
       await rejectCustomerLoanApplication(
-        loan.id,
-        reason
+        rejectionLoan.id,
+        rejectionReason.trim()
       );
 
       toast.success(
         "Loan application rejected."
       );
+
+      setRejectionLoan(null);
+      setRejectionReason("");
 
       window.location.reload();
     } catch (error) {
@@ -692,86 +694,30 @@ export default function CustomerLoansTable({
 
                       <td className="px-6 py-4">
 
-                        <div className="flex items-center justify-center gap-2">
-
-                          {/* VIEW */}
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setSelectedLoan(
-                                loan
-                              )
-                            }
-                            className="rounded-lg px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50"
-                          >
-                            View
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={processing}
-                            onClick={() => edit(loan)}
-                            className="rounded-lg px-3 py-2 text-xs font-semibold text-[#03162F] hover:bg-slate-100 disabled:opacity-50"
-                          >
-                            Edit
-                          </button>
-
-                          {/* APPROVE / REJECT */}
-
-                          {loan.status ===
-                            "Pending" && (
-                            <>
-                              <button
-                                type="button"
-                                disabled={
-                                  processing
-                                }
-                                onClick={() =>
-                                  approve(
-                                    loan
-                                  )
-                                }
-                                className="rounded-lg px-3 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"
-                              >
-                                Approve
-                              </button>
-
-                              <button
-                                type="button"
-                                disabled={
-                                  processing
-                                }
-                                onClick={() =>
-                                  reject(
-                                    loan
-                                  )
-                                }
-                                className="rounded-lg px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-
-                          {/* DELETE */}
-
-                          <button
-                            type="button"
-                            disabled={
-                              processing
-                            }
-                            onClick={() =>
-                              remove(
-                                loan
-                              )
-                            }
-                            className="rounded-lg px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                          >
-                            Delete
-                          </button>
-
-                        </div>
+                        <select
+                          aria-label={`Actions for loan ${loan.application_number ?? loan.id}`}
+                          defaultValue=""
+                          disabled={processing}
+                          onChange={(event) => {
+                            const action = event.currentTarget.value;
+                            event.currentTarget.value = "";
+                            if (action === "view") setSelectedLoan(loan);
+                            else if (action === "edit") edit(loan);
+                            else if (action === "approve") approve(loan);
+                            else if (action === "reject") reject(loan);
+                            else if (action === "delete") remove(loan);
+                          }}
+                          className="min-w-28 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#03162F] outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 disabled:opacity-50"
+                        >
+                          <option value="" disabled>Actions</option>
+                          <option value="view">View</option>
+                          {!(["Completed", "Rejected"].includes(loan.status)) && <option value="edit">Edit</option>}
+                          {loan.status === "Pending" && <>
+                            <option value="approve">Approve</option>
+                            <option value="reject">Reject</option>
+                          </>}
+                          {!(["Completed", "Rejected"].includes(loan.status)) && <option value="delete">Delete</option>}
+                        </select>
 
                       </td>
 
@@ -1058,6 +1004,77 @@ export default function CustomerLoansTable({
 
           </div>
 
+        </div>
+      )}
+
+      {rejectionLoan && (
+        <div
+          className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !processing) {
+              setRejectionLoan(null);
+              setRejectionReason("");
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reject-loan-title"
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">Loan application</p>
+                <h2 id="reject-loan-title" className="mt-1 text-xl font-bold text-[#03162F]">Reject application</h2>
+                <p className="mt-1 text-sm text-slate-500">Add a reason that can be shared with the customer.</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close rejection dialog"
+                disabled={processing}
+                onClick={() => { setRejectionLoan(null); setRejectionReason(""); }}
+                className="rounded-lg px-2 py-1 text-2xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+              >×</button>
+            </header>
+            <div className="space-y-4 p-6">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Customer</p>
+                <p className="mt-1 font-semibold text-[#03162F]">{rejectionLoan.customers?.full_name ?? "Unknown Customer"}</p>
+                <p className="mt-1 text-sm text-slate-600">Requested amount: {money(rejectionLoan.requested_amount)}</p>
+              </div>
+              <div>
+                <label htmlFor="loan-rejection-reason" className="mb-2 block text-sm font-semibold text-slate-700">Rejection reason <span className="text-red-600">*</span></label>
+                <textarea
+                  id="loan-rejection-reason"
+                  autoFocus
+                  required
+                  rows={4}
+                  maxLength={1000}
+                  value={rejectionReason}
+                  onChange={(event) => setRejectionReason(event.target.value)}
+                  disabled={processing}
+                  placeholder="Explain why this application is being rejected..."
+                  className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#03162F] focus:ring-2 focus:ring-[#03162F]/10 disabled:bg-slate-100"
+                />
+              </div>
+            </div>
+            <footer className="flex justify-end gap-3 border-t border-slate-200 px-6 py-5">
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => { setRejectionLoan(null); setRejectionReason(""); }}
+                className="rounded-xl border border-slate-300 px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >Cancel</button>
+              <button
+                type="button"
+                disabled={processing || !rejectionReason.trim()}
+                onClick={handleRejectLoan}
+                className="rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >{processing ? "Rejecting..." : "Reject application"}</button>
+            </footer>
+          </section>
         </div>
       )}
       {/* ======================================================

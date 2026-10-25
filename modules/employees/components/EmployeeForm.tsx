@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ import {
   createEmployee,
   updateEmployee,
 } from "@/modules/employees/services/employee.client";
+import type { Employee, EmployeeBranchOption, EmployeeManagerOption } from "@/modules/employees/services/employee.service";
 
 interface Business {
   id: string;
@@ -28,6 +29,8 @@ interface EmployeeFormValues {
   business_id: string;
   department_id: string;
   user_id: string;
+  branch_id: string;
+  store_manager_profile_id: string;
 
   full_name: string;
   phone: string;
@@ -50,6 +53,8 @@ interface EmployeeFormValues {
 interface EmployeeFormProps {
   businesses: Business[];
   departments: Department[];
+  branches: EmployeeBranchOption[];
+  storeManagers: EmployeeManagerOption[];
   accountOptions?: { auth_user_id: string; display_name: string; email: string }[];
 
   onSuccess?: () => void;
@@ -57,14 +62,14 @@ interface EmployeeFormProps {
   mode?: "create" | "edit";
   initialPosition?: string;
 
-  employee?: Partial<EmployeeFormValues> & {
-    id?: string;
-  };
+  employee?: Partial<Employee> & { id?: string };
 }
 
 export default function EmployeeForm({
   businesses,
   departments,
+  branches,
+  storeManagers,
   accountOptions = [],
   onSuccess,
   mode = "create",
@@ -75,6 +80,8 @@ export default function EmployeeForm({
 
   const {
     register,
+    control,
+    setValue,
     handleSubmit,
     formState: { isSubmitting },
   } = useForm<EmployeeFormValues>({
@@ -82,6 +89,8 @@ export default function EmployeeForm({
       business_id: employee?.business_id ?? "",
       department_id: employee?.department_id ?? "",
       user_id: employee?.user_id ?? "",
+      branch_id: employee?.branch_id ?? "",
+      store_manager_profile_id: employee?.store_manager_profile_id ?? "",
 
       full_name: employee?.full_name ?? "",
       phone: employee?.phone ?? "",
@@ -112,6 +121,11 @@ export default function EmployeeForm({
     label: department.name,
     value: department.id,
   }));
+  const selectedBusinessId = useWatch({ control, name: "business_id" });
+  const branchOptions = branches.filter((branch) => branch.business_id === selectedBusinessId).map((branch) => ({ label: branch.name, value: branch.id }));
+  const managerOptions = storeManagers.filter((manager) => !manager.business_id || manager.business_id === selectedBusinessId).map((manager) => ({ label: `${manager.display_name}${manager.email ? ` · ${manager.email}` : ""}`, value: manager.id }));
+  const businessField = register("business_id", { required: "Store is required." });
+  const branchField = register("branch_id", { required: "Branch is required." });
 
   async function onSubmit(data: EmployeeFormValues) {
   try {
@@ -122,8 +136,14 @@ export default function EmployeeForm({
 
       return;
     }
+    if (!data.business_id || !data.branch_id || !data.store_manager_profile_id) {
+      toast.error("Select the store, branch, and store manager before saving.");
+      return;
+    }
       const employeeData = {
         business_id: data.business_id || null,
+        branch_id: data.branch_id,
+        store_manager_profile_id: data.store_manager_profile_id,
         department_id: data.department_id,
         user_id: data.user_id || null,
 
@@ -195,8 +215,16 @@ export default function EmployeeForm({
           label="Business *"
           placeholder="Select Business"
           options={businessOptions}
-          {...register("business_id")}
+          {...businessField}
+          onChange={(event) => {
+            businessField.onChange(event);
+            if (event.target.value !== selectedBusinessId) setValue("branch_id", "", { shouldDirty: true });
+          }}
         />
+
+        <Select label="Branch *" placeholder={selectedBusinessId ? (branchOptions.length ? "Select Branch" : "No branches for this store") : "Select a store first"} options={branchOptions} {...branchField} />
+
+        <Select label="Store Manager *" placeholder={managerOptions.length ? "Select Store Manager" : "No active managers available"} options={managerOptions} {...register("store_manager_profile_id", { required: "Store manager is required." })} />
 
         {/* Department */}
 <Select

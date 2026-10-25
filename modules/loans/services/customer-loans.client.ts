@@ -277,6 +277,11 @@ export async function rejectCustomerLoanApplication(
       rejection_reason: reason,
       approved_amount: null,
       approved_at: null,
+      approved_by: null,
+      total_payable: null,
+      monthly_installment: null,
+      amount_paid: 0,
+      outstanding_balance: 0,
       updated_at:
         new Date().toISOString(),
     })
@@ -294,6 +299,19 @@ export async function rejectCustomerLoanApplication(
 export async function deleteCustomerLoanApplication(
   id: string
 ): Promise<void> {
+  const { data: current, error: lookupError } = await supabase
+    .from("customer_loan_applications")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (lookupError || !current) {
+    throw new Error("Loan application could not be found.");
+  }
+  if (["Rejected", "Completed"].includes(current.status)) {
+    throw new Error("Rejected and completed loan applications are view-only.");
+  }
+
   const { error } = await supabase
     .from("customer_loan_applications")
     .delete()

@@ -5,12 +5,12 @@ import { useState } from "react";
 import Modal from "@/components/ui/modal/Modal";
 
 import ConfigurationForm from "./ConfigurationForm";
-import { ConfigurationSchema } from "../types/configuration";
+import { ConfigurationSchema, type ConfigurationValues } from "../types/configuration";
 
 interface ConfigurationModalProps {
   schema: ConfigurationSchema;
 
-  defaultValues?: Record<string, any>;
+  defaultValues?: ConfigurationValues;
 
   mode?: "create" | "edit";
 
@@ -19,7 +19,7 @@ interface ConfigurationModalProps {
   onClose?: () => void;
 
   onSubmit: (
-    values: Record<string, any>
+    values: ConfigurationValues
   ) => Promise<void>;
 }
 

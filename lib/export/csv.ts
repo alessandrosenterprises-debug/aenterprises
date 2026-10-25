@@ -1,6 +1,6 @@
 export function exportToCSV(
   filename: string,
-  rows: Record<string, any>[]
+  rows: Record<string, unknown>[]
 ) {
   if (!rows.length) return;
 

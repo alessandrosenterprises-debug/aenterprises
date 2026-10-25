@@ -25,7 +25,7 @@ export default function AppLayout({
           Full width — owns branding, search and account area
       ===================================================== */}
 
-      <Header />
+      <Header permissionKeys={permissionKeys} />
 
       {/* =====================================================
           BODY

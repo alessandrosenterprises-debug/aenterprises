@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -13,6 +13,8 @@ import {
   MessageCircle,
   X,
 } from "lucide-react";
+
+const subscribeToNothing = () => () => {};
 
 /*
 |--------------------------------------------------------------------------
@@ -279,8 +281,7 @@ export default function NotificationCenter() {
   const [open, setOpen] =
     useState(false);
 
-  const [mounted, setMounted] =
-    useState(false);
+  const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
 
   const [selected, setSelected] =
     useState<Notification | null>(null);
@@ -377,7 +378,6 @@ export default function NotificationCenter() {
   }
 
   // Initial load
-  setLoading(true);
   void loadNotifications();
 
   const notificationChannel = supabase
@@ -453,10 +453,6 @@ export default function NotificationCenter() {
    * CLIENT MOUNT
    * ---------------------------------------------------------------
    */
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   /*
    * ---------------------------------------------------------------
@@ -846,7 +842,7 @@ export default function NotificationCenter() {
                     </p>
 
                     <p className="mt-1 text-sm text-slate-500">
-                      You're all caught up.
+                       You&apos;re all caught up.
                     </p>
                   </div>
                 ) : (

@@ -306,15 +306,15 @@ export default function OrdersManager({ orders, riders, customers, businesses, c
                 {selectedOrder.delivery_latitude !== null && selectedOrder.delivery_longitude !== null && <iframe title={`Customer pinned map for order ${selectedOrder.id.slice(0, 8)}`} src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedOrder.delivery_longitude - 0.006}%2C${selectedOrder.delivery_latitude - 0.004}%2C${selectedOrder.delivery_longitude + 0.006}%2C${selectedOrder.delivery_latitude + 0.004}&layer=mapnik&marker=${selectedOrder.delivery_latitude}%2C${selectedOrder.delivery_longitude}`} loading="lazy" className="mt-4 h-52 w-full rounded-xl border border-slate-200 bg-slate-100" />}
               </div>}
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              {(selectedOrder.status !== "Completed" && selectedOrder.delivery_status !== "Delivered") && <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-slate-500">Payment status<select disabled={isPending} value={selectedOrder.payment_status} onChange={(event) => update(selectedOrder.id, { payment_status: event.target.value })} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-[#03162F] disabled:opacity-60">{PAYMENT_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
-              </div>
+              </div>}
               {selectedOrder.notes && <div className="rounded-xl border border-slate-200 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Customer notes</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{selectedOrder.notes}</p></div>}
             </div>
 
             <footer className="border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:px-6">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex flex-wrap gap-2">
+                {(selectedOrder.status !== "Completed" && selectedOrder.delivery_status !== "Delivered") && <div className="flex flex-wrap gap-2">
                   <button type="button" disabled={isPending || ["Confirmed", "Processing", "Ready", "Completed", "Cancelled"].includes(selectedOrder.status)} onClick={() => update(selectedOrder.id, { status: "Confirmed" })} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-3.5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45"><Check className="h-4 w-4" />Confirm</button>
                   {selectedOrder.fulfillment_method === "Delivery" ? <>
                     <button type="button" disabled={isPending} onClick={() => { setOrderDetailsOpen(false); setRiderPickerOpen(true); setSelectedRiderId(selectedOrder.rider_employee_id ?? ""); setReturnToOrderDetails(true); }} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-bold text-[#03162F] transition hover:bg-slate-100 disabled:opacity-50"><Bike className="h-4 w-4" />{selectedOrder.rider_employee_id ? "Change rider" : "Assign rider"}</button>
@@ -329,7 +329,7 @@ export default function OrdersManager({ orders, riders, customers, businesses, c
                     <button type="button" disabled={isPending || ["Completed", "Cancelled"].includes(selectedOrder.status)} onClick={() => update(selectedOrder.id, { status: "Completed" })} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-3.5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45"><CheckCircle2 className="h-4 w-4" />Complete pickup</button>
                   </>}
                   <button type="button" disabled={isPending || ["Completed", "Cancelled"].includes(selectedOrder.status)} onClick={() => update(selectedOrder.id, { status: "Cancelled" })} className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3.5 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-45"><X className="h-4 w-4" />Cancel</button>
-                </div>
+                </div>}
                 <button type="button" onClick={closeOrder} disabled={isPending} className="self-start rounded-lg px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-200 disabled:opacity-50 xl:self-auto">Close</button>
               </div>
             </footer>

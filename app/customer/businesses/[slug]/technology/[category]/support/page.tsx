@@ -145,7 +145,7 @@ export default async function ITSupportPage({
                     </div>
 
                     <h2 className="mt-8 text-2xl font-bold">
-                      What's happening with your device?
+                      What&apos;s happening with your device?
                     </h2>
 
                     <p className="mt-3 text-sm leading-6 text-slate-400">
@@ -236,7 +236,7 @@ export default async function ITSupportPage({
                 </h2>
 
                 <p className="mt-4 leading-7 text-slate-400">
-                  You don't need to know exactly what is wrong. Give us the
+                   You don&apos;t need to know exactly what is wrong. Give us the
                   information you have and we can help determine what should
                   happen next.
                 </p>
@@ -329,7 +329,7 @@ export default async function ITSupportPage({
               </h3>
 
               <p className="mt-3 text-sm leading-6 text-slate-400">
-                That's okay. Start a support request and explain the situation
+                 That&apos;s okay. Start a support request and explain the situation
                 in your own words. We can help direct you to the appropriate
                 Tech Solutions service.
               </p>

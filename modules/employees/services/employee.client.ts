@@ -6,6 +6,8 @@ import {
 
 export interface CreateEmployeeInput {
   business_id: string | null;
+  branch_id?: string | null;
+  store_manager_profile_id?: string | null;
   department_id: string | null;
   user_id?: string | null;
   full_name: string;

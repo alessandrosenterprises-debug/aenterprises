@@ -1,12 +1,10 @@
 import { getBusinesses } from "@/modules/businesses/services/business.service";
 import { getDepartments } from "@/modules/departments/services/department.service";
-import { getEmployees } from "@/modules/employees/services/employee.service";
+import { getEmployeeAssignmentOptions, getEmployees } from "@/modules/employees/services/employee.service";
 import EmployeesTable from "@/modules/employees/components/EmployeesTable";
 
 export default async function EmployeesPage() {
-  const employees = await getEmployees();
-  const businesses = await getBusinesses();
-  const departments = await getDepartments();
+  const [employees, businesses, departments, assignmentOptions] = await Promise.all([getEmployees(), getBusinesses(), getDepartments(), getEmployeeAssignmentOptions()]);
 
   return (
     <div className="space-y-6">
@@ -24,6 +22,9 @@ export default async function EmployeesPage() {
         employees={employees}
         businesses={businesses}
         departments={departments}
+        branches={assignmentOptions.branches}
+        storeManagers={assignmentOptions.managers}
+        accountOptions={assignmentOptions.accountOptions}
       />
     </div>
   );

@@ -27,6 +27,7 @@ interface DocumentCardProps {
   title: string;
   url: string | null;
   loading: boolean;
+  attached: boolean;
 }
 
 type RepaymentFrequency =
@@ -317,6 +318,7 @@ function DocumentCard({
   title,
   url,
   loading,
+  attached,
 }: DocumentCardProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -389,11 +391,13 @@ function DocumentCard({
             </div>
 
             <p className="font-medium text-slate-500">
-              Document not available
+              {attached ? "Unable to load document" : "Document not available"}
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              No document was attached to this application.
+              {attached
+                ? "A document path is saved, but the file could not be retrieved from storage."
+                : "No document was attached to this application."}
             </p>
           </div>
         )}
@@ -1382,6 +1386,7 @@ export default function CustomerLoanDetails({
                     <DocumentCard
                       title="NRC Front"
                       url={nrcFrontUrl}
+                      attached={Boolean(loan.nrc_front_path)}
                       loading={
                         documentsLoading
                       }
@@ -1392,6 +1397,7 @@ export default function CustomerLoanDetails({
                     <DocumentCard
                       title="NRC Back"
                       url={nrcBackUrl}
+                      attached={Boolean(loan.nrc_back_path)}
                       loading={
                         documentsLoading
                       }
@@ -1402,6 +1408,7 @@ export default function CustomerLoanDetails({
                     <DocumentCard
                       title="Customer Selfie"
                       url={selfieUrl}
+                      attached={Boolean(loan.selfie_path)}
                       loading={
                         documentsLoading
                       }

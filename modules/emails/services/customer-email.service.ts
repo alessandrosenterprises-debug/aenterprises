@@ -249,7 +249,9 @@ const CUSTOMER_EMAIL_SELECT = `
  * ------------------------------------------------------------
  */
 function mapCustomerEmail(
-  email: any,
+  email: Omit<CustomerEmailRecord, "direction" | "businesses"> & {
+    businesses?: CustomerEmailRecord["businesses"] | CustomerEmailRecord["businesses"][];
+  },
   customerEmail: string | null
 ): CustomerEmailRecord {
   const business =

@@ -274,7 +274,8 @@ export default function CustomerMessagesPage() {
   }, []);
 
   useEffect(() => {
-    loadMessages();
+    const task = window.setTimeout(() => { void loadMessages(); }, 0);
+    return () => window.clearTimeout(task);
   }, [loadMessages]);
 
   /*

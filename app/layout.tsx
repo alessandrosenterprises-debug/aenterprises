@@ -20,9 +20,14 @@ export default function RootLayout({
 
         <Toaster
           position="top-right"
+          theme="light"
           richColors
           closeButton
-          duration={3000}
+          duration={4000}
+          visibleToasts={3}
+          offset={{ top: 92, right: 18 }}
+          mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 82px)", left: 12, right: 12 }}
+          toastOptions={{ closeButton: true, closeButtonAriaLabel: "Dismiss notification" }}
         />
       </body>
     </html>

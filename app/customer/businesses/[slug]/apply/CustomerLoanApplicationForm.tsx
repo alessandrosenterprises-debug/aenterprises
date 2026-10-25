@@ -913,11 +913,6 @@ export default function CustomerLoanApplicationForm({
       return false;
     }
 
-    if (selectedProduct?.requires_collateral && collateralId === "none") {
-      setError("This loan product requires collateral. Please select an item from the list.");
-      return false;
-    }
-
     if (
       collateralId !== "none" &&
       collateralWorth
@@ -1770,8 +1765,8 @@ export default function CustomerLoanApplicationForm({
 
             <p className="mt-1 text-xs leading-5 text-slate-500">
               {selectedProduct?.requires_collateral
-                ? "This loan product requires an eligible collateral item."
-                : "Select an eligible collateral item, or choose None if this loan does not require collateral."}
+                ? "Collateral is recommended for this product, but you may choose None or an eligible item."
+                : "Select an eligible collateral item, or choose None."}
             </p>
 
             <div className="mt-6 space-y-4">
@@ -1798,9 +1793,7 @@ export default function CustomerLoanApplicationForm({
                     Select collateral option
                   </option>
 
-                  {!selectedProduct?.requires_collateral && (
-                    <option value="none">None</option>
-                  )}
+                  <option value="none">None</option>
 
                   {collaterals.map(
                     (collateral) => (
@@ -1821,7 +1814,7 @@ export default function CustomerLoanApplicationForm({
                 )}
               </div>
 
-              {collateralId === "none" && !selectedProduct?.requires_collateral && (
+              {collateralId === "none" && (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                   <p className="text-xs font-bold text-emerald-700">
                     No collateral selected

@@ -4,8 +4,8 @@ import { ArrowLeft, Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinesses } from "@/modules/businesses/services/business.service";
 import { getDepartments } from "@/modules/departments/services/department.service";
-import { getEmployees } from "@/modules/employees/services/employee.service";
-import { canManageDeliveryRiders, getRiderAccountOptions } from "@/modules/orders/services/order.service";
+import { getEmployeeAssignmentOptions, getEmployees } from "@/modules/employees/services/employee.service";
+import { canManageDeliveryRiders } from "@/modules/orders/services/order.service";
 import RidersManager from "@/modules/orders/components/RidersManager";
 
 export const dynamic = "force-dynamic";
@@ -16,11 +16,11 @@ export default async function HRDeliveryRidersPage() {
   if (!user) redirect("/login");
   if (!(await canManageDeliveryRiders(supabase, user.id))) redirect("/dashboard");
 
-  const [employees, businesses, departments, accountOptions] = await Promise.all([
+  const [employees, businesses, departments, assignmentOptions] = await Promise.all([
     getEmployees(),
     getBusinesses(),
     getDepartments(),
-    getRiderAccountOptions(),
+    getEmployeeAssignmentOptions(),
   ]);
 
   return <div className="space-y-6">
@@ -33,6 +33,6 @@ export default async function HRDeliveryRidersPage() {
       <Link href="/dashboard/orders" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#03162F] shadow-sm hover:bg-slate-50"><ArrowLeft className="h-4 w-4" />Customer Orders</Link>
     </header>
     <div className="-mt-2 flex items-center gap-2 text-xs text-slate-500"><Bike className="h-4 w-4 text-[#9a7910]" />Active riders appear in the Assign Rider selector on customer delivery orders.</div>
-    <RidersManager employees={employees} businesses={businesses} departments={departments} accountOptions={accountOptions} />
+    <RidersManager employees={employees} businesses={businesses} departments={departments} branches={assignmentOptions.branches} storeManagers={assignmentOptions.managers} accountOptions={assignmentOptions.accountOptions} />
   </div>;
 }

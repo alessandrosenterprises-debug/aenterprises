@@ -1,6 +1,5 @@
 ﻿import { createClient } from "@/lib/supabase/server";
 
-import { createAdminClient } from "@/lib/supabase/admin";
 
 import type {
   CustomerLoanApplication,
@@ -450,7 +449,6 @@ export async function createCustomerLoanApplication(
   input: CustomerLoanApplicationInput
 ): Promise<CustomerLoanApplication> {
   const supabase = await createClient();
-  const adminSupabase = createAdminClient();
 
   const requestedAmount = Number(
     input.requested_amount
@@ -479,7 +477,7 @@ export async function createCustomerLoanApplication(
     data: product,
     error: productError,
   } = input.loan_product_id
-    ? await adminSupabase
+    ? await supabase
         .from("loan_products")
         .select(`
           id,
@@ -525,7 +523,7 @@ export async function createCustomerLoanApplication(
     );
   }
 
-  const { data: selectedTerm, error: termError } = await adminSupabase
+  const { data: selectedTerm, error: termError } = await supabase
     .from("loan_product_terms")
     .select("id, loan_product_id, period_days, interest_rate, active")
     .eq("id", input.loan_product_term_id)
@@ -536,12 +534,8 @@ export async function createCustomerLoanApplication(
   if (termError) throw new Error(`Unable to verify repayment term: ${termError.message}`);
   if (!selectedTerm) throw new Error("The selected repayment term is no longer available for this loan product.");
 
-  if (product?.requires_collateral && !input.collateral_id) {
-    throw new Error("This loan product requires an approved collateral item.");
-  }
-
   if (input.collateral_id) {
-    const { data: collateral, error: collateralError } = await adminSupabase
+    const { data: collateral, error: collateralError } = await supabase
       .from("collateral_catalogue")
       .select("id")
       .eq("id", input.collateral_id)
@@ -575,7 +569,7 @@ export async function createCustomerLoanApplication(
 
   const interestRate = Number(selectedTerm.interest_rate);
   const repaymentPeriod = Number(selectedTerm.period_days);
-  const collateralRequired = Boolean(product?.requires_collateral);
+  const collateralRequired = Boolean(product?.requires_collateral && input.collateral_id);
 
   /**
    * Determine repayment frequency.
@@ -783,6 +777,18 @@ export async function updateCustomerLoanApplication(
   input: Partial<CustomerLoanApplicationInput>
 ): Promise<CustomerLoanApplication> {
   const supabase = await createClient();
+
+  const { data: currentApplication, error: currentApplicationError } = await supabase
+    .from("customer_loan_applications")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+  if (currentApplicationError || !currentApplication) {
+    throw new Error("Loan application could not be found.");
+  }
+  if (["Rejected", "Completed"].includes(currentApplication.status)) {
+    throw new Error("Rejected and completed loan applications are view-only.");
+  }
 
   const updateData: Record<
     string,
@@ -1285,6 +1291,22 @@ export async function updateCustomerLoanApplication(
 
     updateData.outstanding_balance =
       figures.outstandingBalance;
+  }
+
+  // Rejected applications are not issued debt. Keep this invariant even
+  // when an administrator changes the status from the general edit form.
+  if (input.status === "Rejected") {
+    updateData.approved_amount = null;
+    updateData.approved_by = null;
+    updateData.approved_at = null;
+    updateData.total_payable = null;
+    updateData.monthly_installment = null;
+    updateData.amount_paid = 0;
+    updateData.outstanding_balance = 0;
+  }
+
+  if (input.status === "Cancelled") {
+    updateData.outstanding_balance = 0;
   }
 
   const { data, error } =

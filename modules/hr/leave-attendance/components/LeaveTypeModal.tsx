@@ -30,39 +30,13 @@ export default function LeaveTypeModal({
   onClose,
   onSaved,
 }: LeaveTypeModalProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] =
-    useState("");
-  const [defaultDays, setDefaultDays] =
-    useState("0");
-  const [isPaid, setIsPaid] =
-    useState(true);
-  const [isActive, setIsActive] =
-    useState(true);
+  const [name, setName] = useState(() => mode === "edit" && leaveType ? leaveType.name : "");
+  const [description, setDescription] = useState(() => mode === "edit" && leaveType ? leaveType.description ?? "" : "");
+  const [defaultDays, setDefaultDays] = useState(() => mode === "edit" && leaveType ? String(leaveType.default_days ?? 0) : "0");
+  const [isPaid, setIsPaid] = useState(() => mode === "edit" && leaveType ? leaveType.is_paid : true);
+  const [isActive, setIsActive] = useState(() => mode === "edit" && leaveType ? leaveType.is_active : true);
   const [saving, setSaving] =
     useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-
-    if (mode === "edit" && leaveType) {
-      setName(leaveType.name);
-      setDescription(
-        leaveType.description ?? ""
-      );
-      setDefaultDays(
-        String(leaveType.default_days ?? 0)
-      );
-      setIsPaid(leaveType.is_paid);
-      setIsActive(leaveType.is_active);
-    } else {
-      setName("");
-      setDescription("");
-      setDefaultDays("0");
-      setIsPaid(true);
-      setIsActive(true);
-    }
-  }, [open, mode, leaveType]);
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>

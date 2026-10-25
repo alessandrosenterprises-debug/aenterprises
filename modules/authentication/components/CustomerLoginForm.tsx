@@ -71,6 +71,11 @@ export default function CustomerLoginForm() {
     );
 
     if (result.error) {
+      if (/staff account/i.test(result.error.message)) {
+        router.replace("/login?account=customer-portal-blocked");
+        router.refresh();
+        return;
+      }
       setError(result.error.message);
       return;
     }
@@ -230,7 +235,7 @@ export default function CustomerLoginForm() {
           {/* Registration */}
           <div className="mt-7 border-t border-slate-100 pt-6 text-center">
             <p className="text-sm text-slate-500">
-              Don't have a customer account?
+               Don&apos;t have a customer account?
             </p>
 
             <Link

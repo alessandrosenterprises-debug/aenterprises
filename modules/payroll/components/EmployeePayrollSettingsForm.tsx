@@ -321,7 +321,7 @@ export default function EmployeePayrollSettingsForm({
           </h3>
 
           <p className="mt-1 text-sm text-slate-500">
-            Store the employee's payroll and
+             Store the employee&apos;s payroll and
             statutory identification numbers.
           </p>
         </div>

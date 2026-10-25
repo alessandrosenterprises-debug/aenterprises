@@ -363,7 +363,7 @@ export default function UserProfile() {
      PROFILE AVATAR
   ============================================================ */
 
-  function ProfileAvatar({
+  function renderProfileAvatar({
     size = "normal",
     gold = false,
   }: {
@@ -424,7 +424,7 @@ export default function UserProfile() {
       >
         {/* AVATAR */}
 
-        <ProfileAvatar />
+        {renderProfileAvatar({})}
 
         {/* NAME + ROLE */}
 
@@ -473,10 +473,10 @@ export default function UserProfile() {
 
               {/* REAL USER PHOTO */}
 
-              <ProfileAvatar
-                size="large"
-                gold
-              />
+              {renderProfileAvatar({
+                size: "large",
+                gold: true,
+              })}
 
               {/* REAL USER INFORMATION */}
 

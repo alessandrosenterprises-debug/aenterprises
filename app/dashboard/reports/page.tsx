@@ -17,6 +17,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { getReportData, type ReportBooking, type ReportBusiness, type ReportLoanApplication, type ReportOrder, type ReportResult } from "./actions";
+import Link from "next/link";
 
 type ReportTab = "businesses" | "bookings" | "orders" | "courier" | "loans";
 
@@ -188,6 +189,7 @@ export default function ReportsPage() {
           <p className="mt-1 truncate text-[10px] text-slate-500">{note}</p>
         </article>)}
       </section>
+      <Link href="/dashboard/reports/cash-reconciliation" className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900 transition hover:bg-emerald-100"><WalletCards className="h-4 w-4" />Open daily cash reconciliation</Link>
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="px-5 pt-4">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#03162F]">Enterprise activity</h2><p className="mt-1 text-sm text-slate-500">Review transactions and performance by business.</p></div><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700"><CheckCircle2 className="h-4 w-4" /> {report ? "Data loaded" : "Loading report"}</span></div>

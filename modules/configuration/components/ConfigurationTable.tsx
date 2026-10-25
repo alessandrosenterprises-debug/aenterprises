@@ -8,11 +8,12 @@ import {
 } from "@/components/enterprise/data-table";
 
 import { AERowActions } from "@/components/enterprise/actions";
+import type { ConfigurationValues } from "../types/configuration";
 
 interface ConfigurationTableProps {
   title: string;
 
-  rows: Record<string, any>[];
+  rows: ConfigurationValues[];
 
   columns: {
     key: string;
@@ -21,11 +22,11 @@ interface ConfigurationTableProps {
 
   onCreate?: () => void;
 
-  onView?: (row: Record<string, any>) => void;
+  onView?: (row: ConfigurationValues) => void;
 
-  onEdit?: (row: Record<string, any>) => void;
+  onEdit?: (row: ConfigurationValues) => void;
 
-  onDelete?: (row: Record<string, any>) => void;
+  onDelete?: (row: ConfigurationValues) => void;
 }
 
 export default function ConfigurationTable({

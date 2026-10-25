@@ -501,15 +501,14 @@ export default function CustomerLoanStatusPage({
               </div>
             </section>
 
-            {application.status === "Rejected" &&
-              application.rejection_reason && (
+            {application.status === "Rejected" && (
                 <section className="rounded-3xl border border-red-400/20 bg-red-500/10 p-5">
                   <h2 className="text-base font-semibold text-red-300">
                     Application Decision
                   </h2>
 
                   <p className="mt-2 text-sm leading-6 text-slate-300">
-                    {application.rejection_reason}
+                    {application.rejection_reason || "Your application was not approved. Please contact our team if you need more information."}
                   </p>
                 </section>
               )}

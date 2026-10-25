@@ -29,32 +29,41 @@ async function recordActivity(supabase: Awaited<ReturnType<typeof createClient>>
 
 export async function createEmployeeAction(employee: CreateEmployeeInput) {
   const supabase = await requireEmployeeManager();
+  if (!employee.business_id || !employee.branch_id || !employee.department_id || !employee.store_manager_profile_id) {
+    throw new Error("Assign a store, branch, department, and store manager before saving this employee.");
+  }
   const { data, error } = await supabase.from("employees").insert({
     ...employee,
     user_id: employee.user_id || null,
     employment_type: employee.employment_type || "Full Time",
     date_joined: employee.date_joined || new Date().toISOString().slice(0, 10),
-    status: "Active",
+    status: employee.is_active === false ? "Inactive" : "Active",
   }).select("id,full_name").single();
   if (error) throw new Error(error.message);
   await recordActivity(supabase, "create", data.id, `Created staff record for ${data.full_name}`);
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/hr/employees");
+  revalidatePath("/dashboard/hr/riders");
   return data;
 }
 
 export async function updateEmployeeAction(id: string, employee: CreateEmployeeInput) {
   const supabase = await requireEmployeeManager();
+  if (!employee.business_id || !employee.branch_id || !employee.department_id || !employee.store_manager_profile_id) {
+    throw new Error("Assign a store, branch, department, and store manager before saving this employee.");
+  }
   const { data, error } = await supabase.from("employees").update({
     ...employee,
     user_id: employee.user_id || null,
     employment_type: employee.employment_type || "Full Time",
+    status: employee.is_active === false ? "Inactive" : "Active",
     updated_at: new Date().toISOString(),
   }).eq("id", id).select("id,full_name").single();
   if (error) throw new Error(error.message);
   await recordActivity(supabase, "update", data.id, `Updated staff record for ${data.full_name}`);
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/hr/employees");
+  revalidatePath("/dashboard/hr/riders");
   return data;
 }
 
@@ -65,5 +74,6 @@ export async function deleteEmployeeAction(id: string) {
   await recordActivity(supabase, "delete", data.id, `Deleted staff record for ${data.full_name}`);
   revalidatePath("/dashboard/employees");
   revalidatePath("/dashboard/hr/employees");
+  revalidatePath("/dashboard/hr/riders");
   return data;
 }

@@ -788,6 +788,7 @@ export default function EmployeeLoansTable({
       ========================================================== */}
 
       <EmployeeLoanModal
+        key={`edit-${editOpen}-${selectedLoan?.id ?? "new"}`}
         employees={employees}
         loanProducts={loanProducts}
         mode="edit"

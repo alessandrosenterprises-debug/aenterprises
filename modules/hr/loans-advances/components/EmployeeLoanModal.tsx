@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -221,89 +221,22 @@ export default function EmployeeLoanModal({
       repaymentPeriod
     );
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    setForm({
-      employee_id:
-        loan?.employee_id ?? "",
-
-      loan_product_id:
-        loan?.loan_product_id ?? "",
-
-      loan_type:
-        loan?.loan_type ?? "Loan",
-
-      principal_amount:
-        loan
-          ? String(loan.principal_amount)
-          : "",
-
-      interest_rate:
-        loan
-          ? String(loan.interest_rate)
-          : "0",
-
-      repayment_period:
-        loan
-          ? String(loan.repayment_period)
-          : "1",
-
-      application_date:
-        loan?.application_date ??
-        getToday(),
-
-      start_date:
-        loan?.start_date ?? "",
-
-      notes:
-        loan?.notes ?? "",
-    });
-  }, [isOpen, loan]);
-
-  useEffect(() => {
-    if (!selectedProduct) {
-      return;
-    }
-
-    if (mode !== "create") {
-      return;
-    }
-
-    setForm((current) => ({
-      ...current,
-
-      interest_rate:
-        selectedProduct.interest_rate !=
-        null
-          ? String(
-              selectedProduct.interest_rate
-            )
-          : current.interest_rate,
-
-      repayment_period:
-        selectedProduct.repayment_period !=
-        null
-          ? String(
-              selectedProduct.repayment_period
-            )
-          : current.repayment_period,
-    }));
-  }, [
-    selectedProduct,
-    mode,
-  ]);
-
   function updateField(
     field: keyof FormState,
     value: string
   ) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setForm((current) => {
+      if (field === "loan_product_id" && mode === "create") {
+        const product = loanProducts.find((item) => item.id === value);
+        return {
+          ...current,
+          [field]: value,
+          interest_rate: product?.interest_rate != null ? String(product.interest_rate) : current.interest_rate,
+          repayment_period: product?.repayment_period != null ? String(product.repayment_period) : current.repayment_period,
+        };
+      }
+      return { ...current, [field]: value };
+    });
   }
 
   function closeModal() {

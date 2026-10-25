@@ -202,10 +202,28 @@ export async function GET() {
       );
     }
 
+    const customerApplications = (applications ?? []).map((application) => {
+      if (!["Rejected", "Cancelled", "Completed"].includes(application.status)) {
+        return application;
+      }
+      return {
+        ...application,
+        outstanding_balance: 0,
+        ...(application.status === "Rejected"
+          ? {
+              approved_amount: null,
+              total_payable: null,
+              monthly_installment: null,
+              amount_paid: 0,
+            }
+          : {}),
+      };
+    });
+
     return NextResponse.json({
       success: true,
       customer_id: customer.id,
-      applications: applications ?? [],
+      applications: customerApplications,
     });
   } catch (error) {
     console.error(
@@ -453,9 +471,6 @@ export async function POST(request: Request) {
 
     const noCollateral =
       !collateralIdRaw || collateralIdRaw.toLowerCase() === "none";
-    if (product.requires_collateral && noCollateral) {
-      throw new Error("This loan product requires an approved collateral item.");
-    }
 
     if (
       product.min_amount !== null &&
@@ -685,7 +700,7 @@ export async function POST(request: Request) {
           totalPayable,
 
         collateral_required:
-          Boolean(product.requires_collateral),
+          Boolean(product.requires_collateral && !noCollateral),
 
         collateral_description:
           null,

@@ -6,8 +6,6 @@ import {
   useState,
 } from "react";
 
-import { supabase } from "@/lib/supabase/client";
-
 import {
   Activity,
   CalendarDays,
@@ -45,12 +43,6 @@ interface WeatherData {
   windSpeed: number;
   sunrise: string;
   sunset: string;
-}
-
-interface CompanySettings {
-  company_name: string;
-  tagline: string;
-  logo_url: string;
 }
 
 function getWeatherDescription(code: number) {
@@ -96,66 +88,11 @@ export default function WelcomeBanner({
   const [weatherLoading, setWeatherLoading] =
     useState(true);
 
-  const [refreshing, setRefreshing] =
+  const [weatherFromCache, setWeatherFromCache] =
     useState(false);
 
-  const [company, setCompany] =
-    useState<CompanySettings>({
-      company_name: "Alessandro Enterprises",
-      tagline: "",
-      logo_url: "",
-    });
-
-  const [companyLoading, setCompanyLoading] =
-    useState(true);
-
-  /*
-   * ---------------------------------------------------------
-   * LOAD COMPANY SETTINGS
-   * ---------------------------------------------------------
-   */
-
-  async function loadCompanySettings() {
-    try {
-      setCompanyLoading(true);
-
-      const { data, error } = await supabase
-        .from("company_settings")
-        .select("company_name, tagline, logo_url")
-        .eq("singleton_key", "default")
-        .maybeSingle();
-
-      if (error) {
-        console.error(
-          "Company settings loading error:",
-          error
-        );
-
-        return;
-      }
-
-      if (data) {
-        setCompany({
-          company_name:
-            data.company_name ||
-            "Alessandro Enterprises",
-
-          tagline:
-            data.tagline || "",
-
-          logo_url:
-            data.logo_url || "",
-        });
-      }
-    } catch (error) {
-      console.error(
-        "Company settings error:",
-        error
-      );
-    } finally {
-      setCompanyLoading(false);
-    }
-  }
+  const [refreshing, setRefreshing] =
+    useState(false);
 
   /*
    * ---------------------------------------------------------
@@ -182,28 +119,37 @@ export default function WelcomeBanner({
 
   /*
    * ---------------------------------------------------------
-   * COMPANY SETTINGS
-   * ---------------------------------------------------------
-   */
-
-  useEffect(() => {
-    loadCompanySettings();
-  }, []);
-
-  /*
-   * ---------------------------------------------------------
    * WEATHER
    * ---------------------------------------------------------
    */
 
   async function loadWeather() {
+    const cacheKey = "aeos:lusaka-weather:v1";
+    let cachedWeather: WeatherData | null = null;
     try {
-      setWeatherLoading(true);
+      const cached = window.localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as WeatherData;
+        if (Number.isFinite(parsed.temperature) && Number.isFinite(parsed.weatherCode)) {
+          cachedWeather = parsed;
+          setWeather(parsed);
+          setWeatherFromCache(true);
+        }
+      }
+    } catch {
+      // Ignore unavailable or malformed browser cache and continue online.
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      setWeatherLoading(!cachedWeather);
 
       const response = await fetch(
         "https://api.open-meteo.com/v1/forecast?latitude=-15.3875&longitude=28.3228&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=sunrise,sunset&timezone=Africa%2FLusaka",
         {
           cache: "no-store",
+          signal: controller.signal,
         }
       );
 
@@ -215,41 +161,35 @@ export default function WelcomeBanner({
 
       const data = await response.json();
 
-      setWeather({
-        temperature: Number(
-          data.current?.temperature_2m ?? 0
-        ),
-
-        humidity: Number(
-          data.current?.relative_humidity_2m ?? 0
-        ),
-
-        windSpeed: Number(
-          data.current?.wind_speed_10m ?? 0
-        ),
-
-        weatherCode: Number(
-          data.current?.weather_code ?? 0
-        ),
-
-        sunrise:
-          data.daily?.sunrise?.[0] ?? "",
-
-        sunset:
-          data.daily?.sunset?.[0] ?? "",
-      });
-    } catch (error) {
-      console.error(
-        "Weather loading error:",
-        error
-      );
+      const current = data.current ?? {};
+      const nextWeather: WeatherData = {
+        temperature: Number(current.temperature_2m),
+        humidity: Number(current.relative_humidity_2m),
+        windSpeed: Number(current.wind_speed_10m),
+        weatherCode: Number(current.weather_code),
+        sunrise: data.daily?.sunrise?.[0] ?? "",
+        sunset: data.daily?.sunset?.[0] ?? "",
+      };
+      if (!Number.isFinite(nextWeather.temperature) || !Number.isFinite(nextWeather.weatherCode)) {
+        throw new Error("Weather response was incomplete");
+      }
+      setWeather(nextWeather);
+      setWeatherFromCache(false);
+      try { window.localStorage.setItem(cacheKey, JSON.stringify(nextWeather)); } catch { /* Cache storage is optional. */ }
+    } catch {
+      // Weather is an optional dashboard enhancement; retain a saved reading
+      // when the connection is offline or the provider is temporarily down.
+      setWeather(cachedWeather);
+      setWeatherFromCache(Boolean(cachedWeather));
     } finally {
+      window.clearTimeout(timeoutId);
       setWeatherLoading(false);
     }
   }
 
   useEffect(() => {
-    loadWeather();
+    const timer = window.setTimeout(() => void loadWeather(), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   /*
@@ -324,10 +264,7 @@ export default function WelcomeBanner({
     setRefreshing(true);
 
     try {
-      await Promise.all([
-        loadWeather(),
-        loadCompanySettings(),
-      ]);
+      await loadWeather();
 
       setNow(new Date());
     } finally {
@@ -336,11 +273,6 @@ export default function WelcomeBanner({
       }, 500);
     }
   }
-
-  const companyInitial =
-    company.company_name
-      ?.charAt(0)
-      ?.toUpperCase() || "A";
 
   return (
     <div className="sticky top-0 z-40 mb-8">
@@ -464,6 +396,7 @@ export default function WelcomeBanner({
                 )}
 
                 WEATHER
+                {weatherFromCache && <span className="ml-auto text-[10px] font-medium normal-case tracking-normal text-slate-400">Saved reading</span>}
 
               </div>
 
@@ -668,7 +601,7 @@ export default function WelcomeBanner({
                 Daily Focus:
               </span>{" "}
 
-              Keep today's bookings moving and
+              Keep today&apos;s bookings moving and
               deliver an excellent customer
               experience.
 

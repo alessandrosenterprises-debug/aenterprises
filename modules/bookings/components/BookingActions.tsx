@@ -5,14 +5,13 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  Archive,
   Check,
   ChevronDown,
   CircleX,
-  Clock,
   Edit3,
   Eye,
   Trash2,
@@ -39,6 +38,8 @@ interface MenuPosition {
   width: number;
 }
 
+const subscribeToClient = () => () => {};
+
 export default function BookingActions({
   booking,
   onView,
@@ -50,7 +51,11 @@ export default function BookingActions({
   onDelete,
 }: BookingActionsProps) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToClient,
+    () => true,
+    () => false,
+  );
   const [position, setPosition] =
     useState<MenuPosition | null>(null);
 
@@ -59,10 +64,6 @@ export default function BookingActions({
 
   const menuRef =
     useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   /*
    * ---------------------------------------------------------
@@ -373,6 +374,8 @@ export default function BookingActions({
           View Booking
         </button>
 
+        {booking.status !== "Completed" && <>
+
         {/* Edit */}
         <button
           type="button"
@@ -544,6 +547,7 @@ export default function BookingActions({
           <Trash2 className="h-4 w-4" />
           Delete Booking
         </button>
+        </>}
       </div>,
       document.body
     );

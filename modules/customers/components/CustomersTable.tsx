@@ -16,11 +16,16 @@ import { deleteCustomer } from "@/modules/customers/services/customer.client";
 import { useRouter } from "next/navigation";
 import { exportToExcel } from "@/lib/export/excel";
 import { exportToPDF } from "@/lib/export/pdf";
+import { KeyRound } from "lucide-react";
+import { sendCustomerPasswordReset } from "@/app/dashboard/customers/actions";
 
 interface Customer {
   id: string;
   full_name: string;
   phone: string;
+  email?: string | null;
+  auth_user_id?: string | null;
+  is_active?: boolean;
   status: string;
   businesses?: {
     name: string;
@@ -73,6 +78,15 @@ toast.success("Customer deleted successfully.");
     console.error(error);
   } finally {
     setDeleting(false);
+  }
+}
+
+async function handlePasswordReset(customer: Customer) {
+  try {
+    const result = await sendCustomerPasswordReset(customer.id);
+    toast.success(`Password reset link sent to ${result.email}.`);
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "Could not send a customer password reset link.");
   }
 }
 function handleExportCSV() {
@@ -146,6 +160,8 @@ return (
             Phone
           </th>
 
+          <th className="px-6 py-4 text-left font-semibold">Email / app login</th>
+
           <th className="px-6 py-4 text-left font-semibold">
             Business
           </th>
@@ -164,7 +180,7 @@ return (
         {filteredCustomers.length === 0 ? (
           <tr>
             <td
-              colSpan={5}
+            colSpan={6}
               className="py-12 text-center text-slate-500"
             >
               {search
@@ -186,6 +202,8 @@ return (
                 {customer.phone}
               </td>
 
+              <td className="px-6 py-4 text-sm text-slate-600">{customer.email || "No email"}<span className={`mt-1 block text-xs font-semibold ${customer.auth_user_id ? "text-emerald-700" : "text-slate-400"}`}>{customer.auth_user_id ? "Customer App account linked" : "No app login linked"}</span></td>
+
               <td className="px-6 py-4">
                 {customer.businesses?.name}
               </td>
@@ -197,7 +215,7 @@ return (
               </td>
 
               <td className="px-6 py-4">
-                <div className="flex justify-center">
+                <div className="flex items-center justify-center gap-2">
                   <AERowActions
                     onView={() => {
                       setSelectedCustomer(customer);
@@ -212,6 +230,7 @@ return (
   setDeleteOpen(true);
 }}
                   />
+                  <button type="button" title={customer.auth_user_id ? "Send password reset link" : "No Customer App login is linked"} aria-label={`Send password reset link for ${customer.full_name}`} disabled={!customer.auth_user_id || !customer.email || !customer.is_active || customer.status.toLowerCase() !== "active"} onClick={() => void handlePasswordReset(customer)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-[#D4AF37] hover:bg-[#FBF8EC] hover:text-[#03162F] disabled:cursor-not-allowed disabled:opacity-40"><KeyRound className="h-4 w-4" /></button>
                 </div>
               </td>
             </tr>

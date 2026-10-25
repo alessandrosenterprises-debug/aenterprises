@@ -31,12 +31,20 @@ export default async function HRPayrollPage() {
             PAYROLL SETTINGS
         ================================================= */}
 
-        <Link
-          href="/dashboard/hr/payroll/settings"
-          className="inline-flex items-center justify-center rounded-xl bg-[#03162F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0A2852]"
-        >
-          Payroll Settings
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/hr/payroll/payslips"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-[#03162F] transition hover:bg-slate-50"
+          >
+            Employee Payslips
+          </Link>
+          <Link
+            href="/dashboard/hr/payroll/settings"
+            className="inline-flex items-center justify-center rounded-xl bg-[#03162F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0A2852]"
+          >
+            Payroll Settings
+          </Link>
+        </div>
       </div>
 
       {/* =====================================================

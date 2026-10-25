@@ -304,7 +304,7 @@ function throwSupabaseError(
    ============================================================ */
 
 function normalizePlatformSettings(
-  data: any
+  data: Partial<PlatformSettings> | null
 ): PlatformSettings {
   return {
     id: data?.id ?? "",

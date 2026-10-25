@@ -45,7 +45,7 @@ function todayLabel(value: string) {
   return new Intl.DateTimeFormat("en-ZM", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lusaka" }).format(date);
 }
 
-export default function DashboardOperationsOverview({ stats }: { stats: DashboardStats }) {
+export default function DashboardOperationsOverview({ stats, dashboardHref = "/dashboard" }: { stats: DashboardStats; dashboardHref?: string }) {
   const router = useRouter();
 
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function DashboardOperationsOverview({ stats }: { stats: Dashboar
               value={stats.date}
               max={stats.currentDate}
               onChange={(event) => {
-                if (event.target.value) router.push(`/dashboard?date=${event.target.value}`);
+                if (event.target.value) router.push(`${dashboardHref}?date=${event.target.value}`);
               }}
               className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-[#03162F] shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />

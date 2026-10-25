@@ -10,15 +10,15 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import ImageUpload from "@/components/ui/image-upload/ImageUpload";
 import DeliveryLocationPicker from "@/components/customer/DeliveryLocationPicker";
 
-import { ConfigurationSchema } from "../types/configuration";
+import { ConfigurationSchema, type ConfigurationValues } from "../types/configuration";
 
 interface ConfigurationFormProps {
   schema: ConfigurationSchema;
 
-  defaultValues?: Record<string, any>;
+  defaultValues?: ConfigurationValues;
 
   onSubmit: (
-    values: Record<string, any>
+    values: ConfigurationValues
   ) => Promise<void>;
 }
 
@@ -34,7 +34,7 @@ export default function ConfigurationForm({
     setValue,
     reset,
     formState: { isSubmitting },
-  } = useForm<Record<string, any>>({
+  } = useForm<ConfigurationValues>({
     defaultValues: defaultValues ?? {},
   });
 
@@ -49,9 +49,9 @@ export default function ConfigurationForm({
   const values = watch();
 
   function handleFormSubmit(
-    submittedValues: Record<string, any>
+    submittedValues: ConfigurationValues
   ) {
-    const cleanedValues: Record<string, any> = {
+    const cleanedValues: ConfigurationValues = {
       ...submittedValues,
     };
 

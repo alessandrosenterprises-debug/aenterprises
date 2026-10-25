@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 
 export function exportToPDF(
   title: string,
-  rows: Record<string, any>[]
+  rows: Record<string, unknown>[]
 ) {
   const doc = new jsPDF();
 
@@ -28,7 +28,7 @@ export function exportToPDF(
     autoTable(doc, {
       startY: 58,
       head: [Object.keys(rows[0])],
-      body: rows.map((row) => Object.values(row)),
+      body: rows.map((row) => Object.values(row).map((value) => String(value ?? ""))),
       theme: "grid",
       headStyles: {
         fillColor: [3, 22, 47], // Alessandro navy

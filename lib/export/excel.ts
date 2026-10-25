@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 
 export function exportToExcel(
   filename: string,
-  rows: Record<string, any>[]
+  rows: Record<string, unknown>[]
 ) {
   if (!rows.length) return;
 

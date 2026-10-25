@@ -8,6 +8,7 @@ import {
   Activity,
   UserRoundCog,
   Settings2,
+  Headphones,
 } from "lucide-react";
 
 import { getConfiguration } from "@/modules/configuration/services/configuration.service";
@@ -54,6 +55,22 @@ const tools = [
     group: "Governance",
   },
   {
+    title: "App health & errors",
+    description: "Check application availability and help investigate reported customer or staff errors.",
+    href: "/dashboard/administration/monitoring",
+    action: "Review app health",
+    icon: Activity,
+    group: "Reliability",
+  },
+  {
+    title: "Customer support",
+    description: "Find customer records and assist with account access and password resets.",
+    href: "/dashboard/customers",
+    action: "Open customer records",
+    icon: Headphones,
+    group: "Support",
+  },
+  {
     title: "Security settings",
     description: "Review administrator password and session security controls.",
     href: "/dashboard/settings?section=security",
@@ -80,11 +97,11 @@ export default async function AdministrationPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200">
               <Activity className="h-4 w-4" />
-              Administration workspace
+              Administration dashboard
             </div>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Administration</h1>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Administration dashboard</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-              Manage your team directory, access roles, permission definitions, and administrator security from one workspace.
+              Manage staff accounts and access, review activity, assist customers, and monitor application issues from one workspace.
             </p>
           </div>
 

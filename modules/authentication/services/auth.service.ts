@@ -28,12 +28,28 @@ class AuthService {
       .eq("auth_user_id", result.data.user.id)
       .maybeSingle();
     const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
+    // The database permission check is authoritative for Super Administrators.
+    // It avoids rejecting them when PostgREST cannot resolve the profile→role join.
+    const { data: hasSuperAdminAccess } = await supabase.rpc("has_permission", { required_permission: "access.super_admin" });
 
-    if (profileError || profile?.active !== true || !profile.role_id || !role?.name || role.name === "Customer" || (role.status ?? "Active") !== "Active") {
+    const hasProfileStaffRole = !profileError && profile?.active === true && Boolean(profile.role_id) && role?.name !== undefined && !["Customer", "Customer Portal User"].includes(role.name) && (role.status ?? "Active") === "Active";
+    if (!hasProfileStaffRole && !hasSuperAdminAccess) {
       await supabase.auth.signOut();
       return {
         data: { user: null, session: null },
-        error: new Error("This account does not have an active staff role. Sign in through the Customer Portal if you are a customer."),
+        error: new Error("Staff access is inactive or not configured for this account. Ask an administrator to check the staff profile and role status. Customer accounts should use the Customer Portal."),
+      };
+    }
+
+    const { data: mayOpenOperations, error: operationsPermissionError } = await supabase.rpc("has_permission", {
+      required_permission: "operations.open",
+    });
+    if ((operationsPermissionError || mayOpenOperations !== true) && !hasSuperAdminAccess) {
+      await supabase.auth.signOut();
+      if (typeof window !== "undefined") window.sessionStorage.removeItem("aeos_ops_token");
+      return {
+        data: { user: null, session: null },
+        error: new Error("This account is set up for staff PIN access. Ask your department manager to open operations, then sign in with your work email and PIN."),
       };
     }
 
@@ -77,7 +93,7 @@ class AuthService {
       .maybeSingle();
     const profileRole = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
 
-    if (profileError || profile?.active === false || (profile?.role_id && profileRole?.name !== "Customer")) {
+    if (profileError || profile?.active === false || (profile?.role_id && !["Customer", "Customer Portal User"].includes(profileRole?.name ?? ""))) {
       await supabase.auth.signOut();
       return {
         data: { user: null, session: null },

@@ -530,6 +530,12 @@ export default function CustomerLoanApplicationForm({
     setValue,
   ]);
 
+  useEffect(() => {
+    if (selectedCollateralId === "none") {
+      setValue("collateral_worth", "");
+    }
+  }, [selectedCollateralId, setValue]);
+
   /* ==========================================================
      FIND SELECTED CUSTOMER
      ========================================================== */
@@ -601,9 +607,7 @@ export default function CustomerLoanApplicationForm({
 
   const collateralOptions =
     [
-      ...(selectedProduct && !selectedProduct.requires_collateral
-        ? [{ label: "None", value: "none" }]
-        : []),
+      { label: "None", value: "none" },
       ...collaterals
       .filter(
         (item) => item.active
@@ -846,11 +850,6 @@ export default function CustomerLoanApplicationForm({
         return;
       }
 
-      if (loanProduct.requires_collateral && data.collateral_id === "none") {
-        toast.error("This loan product requires an approved collateral item.");
-        return;
-      }
-
       /* ------------------------------------------------------
          PRINCIPAL
          ------------------------------------------------------ */
@@ -1025,7 +1024,7 @@ export default function CustomerLoanApplicationForm({
           null,
 
         collateral_required:
-          loanProduct.requires_collateral,
+          loanProduct.requires_collateral && data.collateral_id !== "none",
 
         collateral_description:
           null,
@@ -1796,7 +1795,7 @@ export default function CustomerLoanApplicationForm({
 
         <div className="grid gap-6 md:grid-cols-2">
           <Select
-            label={selectedProduct?.requires_collateral ? "Collateral *" : "Collateral (optional) *"}
+            label={selectedProduct?.requires_collateral ? "Collateral (required by product)" : "Collateral (optional)"}
             placeholder={selectedProduct ? "Select collateral option" : "Select a loan product first"}
             options={
               collateralOptions
@@ -1810,22 +1809,21 @@ export default function CustomerLoanApplicationForm({
             )}
           />
 
-          {selectedProduct?.requires_collateral === false && (
+          {selectedProduct && (
             <p className="text-xs leading-5 text-slate-500 md:col-span-2">
-              This product allows applications with no collateral. Choose None or select an approved collateral item.
+              Choose None or select an approved collateral item. Collateral worth is not needed when None is selected.
             </p>
           )}
 
-          {selectedCollateralId !== "none" && (
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              label="Collateral Worth (ZMW)"
-              placeholder="Enter estimated worth"
-              {...register("collateral_worth")}
-            />
-          )}
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            label="Collateral Worth (ZMW)"
+            placeholder={selectedCollateralId === "none" ? "Not needed for None" : "Enter estimated worth"}
+            disabled={!selectedCollateralId || selectedCollateralId === "none"}
+            {...register("collateral_worth")}
+          />
         </div>
       </section>
 

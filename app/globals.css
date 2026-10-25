@@ -55,6 +55,62 @@ html.dark {
 
 @import "../styles/themes/theme.css";
 
+/* Consistent, readable toast notifications across AEOS and customer pages. */
+[data-sonner-toaster] {
+  --width: min(400px, calc(100vw - 24px));
+  font-family: Inter, system-ui, sans-serif;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  min-height: 54px;
+  padding: 14px 42px 14px 16px;
+  gap: 10px;
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgb(3 22 47 / 18%);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-title] {
+  font-weight: 650;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-description] {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-icon] {
+  width: 18px;
+  height: 18px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  top: 50%;
+  right: 10px;
+  left: auto;
+  width: 24px;
+  height: 24px;
+  transform: translateY(-50%);
+  border-radius: 7px;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 600px) {
+  [data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+    min-height: 50px;
+    padding: 12px 40px 12px 14px;
+    font-size: 13px;
+  }
+}
+
 /* Independent, visible scroll areas on the enterprise settings workspace. */
 .settings-scrollbar {
   scrollbar-gutter: stable;

@@ -45,6 +45,11 @@ const hrNavigation = [
     icon: WalletCards,
   },
   {
+    title: "Payslips",
+    href: "/dashboard/hr/payroll/payslips",
+    icon: WalletCards,
+  },
+  {
     title: "Leave & Attendance",
     href: "/dashboard/hr/leave-attendance",
     icon: CalendarCheck,

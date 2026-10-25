@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 /* ============================================================
    TYPES
@@ -138,20 +137,13 @@ export async function getCustomerLoanProducts(): Promise<
  * Gets active loan products for administrator
  * configuration screens.
  *
- * Uses the server-side service-role client so configuration
- * RLS policies cannot incorrectly leave the product dropdown
- * empty.
- *
- * IMPORTANT:
- *
- * createAdminClient() is server-only.
- * SUPABASE_SERVICE_ROLE_KEY must NEVER be exposed
- * to the browser.
+ * Uses the authenticated staff/customer session so business and
+ * branch RLS limits the available products.
  */
 export async function getConfigurationLoanProducts(): Promise<
   CustomerLoanProduct[]
 > {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const {
     data,
@@ -190,7 +182,7 @@ export async function getConfigurationLoanProducts(): Promise<
 
 /** Load every configured product so historical terms keep their proper label. */
 export async function getAllConfigurationLoanProducts(): Promise<CustomerLoanProduct[]> {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("loan_products")
     .select(`
@@ -247,7 +239,7 @@ export async function getLoanProductTerms(
     return [];
   }
 
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const {
     data,
@@ -316,7 +308,7 @@ export async function getLoanProductTerms(
 export async function getConfigurationLoanTerms(): Promise<
   LoanProductTerm[]
 > {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const {
     data,

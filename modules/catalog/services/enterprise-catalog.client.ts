@@ -10,7 +10,7 @@ export interface EnterpriseCatalogPayload {
   quantity?: number | null;
   status: string;
   image_url?: string | null;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 export async function createEnterpriseCatalogItem(

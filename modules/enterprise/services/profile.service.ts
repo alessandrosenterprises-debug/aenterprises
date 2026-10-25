@@ -12,25 +12,8 @@ export async function getCurrentProfile() {
     return null;
   }
 
-  const {
-    data: profile,
-    error: profileError,
-  } = await supabase
-    .from("profiles")
-    .select(`
-      id,
-      auth_user_id,
-      first_name,
-      last_name,
-      display_name,
-      email,
-      phone,
-      avatar_url,
-      role_id,
-      active
-    `)
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+  const { data: effectiveProfiles, error: profileError } = await supabase.rpc("get_effective_profile");
+  const profile = effectiveProfiles?.[0];
 
   if (profileError) {
     console.error(
@@ -45,27 +28,7 @@ export async function getCurrentProfile() {
     return null;
   }
 
-  let roleName = "";
-
-  if (profile.role_id) {
-    const {
-      data: role,
-      error: roleError,
-    } = await supabase
-      .from("roles")
-      .select("name")
-      .eq("id", profile.role_id)
-      .maybeSingle();
-
-    if (roleError) {
-      console.error(
-        "Failed to load current role:",
-        roleError
-      );
-    }
-
-    roleName = role?.name ?? "";
-  }
+  const roleName = profile.role_name ?? "";
 
   return {
     id: profile.id,

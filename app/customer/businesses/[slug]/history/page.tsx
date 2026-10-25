@@ -269,7 +269,8 @@ export default function LoanHistoryPage() {
   }
 
   useEffect(() => {
-    loadLoans();
+    const task = window.setTimeout(() => { void loadLoans(); }, 0);
+    return () => window.clearTimeout(task);
   }, []);
 
   const stats = useMemo(() => {

@@ -16,7 +16,7 @@ export default async function AccessControlPage() {
           <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2"><UsersRound className="h-4 w-4 text-[#D4AF37]" />{data.staff.length} active staff accounts</span>
         </div>
       </header>
-      <CreateStaffAccountForm roles={data.roles} viewerRoleName={data.viewerRoleName} />
+      <CreateStaffAccountForm roles={data.roles} viewerRoleName={data.viewerRoleName} businesses={data.businesses} branches={data.branches} departments={data.departments} storeManagers={data.storeManagers} directLoginRoleIds={data.directLoginRoleIds} />
       <AccessControlWorkspace {...data} />
     </main>
   );

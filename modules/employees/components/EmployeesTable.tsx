@@ -21,6 +21,7 @@ import { AEDetailsModal } from "@/components/enterprise/details";
 import EmployeeModal from "./EmployeeModal";
 
 import { deleteEmployee } from "@/modules/employees/services/employee.client";
+import type { EmployeeBranchOption, EmployeeManagerOption } from "@/modules/employees/services/employee.service";
 
 interface Employee {
   id: string;
@@ -30,6 +31,9 @@ interface Employee {
   position: string;
   employment_type?: string | null;
   status: string;
+  user_id?: string | null;
+  branch_id?: string | null;
+  store_manager_profile_id?: string | null;
 
   businesses?: {
     id: string;
@@ -40,6 +44,8 @@ interface Employee {
     id: string;
     name: string;
   } | null;
+  branch_name?: string | null;
+  store_manager_name?: string | null;
 }
 
 interface Business {
@@ -56,12 +62,18 @@ interface EmployeesTableProps {
   employees: Employee[];
   businesses: Business[];
   departments: Department[];
+  branches: EmployeeBranchOption[];
+  storeManagers: EmployeeManagerOption[];
+  accountOptions: { auth_user_id: string; display_name: string; email: string }[];
 }
 
 export default function EmployeesTable({
   employees,
   businesses,
   departments,
+  branches,
+  storeManagers,
+  accountOptions,
 }: EmployeesTableProps) {
   const router = useRouter();
 
@@ -119,6 +131,8 @@ export default function EmployeesTable({
       Position: employee.position,
       Business: employee.businesses?.name ?? "",
       Department: employee.departments?.name ?? "",
+      Branch: employee.branch_name ?? "",
+      "Store Manager": employee.store_manager_name ?? "",
       Status: employee.status,
     }));
 
@@ -132,6 +146,8 @@ export default function EmployeesTable({
       Position: employee.position,
       Business: employee.businesses?.name ?? "",
       Department: employee.departments?.name ?? "",
+      Branch: employee.branch_name ?? "",
+      "Store Manager": employee.store_manager_name ?? "",
       Status: employee.status,
     }));
 
@@ -145,6 +161,8 @@ export default function EmployeesTable({
       Position: employee.position,
       Business: employee.businesses?.name ?? "",
       Department: employee.departments?.name ?? "",
+      Branch: employee.branch_name ?? "",
+      "Store Manager": employee.store_manager_name ?? "",
       Status: employee.status,
     }));
 
@@ -180,6 +198,9 @@ export default function EmployeesTable({
             <EmployeeModal
               businesses={businesses}
               departments={departments}
+              branches={branches}
+              storeManagers={storeManagers}
+              accountOptions={accountOptions}
             />
           </AEDataTableToolbar>
         }
@@ -206,6 +227,10 @@ export default function EmployeesTable({
               Department
             </th>
 
+            <th className="px-6 py-4 text-left font-semibold">Branch</th>
+
+            <th className="px-6 py-4 text-left font-semibold">Store Manager</th>
+
             <th className="px-6 py-4 text-left font-semibold">
               Status
             </th>
@@ -220,7 +245,7 @@ export default function EmployeesTable({
           {filteredEmployees.length === 0 ? (
             <tr>
               <td
-                colSpan={7}
+                colSpan={9}
                 className="py-12 text-center text-slate-500"
               >
                 {search
@@ -253,6 +278,10 @@ export default function EmployeesTable({
                 <td className="px-6 py-4">
                   {employee.departments?.name ?? "—"}
                 </td>
+
+                <td className="px-6 py-4">{employee.branch_name ?? "—"}</td>
+
+                <td className="px-6 py-4">{employee.store_manager_name ?? "—"}</td>
 
                 <td className="px-6 py-4">
                   <AEStatusBadge
@@ -345,6 +374,16 @@ export default function EmployeesTable({
             </div>
 
             <div>
+              <p className="text-sm text-slate-500">Branch</p>
+              <p className="font-semibold">{selectedEmployee.branch_name ?? "—"}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-500">Store manager</p>
+              <p className="font-semibold">{selectedEmployee.store_manager_name ?? "—"}</p>
+            </div>
+
+            <div>
               <p className="text-sm text-slate-500">
                 Status
               </p>
@@ -360,6 +399,9 @@ export default function EmployeesTable({
       <EmployeeModal
         businesses={businesses}
         departments={departments}
+        branches={branches}
+        storeManagers={storeManagers}
+        accountOptions={selectedEmployee?.user_id && !accountOptions.some((account) => account.auth_user_id === selectedEmployee.user_id) ? [...accountOptions, { auth_user_id: selectedEmployee.user_id, display_name: selectedEmployee.full_name, email: selectedEmployee.email ?? "" }] : accountOptions}
         mode="edit"
         employee={selectedEmployee ?? undefined}
         open={editOpen}

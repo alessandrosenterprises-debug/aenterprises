@@ -65,11 +65,11 @@ export default async function CustomerRequestsPage() {
       }
       const messageRows = (messages.data ?? []).filter((item) => !item.source?.toLowerCase().includes("technology consultation"));
       requests = [
-        ...((bookings.data ?? []) as any[]).map((item) => ({ id: item.id, title: item.businesses?.name ? `${item.businesses.name} booking` : "Service booking", status: item.status, created_at: item.created_at, business: item.businesses?.name, detail: [item.booking_date, item.booking_time].filter(Boolean).join(" · "), href: "/customer/bookings" })),
-        ...((orders.data ?? []) as any[]).map((item) => ({ id: item.id, title: item.businesses?.name ? `${item.businesses.name} order` : "Product order", status: item.status, created_at: item.created_at, business: item.businesses?.name, href: "/customer/orders" })),
-        ...(messageRows as any[]).map((item) => ({ id: item.id, title: item.subject || (item.source?.toLowerCase().includes("repair") ? "Repair request" : item.source?.toLowerCase().includes("support") ? "IT support request" : "Message to a business"), status: item.status, created_at: item.created_at, business: item.businesses?.name, href: "/customer/messages" })),
-        ...((loans.data ?? []) as any[]).map((item) => ({ id: item.id, title: "Loan application", status: item.status, created_at: item.created_at, business: "Alessandro Soft Loans", detail: item.loan_products?.name || item.application_number || (item.requested_amount ? `ZMW ${Number(item.requested_amount).toLocaleString("en-ZM")}` : null), href: "/customer/businesses/soft-loans/history" })),
-        ...((consultations.data ?? []) as any[]).map((item) => ({ id: item.id, title: item.subject || "Technology consultation", status: item.status, created_at: item.created_at, business: "Alessandro Tech Solutions", detail: item.consultation_type?.replaceAll("_", " "), href: "/customer/messages" })),
+        ...(bookings.data ?? []).map((item) => ({ id: item.id, title: item.businesses?.[0]?.name ? `${item.businesses[0].name} booking` : "Service booking", status: item.status, created_at: item.created_at, business: item.businesses?.[0]?.name, detail: [item.booking_date, item.booking_time].filter(Boolean).join(" · "), href: "/customer/bookings" })),
+        ...(orders.data ?? []).map((item) => ({ id: item.id, title: item.businesses?.[0]?.name ? `${item.businesses[0].name} order` : "Product order", status: item.status, created_at: item.created_at, business: item.businesses?.[0]?.name, href: "/customer/orders" })),
+        ...messageRows.map((item) => ({ id: item.id, title: item.subject || (item.source?.toLowerCase().includes("repair") ? "Repair request" : item.source?.toLowerCase().includes("support") ? "IT support request" : "Message to a business"), status: item.status, created_at: item.created_at, business: item.businesses?.[0]?.name, href: "/customer/messages" })),
+        ...(loans.data ?? []).map((item) => ({ id: item.id, title: "Loan application", status: item.status, created_at: item.created_at, business: "Alessandro Soft Loans", detail: item.loan_products?.[0]?.name || item.application_number || (item.requested_amount ? `ZMW ${Number(item.requested_amount).toLocaleString("en-ZM")}` : null), href: "/customer/businesses/soft-loans/history" })),
+        ...(consultations.data ?? []).map((item) => ({ id: item.id, title: item.subject || "Technology consultation", status: item.status, created_at: item.created_at, business: "Alessandro Tech Solutions", detail: item.consultation_type?.replaceAll("_", " "), href: "/customer/messages" })),
       ].sort((a, b) => b.created_at.localeCompare(a.created_at));
     }
   }
@@ -109,3 +109,4 @@ export default async function CustomerRequestsPage() {
     </main>
   );
 }
+

@@ -19,7 +19,7 @@ interface Business {
   name: string;
 }
 
-interface CustomerFormValues {
+export interface CustomerFormValues {
   business_id: string;
   full_name: string;
   phone: string;
@@ -37,9 +37,14 @@ interface CustomerFormProps {
 
   mode?: "create" | "edit";
 
-  customer?: Partial<CustomerFormValues> & {
-  id?: string;
-};
+  customer?: Omit<Partial<CustomerFormValues>, "email" | "address" | "gender" | "date_of_birth" | "notes"> & {
+    id?: string;
+    email?: string | null;
+    address?: string | null;
+    gender?: string | null;
+    date_of_birth?: string | null;
+    notes?: string | null;
+  };
 }
 export default function CustomerForm({
   businesses,
@@ -111,12 +116,10 @@ async function onSubmit(data: CustomerFormValues) {
     onSuccess?.();
 
     router.refresh();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(error);
 
-    toast.error(
-      error?.message || "Failed to save customer."
-    );
+    toast.error(error instanceof Error ? error.message : "Failed to save customer.");
   }
 }
   return (

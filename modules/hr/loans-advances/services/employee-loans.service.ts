@@ -160,7 +160,17 @@ export async function getEmployeeLoans(): Promise<EmployeeLoan[]> {
     ),
   ];
 
-  let loanProductData: any[] = [];
+  let loanProductData: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    min_amount: number | null;
+    max_amount: number | null;
+    interest_rate: number | null;
+    repayment_period: number | null;
+    requires_collateral: boolean;
+    status: string;
+  }> = [];
 
   if (loanProductIds.length > 0) {
     const {

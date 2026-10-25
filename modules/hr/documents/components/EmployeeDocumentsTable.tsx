@@ -846,6 +846,7 @@ window.URL.revokeObjectURL(
       {/* EDIT */}
 
       <EmployeeDocumentModal
+        key={`edit-${editOpen}-${selectedDocument?.id ?? "new"}`}
         employees={employees}
         mode="edit"
         document={
@@ -932,11 +933,11 @@ window.URL.revokeObjectURL(
                   Are you sure you want to
                   delete{" "}
                   <span className="font-semibold text-slate-900">
-                    "
+                     &quot;
                     {
                       selectedDocument.document_name
                     }
-                    "
+                     &quot;
                   </span>
                   ?
                 </p>

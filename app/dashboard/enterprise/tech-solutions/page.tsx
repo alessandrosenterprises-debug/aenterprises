@@ -396,7 +396,7 @@ export default async function TechSolutionsPage() {
 
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
               These tools belong specifically to Alessandro Tech Solutions.
-              They control this business's services, products and
+               They control this business&apos;s services, products and
               customer-facing content.
             </p>
           </div>

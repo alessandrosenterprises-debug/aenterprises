@@ -70,6 +70,14 @@ export async function updateBooking(
   id: string,
   booking: Partial<BookingPayload>
 ) {
+  const { data: current, error: currentError } = await supabase
+    .from("bookings")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+  if (currentError || !current) throw new Error("Booking could not be found.");
+  if (current.status === "Completed") throw new Error("Completed bookings are read-only.");
+
   const { data, error } = await supabase
     .from("bookings")
     .update(booking)
@@ -145,6 +153,14 @@ export async function updateBookingPayment(
 export async function deleteBooking(
   id: string
 ) {
+  const { data: current, error: currentError } = await supabase
+    .from("bookings")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+  if (currentError || !current) throw new Error("Booking could not be found.");
+  if (current.status === "Completed") throw new Error("Completed bookings cannot be deleted.");
+
   const { error } = await supabase
     .from("bookings")
     .delete()
