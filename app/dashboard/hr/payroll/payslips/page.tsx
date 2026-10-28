@@ -15,7 +15,7 @@ export default async function PayslipsPage() {
   const payslips = await getPrintablePayslips();
 
   return <div className="space-y-6">
-    <header className="flex flex-col gap-4 rounded-2xl bg-[#03162F] p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col gap-4 rounded-none bg-[#03162F] p-6 text-white sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
         <span className="grid size-12 place-items-center rounded-xl bg-[#D4AF37] text-[#03162F]"><ReceiptText className="size-6" /></span>
         <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Human resources · Payroll</p><h1 className="mt-1 text-2xl font-black">Employee payslips</h1><p className="mt-1 text-sm text-slate-300">Review and print finalized payroll statements.</p></div>

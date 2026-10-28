@@ -3,8 +3,8 @@ import { getRecentAccessActivity } from "@/modules/administration/services/acces
 export default async function AdministrationActivityPage() {
   const entries = await getRecentAccessActivity();
   return (
-    <main className="mx-auto w-full max-w-[1600px] space-y-6">
-      <header className="rounded-2xl bg-[#03162F] p-6 text-white sm:p-8">
+    <main className="w-full space-y-6">
+      <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-[#03162F] p-6 text-white sm:p-8">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Security & governance</p>
         <h1 className="mt-2 text-3xl font-bold">Administration activity</h1>
         <p className="mt-2 text-sm text-slate-300">Review role assignments and permission changes across the enterprise.</p>

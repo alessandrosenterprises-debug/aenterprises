@@ -282,7 +282,7 @@ export default async function TechSolutionsPage() {
       {/* HERO                                                               */}
       {/* ------------------------------------------------------------------ */}
 
-      <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#03162F] via-[#0A2852] to-[#174D8C] px-6 py-8 text-white shadow-xl sm:px-8 lg:px-10 lg:py-10">
+      <section className="sticky top-[-24px] z-[90] -mx-6 -mt-6 overflow-hidden rounded-none bg-gradient-to-br from-[#03162F] via-[#0A2852] to-[#174D8C] px-6 py-8 text-white shadow-xl sm:px-8 lg:px-10 lg:py-10">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#D4AF37]/20 blur-3xl" />
         <div className="absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="absolute right-1/3 top-1/2 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />

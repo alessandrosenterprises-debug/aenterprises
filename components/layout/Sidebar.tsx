@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { ChevronDown } from "lucide-react";
 
 import { navigation, type NavigationItem } from "@/lib/navigation";
-import { getDashboardPermission, getDashboardPermissions } from "@/lib/navigation/route-permissions";
+import { canSeeNavigationItem } from "@/lib/navigation/access";
 
 const subscribeToNothing = () => () => {};
 
@@ -15,57 +16,63 @@ function isCurrentPath(pathname: string, href?: string) {
   return Boolean(href && pathname === href);
 }
 
-const permissionByHref: Record<string, string> = {
-  "/dashboard": "dashboard.view", "/dashboard/enterprise": "businesses.view", "/dashboard/enterprise/content": "businesses.manage",
-  "/dashboard/customers": "customers.view", "/dashboard/loans": "loans.approve", "/dashboard/hr": "hr.manage",
-  "/dashboard/hr/employees": "employees.view", "/dashboard/hr/riders": "employees.manage", "/dashboard/hr/departments": "hr.manage",
-  "/dashboard/hr/leave-attendance": "hr.manage", "/dashboard/hr/documents": "hr.manage", "/dashboard/hr/loans-advances": "hr.manage",
-  "/dashboard/hr/payroll": "hr.manage", "/dashboard/hr/reports": "reports.view", "/dashboard/emails": "communications.manage",
-  "/dashboard/messages": "communications.manage", "/dashboard/products": "products.manage", "/dashboard/catalog": "products.manage",
-  "/dashboard/bookings": "bookings.view", "/dashboard/orders": "orders.view", "/dashboard/orders/my-deliveries": "deliveries.manage",
-  "/dashboard/reports": "reports.view", "/dashboard/configuration/roles": "access.manage_roles",
-  "/dashboard/configuration/permissions": "access.manage_permissions", "/dashboard/configuration/businesses": "businesses.manage",
-  "/dashboard/configuration/branches": "configuration.manage", "/dashboard/configuration/operators": "configuration.manage",
-  "/dashboard/configuration/mobile-money-services": "configuration.manage", "/dashboard/configuration/loan-products": "configuration.manage",
-  "/dashboard/configuration/loan-terms": "configuration.manage", "/dashboard/configuration/categories": "configuration.manage",
-  "/dashboard/configuration/company-settings": "settings.manage", "/dashboard/administration": "access.manage_roles",
-  "/dashboard/administration/access": "access.manage_permissions", "/dashboard/administration/activity": "access.view_audit",
-  "/dashboard/notifications": "communications.manage", "/dashboard/settings": "settings.manage", "/dashboard/website": "configuration.manage",
-};
-
-function itemPermission(item: NavigationItem) {
-  return item.permission ?? (item.href ? permissionByHref[item.href] ?? getDashboardPermission(item.href) : undefined);
+function matchesPath(pathname: string, href?: string) {
+  return Boolean(href && (pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`))));
 }
 
-function itemPermissions(item: NavigationItem) {
-  if (item.href) return item.permission ? [item.permission] : permissionByHref[item.href] ? [permissionByHref[item.href]] : getDashboardPermissions(item.href);
-  const permission = itemPermission(item);
-  return permission ? [permission] : [];
+function visibleChildren(item: NavigationItem, permissionKeys: string[], isSuperAdministrator: boolean, applyAccess: boolean) {
+  return (item.children ?? []).filter((child) => canSeeNavigationItem(child, permissionKeys, isSuperAdministrator, applyAccess));
 }
 
-function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, applyAccess }: { item: NavigationItem; pathname: string; permissionKeys: string[]; isSuperAdministrator: boolean; applyAccess: boolean }) {
+function activeDepartmentTitle(pathname: string, permissionKeys: string[], isSuperAdministrator: boolean, applyAccess: boolean) {
+  return navigation
+    .filter((item) => item.children?.length)
+    .map((item) => ({
+      title: item.title,
+      matchLength: Math.max(0, ...visibleChildren(item, permissionKeys, isSuperAdministrator, applyAccess)
+        .filter((child) => matchesPath(pathname, child.href))
+        .map((child) => child.href?.length ?? 0)),
+    }))
+    .filter((item) => item.matchLength > 0)
+    .sort((a, b) => b.matchLength - a.matchLength)[0]?.title ?? null;
+}
+
+function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, applyAccess, expandedSection, setExpandedSection }: { item: NavigationItem; pathname: string; permissionKeys: string[]; isSuperAdministrator: boolean; applyAccess: boolean; expandedSection: string | null; setExpandedSection: (title: string | null) => void }) {
   if (item.children?.length) {
-    const visibleChildren = item.children.filter((child) => (!child.superAdminOnly || isSuperAdministrator) && (!applyAccess || isSuperAdministrator || itemPermissions(child).length === 0 || itemPermissions(child).some((permission) => permissionKeys.includes(permission))));
-    if (visibleChildren.length === 0) return null;
-    const activeChild = visibleChildren.some((child) => isCurrentPath(pathname, child.href));
+    const children = visibleChildren(item, permissionKeys, isSuperAdministrator, applyAccess);
+    if (children.length === 0) return null;
+    const activeHref = children
+      .filter((child) => matchesPath(pathname, child.href))
+      .sort((a, b) => (b.href?.length ?? 0) - (a.href?.length ?? 0))[0]?.href;
+    const expanded = expandedSection === item.title;
+    const sectionId = `sidebar-section-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
     return (
-      <section className="space-y-1.5">
-        <h2 className={`px-2 pt-2 text-[11px] font-semibold uppercase tracking-wide ${activeChild ? "text-[#03162F]" : "text-[#03162F]/65"}`}>
-          {item.title}
-        </h2>
+      <section className="space-y-1">
+        <button
+          type="button"
+          title={`${expanded ? "Collapse" : "Expand"} ${item.title}`}
+          aria-expanded={expanded}
+          aria-controls={sectionId}
+          onClick={() => setExpandedSection(expanded ? null : item.title)}
+          className="group flex min-h-10 w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 text-left text-[12px] font-semibold uppercase tracking-[0.055em] text-[#03162F]/75 transition-colors duration-200 hover:border-white/25 hover:bg-white/30 hover:text-[#03162F] motion-reduce:transition-none"
+        >
+          {item.icon ? <item.icon className="h-4 w-4 shrink-0 text-[#03162F]/65" /> : <span className="h-4 w-4 shrink-0" />}
+          <span className="min-w-0 flex-1 truncate">{item.title}</span>
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${expanded ? "rotate-180" : ""}`} />
+        </button>
 
-        <div className="space-y-0.5">
-          {visibleChildren.map((child) => {
+        <div id={sectionId} hidden={!expanded} className="ml-3 space-y-0.5 border-l border-[#03162F]/15 pl-2">
+          {children.map((child) => {
             if (!child.href) return null;
-            const active = isCurrentPath(pathname, child.href);
+            const active = child.href === activeHref;
 
             return (
-              <Link key={child.title} href={child.href}
+              <Link key={`${child.href}:${child.title}`} href={child.href}
                 title={child.title}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-8 w-full items-center gap-2.5 rounded-lg border-l-[3px] px-2 py-1.5 text-[13px] leading-5 transition-colors ${active ? "border-[#03162F] bg-white/55 font-semibold text-[#03162F]" : "border-transparent text-[#03162F]/85 hover:bg-white/40 hover:text-[#03162F]"}`}>
-                {child.icon ? <child.icon className={`h-4 w-4 shrink-0 ${active ? "text-[#03162F]" : "text-[#03162F]/65"}`} /> : <span className="h-4 w-4 shrink-0" />}
+                className={`flex min-h-8 w-full items-center gap-2 rounded-lg border-l-2 px-2 py-1.5 text-[12px] font-semibold leading-4 transition-colors duration-150 motion-reduce:transition-none ${active ? "border-[#03162F] bg-white/45 text-[#03162F]" : "border-transparent text-[#03162F]/80 hover:bg-white/30 hover:text-[#03162F]"}`}>
+                {child.icon ? <child.icon className={`h-3.5 w-3.5 shrink-0 ${active ? "text-[#03162F]" : "text-[#03162F]/60"}`} /> : <span className="h-3.5 w-3.5 shrink-0" />}
                 <span className="min-w-0 flex-1 truncate">{child.title}</span>
               </Link>
             );
@@ -75,13 +82,13 @@ function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, app
     );
   }
 
-  if (applyAccess && !isSuperAdministrator && itemPermissions(item).length > 0 && !itemPermissions(item).some((permission) => permissionKeys.includes(permission))) return null;
+  if (!canSeeNavigationItem(item, permissionKeys, isSuperAdministrator, applyAccess)) return null;
   const active = isCurrentPath(pathname, item.href);
 
   return (
     <Link href={item.href ?? "#"}
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-9 w-full items-center gap-2.5 rounded-lg border-l-[3px] px-2 py-1.5 text-[13px] leading-5 transition-colors ${active ? "border-[#03162F] bg-white/55 font-semibold text-[#03162F]" : "border-transparent text-[#03162F]/85 hover:bg-white/40 hover:text-[#03162F]"}`}>
+      className={`flex min-h-9 w-full items-center gap-2.5 rounded-lg border-l-[3px] px-2 py-1.5 text-[13px] font-semibold leading-5 transition-colors ${active ? "border-[#03162F] bg-white/55 text-[#03162F]" : "border-transparent text-[#03162F]/85 hover:bg-white/40 hover:text-[#03162F]"}`}>
       {item.icon ? <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-[#03162F]" : "text-[#03162F]/70"}`} /> : <span className="h-4 w-4 shrink-0" />}
       <span className="min-w-0 flex-1 truncate">{item.title}</span>
     </Link>
@@ -95,13 +102,16 @@ export default function Sidebar({ permissionKeys, isSuperAdministrator, accessCo
   // server. Keep the first browser render neutral so a refreshed session can
   // never hydrate against a different set of permission-filtered links.
   const hydrated = useSyncExternalStore(subscribeToNothing, () => true, () => false);
+  const [sectionOverride, setSectionOverride] = useState<{ pathname: string; title: string | null } | null>(null);
+  const activeSection = activeDepartmentTitle(pathname, permissionKeys, isSuperAdministrator, applyAccess);
+  const expandedSection = sectionOverride?.pathname === pathname ? sectionOverride.title : activeSection;
 
   return (
     <aside className="sticky top-0 z-40 flex h-full w-[280px] min-w-[280px] shrink-0 flex-col overflow-hidden border-r border-[#8F6500]/35 bg-[#B8860B] text-[#03162F] shadow-[4px_0_18px_rgba(3,22,47,0.12)]">
       <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
         {hydrated ? (
           <div className="flex flex-col gap-2.5">
-            {navigation.map((item) => <SidebarItem key={item.title} item={item} pathname={pathname} permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} applyAccess={applyAccess} />)}
+            {navigation.map((item) => <SidebarItem key={item.title} item={item} pathname={pathname} permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} applyAccess={applyAccess} expandedSection={expandedSection} setExpandedSection={(title) => setSectionOverride({ pathname, title })} />)}
           </div>
         ) : (
           <div aria-hidden="true" className="flex flex-col gap-2.5">

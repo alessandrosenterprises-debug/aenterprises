@@ -17,7 +17,7 @@ export default function ManagerDashboardWorkspace({ data }: { data: DashboardDat
   const canViewActivity = data.staffAccess.isSuperAdministrator || data.staffAccess.permissionKeys.includes("access.view_audit");
   const canViewBusinessReports = data.staffAccess.isSuperAdministrator || (data.staffAccess.permissionKeys.includes("reports.view") && data.staffAccess.permissionKeys.includes("businesses.view"));
   return <main className="w-full min-w-0 space-y-6">
-    <header className="sticky top-0 z-30 rounded-2xl bg-[#03162F] p-6 text-white shadow-sm sm:p-8">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-[#03162F] p-6 text-white shadow-sm sm:p-8">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Manager workspace · {data.profile?.role ?? "Manager"}</p>
       <h1 className="mt-2 text-3xl font-bold">Team operations</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-300">Monitor business activity, review open work, and help your team keep customer requests moving.</p>

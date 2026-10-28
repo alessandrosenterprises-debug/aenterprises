@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { FileText, Image as ImageIcon, Megaphone, Package, Pencil, Plus, Trash2, Wrench } from "lucide-react";
 import { deleteBusinessContentAction, saveBusinessContentAction, type BusinessContentSection } from "@/app/dashboard/enterprise/content/actions";
 import ImageUpload from "@/components/ui/image-upload/ImageUpload";
+import ImagePreview from "@/components/ui/image-preview/ImagePreview";
 
 export interface ManagedBusiness {
   id: string;
@@ -50,8 +50,9 @@ function initialValues(section: BusinessContentSection, businessSlug: string, re
   if (record) {
     const values: FormValues = {};
     for (const [key, value] of Object.entries(record)) {
-      if (["active", "published", "featured", "is_featured", "requires_collateral"].includes(key)) values[key] = Boolean(value);
+      if (["active", "published", "featured", "is_featured", "requires_collateral", "facebook_auto_publish"].includes(key)) values[key === "facebook_auto_publish" ? "publish_to_facebook" : key] = Boolean(value);
       else if (key === "start_date" || key === "end_date" || key === "published_at") values[key] = localDateTime(String(value ?? ""));
+      else if (key === "facebook_publish_at") values.facebook_schedule_at = localDateTime(String(value ?? ""));
       else if (typeof value === "string" || typeof value === "number") values[key] = String(value);
     }
     values.name = asText(record, "name", asText(record, "title"));
@@ -59,10 +60,12 @@ function initialValues(section: BusinessContentSection, businessSlug: string, re
     values.category = asText(record, "category", asText(record, "service_type"));
     values.description = asText(record, "description", asText(record, "content"));
     values.status = asText(record, "status", "active");
+    values.publish_to_facebook ??= record.facebook_auto_publish !== false;
+    values.facebook_schedule_at ??= "";
     return values;
   }
 
-  const defaults: FormValues = { name: "", title: "", category: businessSlug === "mobile-money" ? "cash_in" : "", description: "", content: "", image_url: "", status: "active", active: true, published: true, featured: false, is_featured: false, requires_collateral: false };
+  const defaults: FormValues = { name: "", title: "", category: businessSlug === "mobile-money" ? "cash_in" : "", description: "", content: "", image_url: "", status: "active", active: true, published: true, featured: false, is_featured: false, requires_collateral: false, publish_to_facebook: true, facebook_schedule_at: "" };
   if (section === "posts") defaults.post_type = "update";
   if (section === "gallery") defaults.display_order = "0";
   if (section === "products") defaults.quantity = "";
@@ -142,7 +145,21 @@ export default function BusinessContentWorkspace({ businesses, initialContent, i
         }));
         setEditing(null);
         setFormOpen(false);
-      setNotice(`${singularLabel[section]} saved.`);
+        const facebook = result.facebook_publishing as { status?: string; scheduledAt?: string; error?: string } | null;
+        const facebookNotice = !form.publish_to_facebook
+          ? "Facebook posting is off for this item."
+          : facebook?.status === "published"
+            ? "Facebook published this update."
+            : facebook?.status === "pending"
+              ? `Facebook post scheduled for ${facebook.scheduledAt ? new Date(facebook.scheduledAt).toLocaleString() : "later"}.`
+              : facebook?.status === "paused"
+                ? "Saved. Facebook publishing is paused until the Page connection is configured."
+                : facebook?.status === "queue_error"
+                  ? `Saved, but Facebook publishing could not be queued: ${facebook.error ?? "check the publishing setup."}`
+                  : facebook?.status
+                    ? `Saved. Facebook publishing status: ${facebook.status.replaceAll("_", " ")}.`
+                    : "Facebook publishing was not queued for this item.";
+        setNotice(`${singularLabel[section]} saved. ${facebookNotice}`);
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "Could not save this item.");
       }
@@ -169,10 +186,11 @@ export default function BusinessContentWorkspace({ businesses, initialContent, i
   const fields = (key: string, label: string, options?: { type?: string; required?: boolean; placeholder?: string; min?: string; step?: string }) => <label key={key} className="grid gap-1.5 text-sm font-semibold text-slate-700"><span>{label}</span><input type={options?.type ?? "text"} required={options?.required} min={options?.min} step={options?.step} placeholder={options?.placeholder} value={stringValue(form, key)} onChange={(event) => change(key, event.target.value)} className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-[#03162F] outline-none focus:border-[#174D8C] focus:ring-2 focus:ring-blue-100" /></label>;
   const textArea = (key: string, label: string, rows = 4) => <label key={key} className="grid gap-1.5 text-sm font-semibold text-slate-700"><span>{label}</span><textarea rows={rows} value={stringValue(form, key)} onChange={(event) => change(key, event.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-[#03162F] outline-none focus:border-[#174D8C] focus:ring-2 focus:ring-blue-100" /></label>;
   const toggle = (key: string, label: string) => <label key={key} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700"><input type="checkbox" checked={Boolean(form[key])} onChange={(event) => change(key, event.target.checked)} className="h-4 w-4 accent-[#03162F]" />{label}</label>;
+  const facebookControls = <div className="grid gap-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3 sm:col-span-2">{toggle("publish_to_facebook", "Publish this content to the Alessandro Enterprises Facebook Page")}{fields("facebook_schedule_at", "Schedule Facebook post (optional)", { type: "datetime-local" })}<p className="text-xs leading-5 text-slate-600">Leave the time empty to publish immediately. Promotions and announcements use their website start or publish time when that time is in the future.</p></div>;
   const imageUpload = <div className="grid gap-2 sm:col-span-2"><span className="text-sm font-semibold text-slate-700">Image</span><ImageUpload value={stringValue(form, "image_url")} onChange={(url) => change("image_url", url)} /></div>;
 
   return <div className="space-y-6 pb-10">
-    <header className="rounded-3xl bg-gradient-to-br from-[#03162F] via-[#0A2852] to-[#174D8C] p-6 text-white shadow-lg sm:p-8">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-gradient-to-br from-[#03162F] via-[#0A2852] to-[#174D8C] p-6 text-white shadow-lg sm:p-8">
       <p className="text-xs font-black uppercase tracking-[0.2em] text-[#D4AF37]">Enterprise content management</p>
       <h1 className="mt-2 text-3xl font-black sm:text-4xl">Business Content</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">Update customer-facing services, products, promotions, gallery images and posts for any active business.</p>
@@ -190,11 +208,11 @@ export default function BusinessContentWorkspace({ businesses, initialContent, i
     {formOpen && <form onSubmit={save} className="space-y-5 rounded-2xl border border-blue-200 bg-blue-50/50 p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#D4AF37]">{editing ? "Edit item" : "New item"}</p><h2 className="mt-1 text-xl font-black text-[#03162F]">{editing ? `Update ${singularLabel[section]}` : `Add ${singularLabel[section]}`}</h2></div><button type="button" onClick={() => setFormOpen(false)} className="rounded-lg px-3 py-2 text-sm font-bold text-slate-500 hover:bg-white">Cancel</button></div>
       <div className="grid gap-4 sm:grid-cols-2">
-        {section === "services" && <>{fields("name", "Service name", { required: true })}{fields("category", isMobileMoneyService ? "Service type (e.g. cash_in)" : "Category")}{!isMobileMoneyService && imageUpload}{fields("base_price", "Price (ZMW)", { type: "number", min: "0", step: "0.01" })}{textArea("description", "Description")}{fields("status", "Status (active or inactive)", { placeholder: "active" })}{isMobileMoneyService && <p className="text-xs text-slate-500">Use types such as cash_in, cash_out, transfer, bill_payment or airtime.</p>}</>}
-        {section === "products" && <>{fields("name", isSoftLoanProduct ? "Loan product name" : "Product name", { required: true })}{!isSoftLoanProduct && fields("category", "Category")}{!isSoftLoanProduct && imageUpload}{isSoftLoanProduct ? <>{fields("min_amount", "Minimum amount (ZMW)", { type: "number", min: "0", step: "0.01" })}{fields("max_amount", "Maximum amount (ZMW)", { type: "number", min: "0", step: "0.01" })}{fields("interest_rate", "Interest rate (%)", { type: "number", min: "0", step: "0.01" })}{fields("repayment_period", "Repayment period (days)", { type: "number", min: "1", step: "1" })}{toggle("requires_collateral", "Collateral required")}</> : <>{fields("base_price", "Price (ZMW)", { type: "number", min: "0", step: "0.01" })}{fields("quantity", "Stock quantity", { type: "number", min: "0", step: "1" })}</>}{textArea("description", "Description")}{fields("status", "Status (active or inactive)", { placeholder: "active" })}</>}
-        {section === "promotions" && <>{fields("title", "Promotion title", { required: true })}{fields("discount_text", "Offer label", { placeholder: "20% off" })}{fields("price", "Offer price (ZMW)", { type: "number", min: "0", step: "0.01" })}{imageUpload}{fields("start_date", "Starts", { type: "datetime-local" })}{fields("end_date", "Ends", { type: "datetime-local" })}{textArea("description", "Description")}{toggle("active", "Active")}{toggle("published", "Visible to customers")}{toggle("featured", "Feature this promotion")}</>}
+        {section === "services" && <>{fields("name", "Service name", { required: true })}{fields("category", isMobileMoneyService ? "Service type (e.g. cash_in)" : "Category")}{!isMobileMoneyService && imageUpload}{fields("base_price", "Price (ZMW)", { type: "number", min: "0", step: "0.01" })}{textArea("description", "Description")}{fields("status", "Status (active or inactive)", { placeholder: "active" })}{isMobileMoneyService && <p className="text-xs text-slate-500">Use types such as cash_in, cash_out, transfer, bill_payment or airtime.</p>}{facebookControls}</>}
+        {section === "products" && <>{fields("name", isSoftLoanProduct ? "Loan product name" : "Product name", { required: true })}{!isSoftLoanProduct && fields("category", "Category")}{!isSoftLoanProduct && imageUpload}{isSoftLoanProduct ? <>{fields("min_amount", "Minimum amount (ZMW)", { type: "number", min: "0", step: "0.01" })}{fields("max_amount", "Maximum amount (ZMW)", { type: "number", min: "0", step: "0.01" })}{fields("interest_rate", "Interest rate (%)", { type: "number", min: "0", step: "0.01" })}{fields("repayment_period", "Repayment period (days)", { type: "number", min: "1", step: "1" })}{toggle("requires_collateral", "Collateral required")}</> : <>{fields("base_price", "Price (ZMW)", { type: "number", min: "0", step: "0.01" })}{fields("quantity", "Stock quantity", { type: "number", min: "0", step: "1" })}</>}{textArea("description", "Description")}{fields("status", "Status (active or inactive)", { placeholder: "active" })}{facebookControls}</>}
+        {section === "promotions" && <>{fields("title", "Promotion title", { required: true })}{fields("discount_text", "Offer label", { placeholder: "20% off" })}{fields("price", "Offer price (ZMW)", { type: "number", min: "0", step: "0.01" })}{imageUpload}{fields("start_date", "Starts", { type: "datetime-local" })}{fields("end_date", "Ends", { type: "datetime-local" })}{textArea("description", "Description")}{toggle("active", "Active")}{toggle("published", "Visible to customers")}{toggle("featured", "Feature this promotion")}{facebookControls}</>}
         {section === "gallery" && <>{fields("title", "Image title")}{imageUpload}{fields("display_order", "Display order", { type: "number", min: "0", step: "1" })}{textArea("caption", "Caption")}{toggle("active", "Visible to customers")}{toggle("is_featured", "Feature this image")}</>}
-        {section === "posts" && <>{fields("title", "Post title", { required: true })}{fields("post_type", "Post type", { placeholder: "update" })}{imageUpload}{fields("published_at", "Publish date and time", { type: "datetime-local" })}{textArea("content", "Post content", 5)}{toggle("published", "Publish to customers")}{toggle("featured", "Feature this post")}</>}
+        {section === "posts" && <>{fields("title", "Post title", { required: true })}{fields("post_type", "Post type", { placeholder: "update" })}{imageUpload}{fields("published_at", "Publish date and time", { type: "datetime-local" })}{textArea("content", "Post content", 5)}{toggle("published", "Publish to customers")}{toggle("featured", "Feature this post")}{facebookControls}</>}
       </div>
       <div className="flex flex-wrap gap-3"><button disabled={isPending} type="submit" className="min-h-11 rounded-xl bg-[#03162F] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60">{isPending ? "Saving…" : "Save changes"}</button><button type="button" onClick={() => setFormOpen(false)} className="min-h-11 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700">Cancel</button></div>
     </form>}
@@ -205,7 +223,7 @@ export default function BusinessContentWorkspace({ businesses, initialContent, i
       const imageUrl = asText(record, "image_url");
       const status = asText(record, "status", Boolean(record.published) ? "Published" : "Draft");
       return <article key={record.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {imageUrl && <div className="relative aspect-[4/3] bg-slate-100"><Image src={imageUrl} alt={title} fill unoptimized className="object-cover" /></div>}
+        {imageUrl && <div className="relative aspect-[4/3] bg-slate-100"><ImagePreview src={imageUrl} alt={title} fill imageClassName="object-cover" /></div>}
         <div className="space-y-3 p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#9A7910]">{asText(record, "category", asText(record, "discount_text", activeSection.label.slice(0, -1)))}</p><h3 className="mt-1 text-lg font-black text-[#03162F]">{title}</h3></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${status.toLowerCase() === "active" || status.toLowerCase() === "published" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{status}</span></div>{description && <p className="line-clamp-3 text-sm leading-6 text-slate-500">{description}</p>}{section === "products" && record.item_type !== "loan_product" && <div className="flex justify-between border-t border-slate-100 pt-3 text-sm"><span className="font-bold text-[#03162F]">{record.base_price ? `ZMW ${asText(record, "base_price")}` : "Price not set"}</span><span className="text-slate-500">{record.quantity !== "" && record.quantity != null ? `${asText(record, "quantity")} in stock` : ""}</span></div>}{section === "products" && record.item_type === "loan_product" && <p className="text-sm text-slate-600">{record.min_amount != null ? `Min ZMW ${asText(record, "min_amount")}` : ""}{record.max_amount != null ? ` · Max ZMW ${asText(record, "max_amount")}` : ""}{record.interest_rate != null ? ` · ${asText(record, "interest_rate")}% interest` : ""}</p>}<div className="flex gap-2 border-t border-slate-100 pt-3"><button type="button" onClick={() => openEditForm(record)} className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-slate-100 px-3 text-sm font-bold text-[#03162F] hover:bg-slate-200"><Pencil className="h-4 w-4" />Edit</button><button type="button" onClick={() => remove(record)} disabled={isPending} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-200 px-3 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"><Trash2 className="h-4 w-4" /><span className="sr-only">Delete</span></button></div></div>
       </article>;
     })}</div>}

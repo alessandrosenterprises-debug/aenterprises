@@ -6,8 +6,8 @@ import CreateStaffAccountForm from "@/modules/administration/components/CreateSt
 export default async function AccessControlPage() {
   const data = await getAccessControlData();
   return (
-    <main className="mx-auto w-full max-w-[1800px] space-y-6">
-      <header className="rounded-2xl bg-[#03162F] p-6 text-white shadow-sm sm:p-8">
+    <main className="w-full space-y-6">
+      <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-[#03162F] p-6 text-white shadow-sm sm:p-8">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Enterprise administration</p>
         <h1 className="mt-2 text-3xl font-bold">Roles, permissions & staff access</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Control the areas each role can use, assign roles to staff accounts, and keep access changes auditable across the enterprise.</p>

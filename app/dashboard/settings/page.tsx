@@ -109,6 +109,8 @@ interface WebsiteSettings {
   homepage_heading: string;
   meta_description: string;
   show_contact_information: boolean;
+  facebook_page_url: string;
+  show_facebook_feed: boolean;
 }
 
 interface BusinessSettings {
@@ -287,6 +289,8 @@ const defaultWebsiteSettings: WebsiteSettings = {
     "Welcome to Alessandro Enterprises",
   meta_description: "",
   show_contact_information: true,
+  facebook_page_url: "https://www.facebook.com/profile.php?id=61595623191488",
+  show_facebook_feed: true,
 };
 
 const defaultBusinessSettings: BusinessSettings = {
@@ -1772,13 +1776,13 @@ export default function SettingsPage() {
   ========================================================== */
 
   return (
-    <div className="flex h-[calc(100dvh-169px)] min-h-0 flex-col overflow-hidden bg-[#F3F5F8] p-3 sm:p-5">
+    <div className="-mx-6 -mt-6 flex h-[calc(100dvh-169px)] min-h-0 flex-col bg-[#F3F5F8]">
 
       {/* =====================================================
           FIXED SETTINGS HEADER
       ===================================================== */}
 
-      <header className="sticky top-0 z-40 mb-4 shrink-0 overflow-hidden rounded-2xl bg-[#03162F] px-5 py-5 shadow-lg shadow-slate-900/10 sm:mb-5 sm:px-7 sm:py-6">
+      <header className="sticky top-[-24px] z-[90] mb-4 shrink-0 overflow-hidden rounded-none bg-[#03162F] px-6 py-5 shadow-lg shadow-slate-900/10 sm:mb-5 sm:px-7 sm:py-6">
         <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(ellipse_at_top_right,rgba(212,175,55,0.18),transparent_68%)]" />
         <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
 
@@ -2753,6 +2757,15 @@ export default function SettingsPage() {
                       }
                     />
 
+                    <SettingInput
+                      label="Facebook Page URL"
+                      value={platformSettings.website.facebook_page_url}
+                      placeholder="https://www.facebook.com/yourpage"
+                      onChange={(value) =>
+                        updateWebsiteField("facebook_page_url", value)
+                      }
+                    />
+
                   </div>
 
                   <div className="mt-5">
@@ -2845,6 +2858,15 @@ export default function SettingsPage() {
                           "show_contact_information",
                           checked
                         )
+                      }
+                    />
+
+                    <ToggleSetting
+                      title="Show Facebook Page feed"
+                      description="Embed the public Facebook Page timeline on the website home page. Add the specific public Page URL above first."
+                      checked={platformSettings.website.show_facebook_feed}
+                      onChange={(checked) =>
+                        updateWebsiteField("show_facebook_feed", checked)
                       }
                     />
 

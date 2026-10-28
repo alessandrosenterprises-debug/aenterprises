@@ -11,7 +11,7 @@ type CashierData = Awaited<ReturnType<typeof getCashierManagementData>>;
 type CashRosterStaff = { id: string; display_name: string | null; first_name: string | null; last_name: string | null; email: string | null };
 const inputClass = "mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-[#03162F] outline-none focus:border-[#D9B52B] focus:ring-2 focus:ring-[#D9B52B]/20";
 function name(person: { display_name?: string | null; first_name?: string | null; last_name?: string | null; email?: string | null } | null) {
-  return person?.display_name?.trim() || [person?.first_name, person?.last_name].filter(Boolean).join(" ") || person?.email || "Staff member";
+  return person?.display_name?.trim() || [person?.first_name, person?.last_name].filter(Boolean).join(" ") || "Staff member";
 }
 
 export default function CashierManagementPage() {
@@ -46,15 +46,15 @@ export default function CashierManagementPage() {
   }); }
 
   return <main className="w-full space-y-5 pb-8">
-    <header className="sticky top-0 z-20 -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-3 bg-slate-50 px-6 pb-3 pt-6">
-      <div className="flex items-center gap-3"><Link href="/dashboard/reports/cash-reconciliation" aria-label="Back to cash reconciliation" className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-100"><ArrowLeft className="h-4 w-4" /></Link><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D9B52B] text-[#03162F]"><UserRoundCog className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#9A7410]">Enterprise finance</p><h1 className="text-xl font-black text-[#03162F]">Cashier management</h1><p className="text-xs text-slate-500">Assign till access to eligible staff and businesses.</p></div></div>
-      <button type="button" onClick={() => startTransition(() => { void load(); })} disabled={pending} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50"><RefreshCw className="h-4 w-4" />Refresh</button>
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-3 bg-[#03162F] px-6 py-5 text-white shadow-lg">
+      <div className="flex items-center gap-3"><Link href="/dashboard/reports/cash-reconciliation" aria-label="Back to cash reconciliation" className="rounded-lg border border-white/15 bg-white/10 p-2 text-white hover:bg-white/15"><ArrowLeft className="h-4 w-4" /></Link><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D9B52B] text-[#03162F]"><UserRoundCog className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#E8CA62]">Enterprise finance</p><h1 className="text-xl font-black text-white">Cashier management</h1><p className="text-xs text-slate-300">Assign till access to eligible staff and businesses.</p></div></div>
+      <button type="button" onClick={() => startTransition(() => { void load(); })} disabled={pending} className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/15 disabled:opacity-50"><RefreshCw className="h-4 w-4" />Refresh</button>
     </header>
     {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
     <section className="grid gap-5 xl:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
       <form onSubmit={(event) => { event.preventDefault(); save(true); }} className="h-fit space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div><h2 className="font-bold text-[#03162F]">Assign cashier</h2><p className="mt-1 text-sm text-slate-500">Staff must have the “Record cash and reconcile till” role permission first.</p></div>
-        <label className="block text-xs font-semibold text-slate-600">Staff member<select required value={staffProfileId} onChange={(event) => setStaffProfileId(event.target.value)} className={inputClass}><option value="">Select eligible staff</option>{data?.staff.map((staff: CashRosterStaff) => <option key={staff.id} value={staff.id}>{name(staff)}{staff.email ? ` · ${staff.email}` : ""}</option>)}</select></label>
+        <label className="block text-xs font-semibold text-slate-600">Staff member<select required value={staffProfileId} onChange={(event) => setStaffProfileId(event.target.value)} className={inputClass}><option value="">Select eligible staff</option>{data?.staff.map((staff: CashRosterStaff) => <option key={staff.id} value={staff.id}>{name(staff)}</option>)}</select></label>
         <label className="block text-xs font-semibold text-slate-600">Business / till<select required value={businessId} onChange={(event) => setBusinessId(event.target.value)} className={inputClass}><option value="">Select business</option>{data?.businesses.map((business) => <option key={business.id} value={business.id}>{business.name}</option>)}</select></label>
         <label className="block text-xs font-semibold text-slate-600">Assignment notes<input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Till name, shift or location (optional)" className={inputClass} /></label>
         <button disabled={pending || !staffProfileId || !businessId} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#03162F] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><CheckCircle2 className="h-4 w-4" />Assign till access</button>

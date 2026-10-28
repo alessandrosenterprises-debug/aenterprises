@@ -29,7 +29,7 @@ export default function DeliveryReviewsPage({ orders }: { orders: DeliveryReport
   const reviewCount = delivered.filter((order) => order.delivery_rating !== null || Boolean(order.delivery_review?.trim())).length;
 
   return <div className="space-y-5">
-    <header className="flex flex-col gap-4 rounded-2xl bg-[#03162F] p-5 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-7">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col gap-4 rounded-none bg-[#03162F] p-5 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-7">
       <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Customer experience · Courier orders</p><h1 className="mt-2 text-2xl font-black sm:text-3xl">Delivery reviews &amp; comments</h1><p className="mt-1 text-sm text-slate-300">Read customer feedback against each completed delivery and its assigned rider.</p></div>
       <Link href="/dashboard/orders/delivery-reports" className="inline-flex items-center gap-2 self-start rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold hover:bg-white/10"><ArrowLeft className="h-4 w-4" />Delivery performance</Link>
     </header>

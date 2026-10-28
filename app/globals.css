@@ -55,6 +55,35 @@ html.dark {
 
 @import "../styles/themes/theme.css";
 
+@keyframes aeos-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes aeos-slide-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.aeos-marquee {
+  animation: aeos-marquee 42s linear infinite;
+}
+
+.aeos-marquee:hover {
+  animation-play-state: paused;
+}
+
+.aeos-slide {
+  animation: aeos-slide-enter 450ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aeos-marquee,
+  .aeos-slide {
+    animation: none;
+  }
+}
+
 /* Consistent, readable toast notifications across AEOS and customer pages. */
 [data-sonner-toaster] {
   --width: min(400px, calc(100vw - 24px));
@@ -256,5 +285,28 @@ html[data-customer-app="true"] body,
   .customer-pull-refresh__spinner {
     animation: none !important;
     transition: none;
+  }
+}
+/* Compact the shared AEOS page banners so the working content stays in view. */
+body img { cursor: zoom-in; }
+
+main[data-dashboard-scroll-container] header[class*="sticky"][class*="-mt-6"] {
+  padding-top: clamp(0.65rem, 1.2vw, 0.95rem) !important;
+  padding-bottom: clamp(0.65rem, 1.2vw, 0.95rem) !important;
+}
+
+main[data-dashboard-scroll-container] header[class*="sticky"][class*="-mt-6"] h1 {
+  font-size: clamp(1.35rem, 2vw, 1.8rem) !important;
+  line-height: 1.15 !important;
+}
+
+@media (max-width: 640px) {
+  main[data-dashboard-scroll-container] header[class*="sticky"][class*="-mt-6"] {
+    padding-top: 0.65rem !important;
+    padding-bottom: 0.65rem !important;
+  }
+
+  main[data-dashboard-scroll-container] header[class*="sticky"][class*="-mt-6"] h1 {
+    font-size: 1.35rem !important;
   }
 }

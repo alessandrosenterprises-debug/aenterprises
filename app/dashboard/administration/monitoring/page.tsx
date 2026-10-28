@@ -6,8 +6,8 @@ export default async function AppMonitoringPage() {
   const data = await getAppMonitoringData();
   const openCount = data.reports.filter((report) => report.status === "Open").length;
 
-  return <main className="mx-auto w-full max-w-[1800px] space-y-6">
-    <header className="rounded-2xl bg-[#03162F] p-6 text-white sm:p-8">
+  return <main className="w-full space-y-6">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-[#03162F] p-6 text-white sm:p-8">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Support & reliability</p>
       <h1 className="mt-2 text-3xl font-bold">App health & errors</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-300">Check service availability and review page errors reported by customers and staff to help resolve support requests.</p>

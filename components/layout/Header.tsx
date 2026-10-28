@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Building2,
   ChevronRight,
+  Globe2,
   Settings,
 } from "lucide-react";
 
@@ -353,6 +354,17 @@ useEffect(() => {
         "
       >
         <OperationsSessionControl canOpen={permissionKeys.includes("operations.open")} />
+        <Link
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open public website"
+          title="Open public website"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 text-white shadow-[0_3px_12px_rgba(0,0,0,0.2)] transition hover:border-[#D4AF37] hover:bg-white/15 hover:text-[#F1D46B]"
+        >
+          <Globe2 className="h-5 w-5" />
+          <span className="hidden 2xl:inline text-xs font-bold">Website</span>
+        </Link>
         {/* SYSTEM ONLINE */}
 
         <div

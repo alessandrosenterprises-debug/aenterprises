@@ -156,8 +156,7 @@ export default function ReportsPage() {
 
   return (
     <div className="w-full space-y-5 pb-8">
-      <div className="sticky top-0 z-20 -mx-6 -mt-6 space-y-3 bg-slate-50 px-6 pb-3 pt-6">
-      <section className="flex flex-col gap-5 rounded-2xl bg-[#03162F] px-6 py-6 text-white shadow-sm md:flex-row md:items-center md:justify-between">
+      <section className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col gap-5 rounded-none bg-[#03162F] px-6 py-6 text-white shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <div className="rounded-xl bg-[#D9B52B] p-3 text-[#03162F]"><BarChart3 className="h-6 w-6" /></div>
           <div>
@@ -199,7 +198,6 @@ export default function ReportsPage() {
           <PinnedColumnHeadings columns={reportColumns[activeTab]} />
         </div>
       </section>
-      </div>
 
       {error && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
       {report?.warnings.map((warning) => <div key={warning} role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{warning} Some figures may be incomplete.</div>)}

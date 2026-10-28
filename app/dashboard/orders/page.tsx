@@ -53,7 +53,7 @@ export default async function OrdersPage() {
   const paidRevenue = orders.filter((order) => order.payment_status === "Paid").reduce((total, order) => total + Number(order.total_amount || 0), 0);
 
   return <div className="space-y-5">
-    <header className="relative overflow-hidden rounded-3xl bg-[#03162F] p-5 text-white shadow-lg sm:p-7">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 isolate overflow-hidden rounded-none bg-[#03162F] p-5 text-white shadow-lg sm:p-7">
       <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full border-[28px] border-white/[0.04]" />
       <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
         <div><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-200"><Activity className="h-3.5 w-3.5" />Live dispatch · {orders.length} orders</div><h1 className="text-3xl font-black tracking-tight sm:text-4xl">Customer Orders</h1><p className="mt-2 max-w-2xl text-sm text-slate-300">One view for incoming orders, rider assignments, preparation, live delivery and customer locations.</p></div>

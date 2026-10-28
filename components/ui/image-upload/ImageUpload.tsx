@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { supabase } from "@/lib/supabase/client";
+import ImagePreview from "@/components/ui/image-preview/ImagePreview";
 
 interface ImageUploadProps {
   value?: string;
@@ -222,14 +223,12 @@ export default function ImageUpload({
                 shadow
               "
             >
-              <img
+              <ImagePreview
                 src={value}
-                alt="Uploaded preview"
-                className="
-                  h-full
-                  w-full
-                  object-contain
-                "
+                alt="Uploaded image"
+                width={192}
+                height={192}
+                imageClassName="object-contain"
               />
             </div>
 

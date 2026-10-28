@@ -11,7 +11,7 @@ type DashboardData = Awaited<ReturnType<typeof getRoleDashboardData>>;
 export default function StaffDashboardWorkspace({ data }: { data: DashboardData }) {
   const canSeeWork = data.staffAccess.isSuperAdministrator || data.staffAccess.permissionKeys.some((permission) => ["orders.view", "loans.approve", "bookings.view", "deliveries.manage", "businesses.view", "communications.manage", "customers.view", "employees.view", "hr.manage", "reports.view"].includes(permission));
   return <main className="w-full min-w-0 space-y-5">
-    <header className="sticky top-0 z-30 rounded-2xl bg-[#03162F] p-6 text-white shadow-sm sm:p-8">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-[#03162F] p-6 text-white shadow-sm sm:p-8">
       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Staff workspace · {data.profile?.role ?? "Team member"}</p>
       <h1 className="mt-2 text-3xl font-bold">Good day, {data.profile?.display_name ?? "Team member"}</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate-300">Your work queues and daily tasks are gathered here. Open the items assigned to your role and continue where you left off.</p>

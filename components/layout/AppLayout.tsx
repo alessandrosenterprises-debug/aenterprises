@@ -4,6 +4,7 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
 import PageTransition from "./PageTransition";
+import DashboardScrollReset from "./DashboardScrollReset";
 import FloatingLiveChat from "@/components/shared/FloatingLiveChat";
 interface AppLayoutProps {
   children: ReactNode;
@@ -36,7 +37,8 @@ export default function AppLayout({
         <Sidebar permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} accessControlEnabled={accessControlEnabled} />
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 p-6">
+          <main data-dashboard-scroll-container className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 p-6">
+  <DashboardScrollReset />
   <PageTransition>
     {children}
   </PageTransition>

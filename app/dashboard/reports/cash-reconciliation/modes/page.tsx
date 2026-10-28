@@ -45,9 +45,9 @@ export default function CashTransactionModesPage() {
   }
 
   return <main className="w-full space-y-5 pb-8">
-    <header className="sticky top-0 z-20 -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-3 bg-slate-50 px-6 pb-3 pt-6">
-      <div className="flex items-center gap-3"><Link href="/dashboard/reports/cash-reconciliation" aria-label="Back to reconciliation" className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600"><ArrowLeft className="h-4 w-4" /></Link><span className="rounded-xl bg-[#D9B52B] p-3 text-[#03162F]"><Banknote className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#9A7410]">Till setup</p><h1 className="text-xl font-black text-[#03162F]">Payment modes</h1><p className="text-xs text-slate-500">Manage the methods staff can select when recording transactions.</p></div></div>
-      <button type="button" onClick={() => startTransition(() => { void load(); })} disabled={pending} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"><RefreshCw className="h-4 w-4" />Refresh</button>
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-3 bg-[#03162F] px-6 py-5 text-white shadow-lg">
+      <div className="flex items-center gap-3"><Link href="/dashboard/reports/cash-reconciliation" aria-label="Back to reconciliation" className="rounded-lg border border-white/15 bg-white/10 p-2 text-white hover:bg-white/15"><ArrowLeft className="h-4 w-4" /></Link><span className="rounded-xl bg-[#D9B52B] p-3 text-[#03162F]"><Banknote className="h-5 w-5" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#E8CA62]">Till setup</p><h1 className="text-xl font-black text-white">Payment modes</h1><p className="text-xs text-slate-300">Manage the methods staff can select when recording transactions.</p></div></div>
+      <button type="button" onClick={() => startTransition(() => { void load(); })} disabled={pending} className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/15"><RefreshCw className="h-4 w-4" />Refresh</button>
     </header>
     {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
     <form onSubmit={save} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-[1fr_auto_auto] md:items-end">

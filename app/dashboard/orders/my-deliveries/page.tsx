@@ -20,7 +20,7 @@ export default async function MyDeliveriesPage() {
   const isRider = /rider|driver|delivery/i.test(rider?.position ?? "");
   if (!isRider && !staffAccess.isSuperAdministrator && !staffAccess.permissionKeys.includes("deliveries.manage")) redirect("/dashboard/staff");
   return <div className="w-full min-w-0 space-y-6">
-    <header className="sticky top-0 z-30 rounded-2xl bg-[#03162F] p-5 text-white shadow-sm sm:p-7">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-[#03162F] p-5 text-white shadow-sm sm:p-7">
       <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]"><Bike className="h-4 w-4" />AEOS rider workspace</p>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-black sm:text-3xl">My Deliveries</h1><p className="mt-1 text-sm text-blue-100">Update preparation and delivery progress from your phone.</p></div><span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold"><Radio className="h-4 w-4 text-emerald-300" />Live customer updates</span></div>
     </header>

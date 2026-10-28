@@ -255,7 +255,7 @@ export default async function ConfigurationPage({
 
   return (
     <div className="min-w-0 w-full space-y-5">
-      <header className="sticky top-0 z-30 overflow-hidden rounded-2xl bg-[#03162F] px-5 py-5 text-white shadow-lg shadow-[#03162F]/10 sm:px-7 sm:py-6">
+      <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 overflow-hidden rounded-none bg-[#03162F] px-5 py-5 text-white shadow-lg shadow-[#03162F]/10 sm:px-7 sm:py-6">
         <div className="pointer-events-none absolute inset-y-0 right-0 w-2/5 bg-[radial-gradient(ellipse_at_top_right,rgba(212,175,55,0.2),transparent_68%)]" />
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-center gap-4">

@@ -59,7 +59,7 @@ export default function DeliveryRiderReport({ orders }: { orders: DeliveryReport
   ];
 
   return <div className="space-y-5">
-    <header className="flex flex-col gap-5 rounded-2xl bg-[#03162F] p-5 text-white shadow-sm lg:flex-row lg:items-center lg:justify-between sm:p-7">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col gap-5 rounded-none bg-[#03162F] p-5 text-white shadow-sm lg:flex-row lg:items-center lg:justify-between sm:p-7">
       <div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]"><BarChart3 className="h-4 w-4" />Delivery operations</p><h1 className="mt-2 text-2xl font-black sm:text-3xl">Delivery &amp; Rider Performance</h1><p className="mt-1 text-sm text-slate-300">Track delivery outcomes, rider workloads, customer ratings and paid delivery revenue.</p></div>
       <div className="flex flex-wrap gap-2"><Link href="/dashboard/orders" className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold hover:bg-white/10"><Truck className="h-4 w-4" />Orders</Link><Link href="/dashboard/orders/reviews" className="inline-flex items-center gap-2 rounded-lg bg-[#D4AF37] px-3 py-2 text-sm font-bold text-[#03162F] hover:bg-[#e4c75c]"><MessageSquareText className="h-4 w-4" />Customer reviews</Link></div>
     </header>

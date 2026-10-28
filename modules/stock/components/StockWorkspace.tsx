@@ -81,7 +81,7 @@ export default function StockWorkspace({ data, initialTab = "inventory" }: { dat
   const needsDestination = ["Receive", "Transfer", "Customer Return", "Adjustment Increase"].includes(movementType);
 
   return <div className="space-y-5">
-    <header className="sticky top-[var(--app-header-height,0px)] z-30 flex flex-col gap-4 rounded-2xl bg-gradient-to-r from-[#03162F] via-[#0A2852] to-[#183B60] p-5 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col gap-4 rounded-none bg-gradient-to-r from-[#03162F] via-[#0A2852] to-[#183B60] p-5 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3"><span className="grid size-12 place-items-center rounded-xl bg-[#D4AF37] text-[#03162F]"><Boxes className="size-6" /></span><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">Enterprise operations</p><h1 className="text-2xl font-black">Stock Management</h1><p className="mt-1 text-xs text-slate-300">Branch inventory, stock controls and movement history.</p></div></div>
       {data.permissions.manage && <button onClick={() => setMovementOpen(true)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#D4AF37] px-4 text-sm font-bold text-[#03162F] hover:bg-[#edcb4f]"><Plus className="size-4" />Record stock movement</button>}
     </header>

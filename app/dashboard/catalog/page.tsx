@@ -36,9 +36,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   );
 
   return (
-    <main className="mx-auto w-full min-w-0 max-w-[1800px] space-y-6">
-      <div className="sticky top-0 z-30 -mx-6 -mt-6 space-y-4 bg-slate-50 px-6 pb-4 pt-6">
-      <header className="relative isolate overflow-hidden rounded-3xl bg-[#03162F] px-6 py-7 text-white shadow-xl shadow-[#03162F]/10 sm:px-8 sm:py-8">
+    <div className="w-full min-w-0 space-y-6">
+      <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 isolate overflow-hidden rounded-none bg-[#03162F] px-6 py-7 text-white shadow-xl shadow-[#03162F]/10 sm:px-8 sm:py-8">
         <div className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-2/3 bg-[radial-gradient(ellipse_at_top_right,rgba(212,175,55,0.22),transparent_65%)]" />
         <div className="flex flex-col justify-between gap-7 xl:flex-row xl:items-end">
           <div className="max-w-3xl">
@@ -67,7 +66,6 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <SummaryCard title="Out of stock" value={outOfStockProducts} icon={Package} alert={outOfStockProducts > 0} />
         <SummaryCard title="Product inventory value" value={`ZMW ${inventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={Database} />
       </section>
-      </div>
 
       <section aria-labelledby="catalog-list-heading" className="space-y-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -84,7 +82,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           initialBusinessId={selectedBusiness?.id ?? ""}
         />
       </section>
-    </main>
+    </div>
   );
 }
 

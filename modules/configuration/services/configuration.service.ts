@@ -34,6 +34,8 @@ export interface WebsiteSettings {
   homepage_heading: string;
   meta_description: string;
   show_contact_information: boolean;
+  facebook_page_url: string;
+  show_facebook_feed: boolean;
 }
 
 export interface BusinessSettings {
@@ -154,6 +156,8 @@ export const defaultWebsiteSettings: WebsiteSettings = {
   meta_description: "",
 
   show_contact_information: true,
+  facebook_page_url: "https://www.facebook.com/profile.php?id=61595623191488",
+  show_facebook_feed: true,
 };
 
 export const defaultBusinessSettings: BusinessSettings = {

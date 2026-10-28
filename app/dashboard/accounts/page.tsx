@@ -14,7 +14,7 @@ export default async function AccountsDepartmentPage() {
   const attention = data.cashUps.pending + data.cashUps.returned + data.statutory.overdue;
 
   return <main className="w-full space-y-5 pb-8">
-    <header className="sticky top-0 z-20 -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-4 rounded-b-2xl bg-[#03162F] px-6 py-5 text-white shadow-lg">
+    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 mb-8 flex flex-wrap items-center justify-between gap-4 rounded-none bg-[#03162F] px-6 py-5 text-white shadow-lg">
       <div className="flex items-center gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37] text-[#03162F]"><Landmark className="h-6 w-6" /></span>
         <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37]">Finance & controls</p><h1 className="text-2xl font-black">Accounts Department</h1><p className="mt-1 text-sm text-slate-300">Payroll liabilities, statutory remittances, cash control and financial records.</p></div>

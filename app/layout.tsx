@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/modules/website/public-website.css";
 
 import { Toaster } from "sonner";
+import GlobalImagePreview from "@/components/shared/GlobalImagePreview";
 
 export const metadata: Metadata = {
   title: "Alessandro Enterprise Platform",
@@ -17,6 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        <GlobalImagePreview />
 
         <Toaster
           position="top-right"

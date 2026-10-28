@@ -1,5 +1,11 @@
-import { redirect } from "next/navigation";
+import PublicWebsiteRoute from "@/modules/website/components/PublicWebsiteRoute";
+import { getPublicPageMetadata } from "@/modules/website/services/metadata.service";
+import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> { return getPublicPageMetadata("businesses"); }
 
 export default function BusinessesPage() {
-  redirect("/customer/businesses");
+  return <PublicWebsiteRoute />;
 }

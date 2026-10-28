@@ -35,7 +35,7 @@ export default function RidersManager({
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col justify-between gap-4 rounded-2xl bg-[#03162F] p-6 text-white sm:flex-row sm:items-center">
+      <section className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col justify-between gap-4 rounded-none bg-[#03162F] p-6 text-white sm:flex-row sm:items-center">
         <div className="flex items-start gap-4">
           <span className="rounded-xl bg-white/10 p-3 text-[#D4AF37]"><Bike className="h-6 w-6" /></span>
           <div><h2 className="text-xl font-bold">Delivery riders</h2><p className="mt-1 max-w-2xl text-sm text-white/65">Manage the active staff who can be assigned to customer deliveries.</p></div>
