@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, ArrowUpRight, Menu, Users, X } from "lucide-react";
+import { ArrowUpRight, Menu, Users, X } from "lucide-react";
 import type { PublicWebsiteData } from "@/modules/website/services/public-website.service";
 import ImagePreview from "@/components/ui/image-preview/ImagePreview";
 
@@ -15,11 +15,8 @@ export default function PublicSiteHeader({ data }: { data: PublicWebsiteData }) 
   const name = data.website.title?.trim() || data.company.company_name;
   const logo = data.website.logo_url || data.company.logo_url || "/brand/alessandro-enterprises-logo.png";
   const facebookPageUrl = getFacebookPageUrl(data.website.facebook_page_url);
-  const exploreHref = data.website.show_businesses ? (isHome ? "#businesses" : "/businesses") : data.website.show_products ? (isHome ? "#products" : "/products") : "/customer/login";
-  const exploreLabel = data.website.show_businesses ? "Discover our businesses" : data.website.show_products ? "Browse products and services" : "Open customer portal";
 
   return <>
-    <div className="announcement"><span>{data.company.tagline || "Your trusted partner for modern solutions."}</span><Link href={exploreHref}>{exploreLabel} <ArrowRight aria-hidden="true" /></Link></div>
     <header className="site-header">
       <div className="container navbar">
         <Link href="/" className="brand" aria-label={`${name} home`}>
