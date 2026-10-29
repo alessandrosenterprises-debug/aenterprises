@@ -24,7 +24,7 @@ Use the Page ID, not the Facebook profile URL, for `FACEBOOK_PAGE_ID`. Never com
 
 ## 3. Scheduled publishing
 
-`vercel.json` calls `/api/cron/facebook-publisher` every five minutes. The route requires the `Authorization: Bearer <CRON_SECRET>` header Vercel sends for secured cron jobs. Vercel Hobby currently limits cron frequency to once per day; this five-minute schedule requires a plan that supports it. On local development, use **Run publisher now** in Website → Facebook publishing to process due posts manually.
+`vercel.json` calls `/api/cron/facebook-publisher` once daily at 09:00 UTC to stay within Vercel Hobby's cron limit. The route requires the `Authorization: Bearer <CRON_SECRET>` header Vercel sends for secured cron jobs. Scheduled posts may therefore publish on the next daily run rather than at their exact selected time. Immediate publishing still runs when content is saved, and **Run publisher now** in Website → Facebook publishing can process due posts manually. More frequent automatic processing requires a Vercel plan that supports more frequent cron jobs or a separate scheduled worker.
 
 ## 4. How AEOS publishes
 
