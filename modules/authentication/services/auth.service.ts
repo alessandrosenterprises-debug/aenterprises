@@ -93,7 +93,15 @@ class AuthService {
       .maybeSingle();
     const profileRole = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
 
-    if (profileError || profile?.active === false || (profile?.role_id && !["Customer", "Customer Portal User"].includes(profileRole?.name ?? ""))) {
+    if (profileError) {
+      await supabase.auth.signOut();
+      return {
+        data: { user: null, session: null },
+        error: new Error("We could not verify this account for the Customer Portal. Please try again or contact support."),
+      };
+    }
+
+    if (profile?.active === false || (profile?.role_id && !["Customer", "Customer Portal User"].includes(profileRole?.name ?? ""))) {
       await supabase.auth.signOut();
       return {
         data: { user: null, session: null },

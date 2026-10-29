@@ -25,6 +25,11 @@ export default function CustomerLoginForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const accountStatus = new URLSearchParams(window.location.search).get("account");
+    if (accountStatus === "staff-account") {
+      setError("This is an AEOS staff account. Staff sign in to AEOS; customers need a separate Customer Portal account.");
+    }
+
     let mounted = true;
 
     async function restoreCustomerSession() {
@@ -72,8 +77,7 @@ export default function CustomerLoginForm() {
 
     if (result.error) {
       if (/staff account/i.test(result.error.message)) {
-        router.replace("/login?account=customer-portal-blocked");
-        router.refresh();
+        setError("This is an AEOS staff account. Staff sign in to AEOS; customers need a separate Customer Portal account.");
         return;
       }
       setError(result.error.message);

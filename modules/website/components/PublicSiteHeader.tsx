@@ -31,7 +31,7 @@ export default function PublicSiteHeader({ data }: { data: PublicWebsiteData }) 
           <PublicNavLink href="/about" active={page === "about"}>About Us</PublicNavLink>
           {data.website.show_contact_information && <PublicNavLink href="/contact" active={page === "contact"}>Contact</PublicNavLink>}
         </nav>
-        <div className="header-actions">{facebookPageUrl && <a href={facebookPageUrl} target="_blank" rel="noopener noreferrer" className="facebook-page-link" aria-label="Visit Alessandro Enterprises on Facebook"><span aria-hidden="true">f</span></a>}<Link href="/customer/login" className="btn btn-outline header-btn"><Users aria-hidden="true" />Customer Portal</Link><Link href={data.website.show_products ? "/products" : "/businesses"} className="btn btn-gold header-btn header-explore">Explore <ArrowUpRight aria-hidden="true" /></Link></div>
+        <div className="header-actions">{facebookPageUrl && <a href={facebookPageUrl} target="_blank" rel="noopener noreferrer" className="facebook-page-link" aria-label="Visit Alessandro Enterprises on Facebook"><span aria-hidden="true">f</span></a>}<Link href="/customer" className="btn btn-outline header-btn"><Users aria-hidden="true" />Customer Portal</Link><Link href={data.website.show_products ? "/products" : "/businesses"} className="btn btn-gold header-btn header-explore">Explore <ArrowUpRight aria-hidden="true" /></Link></div>
         <button type="button" className="mobile-menu-btn" aria-label={mobileMenuOpen ? "Close menu" : "Open menu"} aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <X /> : <Menu />}</button>
       </div>
       {mobileMenuOpen && <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -42,7 +42,7 @@ export default function PublicSiteHeader({ data }: { data: PublicWebsiteData }) 
         <PublicMobileLink href="/about" onClick={() => setMobileMenuOpen(false)}>About Us</PublicMobileLink>
         {data.website.show_contact_information && <PublicMobileLink href="/contact" onClick={() => setMobileMenuOpen(false)}>Contact</PublicMobileLink>}
         {facebookPageUrl && <a href={facebookPageUrl} target="_blank" rel="noopener noreferrer" className="facebook-mobile-link"><span aria-hidden="true">f</span> Follow us on Facebook</a>}
-        <Link href="/customer/login" className="btn btn-gold mobile-portal">Customer Portal <ArrowUpRight aria-hidden="true" /></Link>
+        <Link href="/customer" className="btn btn-gold mobile-portal">Customer Portal <ArrowUpRight aria-hidden="true" /></Link>
       </nav>}
     </header>
   </>;

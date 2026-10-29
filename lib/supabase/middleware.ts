@@ -132,10 +132,10 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    if (isCustomerRoute && (hasStaffIdentity || hasActiveStaffRole)) {
+    if (isCustomerArea && (hasStaffIdentity || hasActiveStaffRole)) {
       const destination = request.nextUrl.clone();
-      destination.pathname = "/login";
-      destination.search = "?account=customer-portal-blocked";
+      destination.pathname = "/customer/login";
+      destination.search = "?account=staff-account";
       const deniedResponse = NextResponse.redirect(destination);
       response.cookies.getAll().forEach((cookie) => deniedResponse.cookies.set(cookie));
       return deniedResponse;
