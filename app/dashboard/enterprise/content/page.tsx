@@ -36,8 +36,21 @@ export default async function BusinessContentAdminPage({ searchParams }: { searc
     supabase.from("loan_products").select("*").order("created_at", { ascending: false }),
   ]);
 
-  const firstError = [businessResult, catalogResult, promotionResult, galleryResult, postResult, mobileServiceResult, loanProductResult].find((result) => result.error)?.error;
-  if (firstError) throw new Error(`Could not load business content: ${firstError.message}`);
+  // The business list is required to use this workspace. Individual content
+  // sources are optional so a transient table/network failure doesn't crash
+  // the entire Server Component render (and turn a successful save into #441).
+  if (businessResult.error) throw new Error(`Could not load businesses: ${businessResult.error.message}`);
+
+  const contentLoadErrors: Partial<Record<BusinessContentSection, string>> = {};
+  if (catalogResult.error) {
+    contentLoadErrors.services = "Some service records could not be refreshed.";
+    contentLoadErrors.products = "Some product records could not be refreshed.";
+  }
+  if (promotionResult.error) contentLoadErrors.promotions = "Promotion records could not be refreshed.";
+  if (galleryResult.error) contentLoadErrors.gallery = "Gallery records could not be refreshed.";
+  if (postResult.error) contentLoadErrors.posts = "Post records could not be refreshed.";
+  if (mobileServiceResult.error) contentLoadErrors.services = "Some service records could not be refreshed.";
+  if (loanProductResult.error) contentLoadErrors.products = "Some product records could not be refreshed.";
 
   const businesses = (businessResult.data ?? []) as ManagedBusiness[];
   const seed: ManagedContentSeed = { services: {}, products: {}, promotions: {}, gallery: {}, posts: {} };
@@ -113,5 +126,5 @@ export default async function BusinessContentAdminPage({ searchParams }: { searc
   const requestedBusinessId = businesses.find((business) => business.slug === requested.business)?.id;
   const availableSections: BusinessContentSection[] = ["services", "products", "promotions", "gallery", "posts"];
   const requestedSection = availableSections.includes(requested.section as BusinessContentSection) ? requested.section as BusinessContentSection : undefined;
-  return <BusinessContentWorkspace businesses={businesses} initialContent={seed} initialBusinessId={requestedBusinessId} initialSection={requestedSection} />;
+  return <BusinessContentWorkspace businesses={businesses} initialContent={seed} initialBusinessId={requestedBusinessId} initialSection={requestedSection} contentLoadErrors={contentLoadErrors} />;
 }
