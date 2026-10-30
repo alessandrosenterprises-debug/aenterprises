@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { AlertCircle, ArrowUpRight, CalendarClock, CheckCircle2, Clock3, ExternalLink, LoaderCircle, Megaphone, RefreshCw, Send, Settings2, Share2 as Facebook, ShieldCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cancelFacebookQueueItemAction, retryFacebookQueueItemAction, runFacebookPublishingAction, verifyFacebookPageConnectionAction } from "@/app/dashboard/website/social/actions";
@@ -43,10 +43,11 @@ function displayDate(value: string | null) { return value ? new Date(value).toLo
 
 export default function FacebookPublishingDashboard({ items, migrationError, pageId, hasPageToken, hasCronSecret }: { items: QueueItem[]; migrationError: string | null; pageId: string; hasPageToken: boolean; hasCronSecret: boolean }) {
   const router = useRouter();
+  const connected = pageId !== "Not configured" && hasPageToken;
   const [busy, startTransition] = useTransition();
   const [message, setMessage] = useState("");
   const [verifiedPage, setVerifiedPage] = useState("");
-  const connected = pageId !== "Not configured" && hasPageToken;
+  const [verificationStatus, setVerificationStatus] = useState<"checking" | "verified" | "failed" | "unchecked">(connected ? "checking" : "unchecked");
   const pending = items.filter((item) => item.status === "pending" || item.status === "retrying").length;
   const published = items.filter((item) => item.status === "published").length;
   const attention = items.filter((item) => ["failed", "paused", "needs_review"].includes(item.status)).length;
@@ -62,21 +63,33 @@ export default function FacebookPublishingDashboard({ items, migrationError, pag
     });
   }
 
-  function verifyPage() {
+  const verifyPage = useCallback(() => {
     setMessage("");
+    setVerificationStatus("checking");
     startTransition(async () => {
       try {
         const result = await verifyFacebookPageConnectionAction();
         if (result.ok) {
           setVerifiedPage(result.pageName ?? "Facebook Page");
+          setVerificationStatus("verified");
           setMessage(`Meta verified the connection to ${result.pageName ?? "your Facebook Page"}.`);
         } else {
           setVerifiedPage("");
+          setVerificationStatus("failed");
           setMessage(result.error ?? "Meta could not verify this Page connection.");
         }
-      } catch (error) { setMessage(error instanceof Error ? error.message : "Could not verify the Facebook Page connection."); }
+      } catch (error) {
+        setVerifiedPage("");
+        setVerificationStatus("failed");
+        setMessage(error instanceof Error ? error.message : "Could not verify the Facebook Page connection.");
+      }
     });
-  }
+  }, [startTransition]);
+
+  useEffect(() => {
+    if (connected) verifyPage();
+    else setVerificationStatus("unchecked");
+  }, [connected, verifyPage]);
 
   function retry(item: QueueItem) {
     if (item.status === "needs_review" && !window.confirm("Check the Facebook Page first. If Facebook already posted this update, retrying may publish a duplicate. Retry anyway?")) return;
@@ -111,7 +124,7 @@ export default function FacebookPublishingDashboard({ items, migrationError, pag
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#1877F2]"><Facebook className="size-5" /></span><div><h2 className="text-lg font-black text-[#03162F]">Connection and security</h2><p className="mt-1 text-sm leading-6 text-slate-600">The Page token stays in the server environment. It is never stored in the publishing history or sent to the browser.</p></div></div><div className="mt-4 grid gap-2 sm:grid-cols-2"><CheckLine label="Facebook Page ID" value={pageId} ready={pageId !== "Not configured"} /><CheckLine label="Page access token" value={hasPageToken ? "Configured on server" : "Missing server secret"} ready={hasPageToken} /><CheckLine label="Meta credential check" value={verifiedPage || "Not checked in this session"} ready={Boolean(verifiedPage)} /><CheckLine label="Scheduled worker secret" value={hasCronSecret ? "Configured" : "Missing CRON_SECRET"} ready={hasCronSecret} /></div><div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" disabled={busy || !connected} onClick={verifyPage} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-bold text-blue-800 hover:bg-blue-50 disabled:opacity-50">{busy ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}Check Page credentials</button><p className="text-xs leading-5 text-slate-500">Add local secrets to <code>.env.local</code> and production secrets in Vercel project settings. The token is never sent to the browser.</p></div><Link href="/dashboard/settings?section=website" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#03162F] hover:text-blue-700">Website Facebook settings<Settings2 className="size-4" /></Link></article>
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#1877F2]"><Facebook className="size-5" /></span><div><h2 className="text-lg font-black text-[#03162F]">Connection and security</h2><p className="mt-1 text-sm leading-6 text-slate-600">The Page token stays in the server environment. It is never stored in the publishing history or sent to the browser.</p></div></div><div className="mt-4 grid gap-2 sm:grid-cols-2"><CheckLine label="Facebook Page ID" value={pageId} ready={pageId !== "Not configured"} /><CheckLine label="Page access token" value={hasPageToken ? "Configured on server" : "Missing server secret"} ready={hasPageToken} /><CheckLine label="Meta credential check" value={verifiedPage || (verificationStatus === "checking" ? "Checking Meta credentials…" : verificationStatus === "failed" ? "Could not verify Page access" : "Not checked")} ready={verificationStatus === "verified"} /><CheckLine label="Scheduled worker secret" value={hasCronSecret ? "Configured" : "Missing CRON_SECRET"} ready={hasCronSecret} /></div><div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" disabled={busy || !connected} onClick={verifyPage} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-bold text-blue-800 hover:bg-blue-50 disabled:opacity-50">{verificationStatus === "checking" ? <LoaderCircle className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}Check Page credentials</button><p className="text-xs leading-5 text-slate-500">Credentials are checked automatically when this page opens. The token remains on the server and is never sent to the browser.</p></div><Link href="/dashboard/settings?section=website" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#03162F] hover:text-blue-700">Website Facebook settings<Settings2 className="size-4" /></Link></article>
       <article className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-6"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-amber-800"><ShieldCheck className="size-5" /></span><div><h2 className="text-lg font-black text-[#03162F]">Publishing rules</h2><p className="mt-1 text-sm leading-6 text-slate-700">Eligible public content is queued when saved in the AEOS content editor.</p></div></div><ul className="mt-4 space-y-2 text-sm leading-6 text-slate-700"><li><strong>Products and services:</strong> publish immediately when active.</li><li><strong>Announcements:</strong> publish immediately or at the saved publish time.</li><li><strong>Promotions:</strong> publish immediately, at the promotion start time, or at a custom Facebook time.</li><li><strong>Duplicates:</strong> repeated saves of identical content are deduplicated; parallel workers cannot claim the same item.</li></ul><p className="mt-3 text-xs leading-5 text-amber-950">If a request times out after Facebook may have accepted it, AEOS flags it for review instead of blindly reposting.</p></article>
     </section>
 
