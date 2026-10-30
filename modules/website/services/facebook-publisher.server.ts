@@ -168,8 +168,9 @@ async function publishOne(row: QueueRecord, admin: ReturnType<typeof createAdmin
   }
 
   const graphVersion = process.env.FACEBOOK_GRAPH_API_VERSION?.trim() || "v26.0";
+  const pageAccessToken = await resolvePageAccessToken(pageId, accessToken, graphVersion);
   const endpoint = row.media_url ? "photos" : "feed";
-  const body = new URLSearchParams({ access_token: accessToken });
+  const body = new URLSearchParams({ access_token: pageAccessToken });
   if (row.media_url) {
     body.set("url", row.media_url);
     body.set("caption", row.message);
@@ -206,7 +207,10 @@ async function publishOne(row: QueueRecord, admin: ReturnType<typeof createAdmin
   }
 
   const errorCode = payload.error?.code;
-  const errorMessage = payload.error?.message || `Facebook API returned HTTP ${response.status}.`;
+  const rawErrorMessage = payload.error?.message || `Facebook API returned HTTP ${response.status}.`;
+  const errorMessage = /publish_actions/i.test(rawErrorMessage)
+    ? "Meta rejected this request with a deprecated publish_actions permission error. AEOS uses the Page publishing API and pages_manage_posts; check that the current AEOS Page token is installed in this deployment, then retry."
+    : rawErrorMessage;
   if (errorCode === 190 || errorCode === 102) {
     await updateQueue(admin, row.id, { status: "paused", locked_at: null, last_error: `Facebook authorization needs attention: ${errorMessage}` });
     return "paused";
@@ -218,6 +222,28 @@ async function publishOne(row: QueueRecord, admin: ReturnType<typeof createAdmin
   }
   await updateQueue(admin, row.id, { status: "failed", locked_at: null, last_error: errorMessage });
   return "failed";
+}
+
+/**
+ * System User tokens can be used to resolve an assigned Page's Page token.
+ * The Page API expects that Page token for publishing. If the configured value
+ * is already a Page token and Meta does not return the access_token field,
+ * retain it as a compatible fallback. Never return this value to a client.
+ */
+async function resolvePageAccessToken(pageId: string, configuredToken: string, graphVersion: string): Promise<string> {
+  try {
+    const response = await fetch(`https://graph.facebook.com/${graphVersion}/${encodeURIComponent(pageId)}?fields=id,access_token`, {
+      headers: { authorization: `Bearer ${configuredToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(12_000),
+    });
+    const payload = await response.json() as { id?: string; access_token?: string };
+    if (response.ok && payload.id === pageId && payload.access_token) return payload.access_token;
+  } catch {
+    // The configured credential may already be a Page token; the publish
+    // request below will return Meta's actionable authorization error if not.
+  }
+  return configuredToken;
 }
 
 async function updateQueue(admin: ReturnType<typeof createAdminClient>, id: string, values: Record<string, unknown>) {
