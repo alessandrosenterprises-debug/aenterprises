@@ -231,6 +231,8 @@ export default function MessagesManager({
       await createMessage({
         business_id:
           selectedMessage.business_id,
+        branch_id:
+          selectedMessage.branch_id,
         customer_id:
           selectedMessage.customer_id,
         parent_message_id:

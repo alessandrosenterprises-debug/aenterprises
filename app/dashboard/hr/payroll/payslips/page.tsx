@@ -14,13 +14,13 @@ export default async function PayslipsPage() {
   if (!canManageHr && !canManageAccountsPayroll) redirect("/dashboard");
   const payslips = await getPrintablePayslips();
 
-  return <div className="space-y-6">
-    <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col gap-4 rounded-none bg-[#03162F] p-6 text-white sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-4">
-        <span className="grid size-12 place-items-center rounded-xl bg-[#D4AF37] text-[#03162F]"><ReceiptText className="size-6" /></span>
-        <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]">Human resources · Payroll</p><h1 className="mt-1 text-2xl font-black">Employee payslips</h1><p className="mt-1 text-sm text-slate-300">Review and print finalized payroll statements.</p></div>
+  return <div className="space-y-5">
+    <header className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <span className="grid size-11 place-items-center rounded-xl bg-amber-50 text-[#9a7910]"><ReceiptText className="size-5" /></span>
+        <div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#9a7910]">Human Resources · Payroll</p><h2 className="mt-0.5 text-2xl font-bold tracking-tight text-[#03162F]">Employee payslips</h2><p className="mt-1 text-sm text-slate-500">Review and print finalized payroll statements.</p></div>
       </div>
-      <Link href="/dashboard/hr/payroll" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold hover:bg-white/10"><ArrowLeft className="size-4" />Payroll periods</Link>
+      <Link href="/dashboard/hr/payroll" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-[#03162F] shadow-sm transition hover:bg-slate-50"><ArrowLeft className="size-4" />Payroll periods</Link>
     </header>
     <PayslipList payslips={payslips} />
   </div>;

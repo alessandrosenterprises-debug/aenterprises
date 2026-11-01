@@ -16,6 +16,7 @@ export interface Message {
   id: string;
 
   business_id: string | null;
+  branch_id: string | null;
   customer_id: string | null;
   assigned_to: string | null;
   parent_message_id: string | null;
@@ -58,6 +59,7 @@ export async function getMessages(): Promise<Message[]> {
     .select(`
       id,
       business_id,
+      branch_id,
       customer_id,
       assigned_to,
       parent_message_id,

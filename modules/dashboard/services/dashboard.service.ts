@@ -37,25 +37,23 @@ export async function getDashboardStaffAccess() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { permissionKeys: [], isSuperAdministrator: false, accessControlEnabled: false };
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role_id, roles(name)")
-    .eq("auth_user_id", user.id)
-    .eq("active", true)
-    .maybeSingle();
+  // A staff PIN may be active under the manager's authenticated session.
+  // Always resolve that effective operator before reading permissions; using
+  // auth.uid() here would accidentally grant the manager's role to staff.
+  const { data: effectiveProfiles, error: profileError } = await supabase.rpc("get_effective_profile");
+  const profile = effectiveProfiles?.[0];
   if (profileError || !profile?.role_id) {
     recordError("staff access", profileError);
     return { permissionKeys: [], isSuperAdministrator: false, accessControlEnabled: false };
   }
 
-  const role = Array.isArray(profile.roles) ? profile.roles[0] : profile.roles;
   const { data: assignments, error } = await supabase
     .from("role_permissions")
     .select("permissions(permission_key)")
     .eq("role_id", profile.role_id);
   if (error) {
     recordError("staff permissions", error);
-    return { permissionKeys: [], isSuperAdministrator: role?.name === "Super Administrator", accessControlEnabled: false };
+    return { permissionKeys: [], isSuperAdministrator: profile.role_name === "Super Administrator", accessControlEnabled: false };
   }
 
   const permissionKeys = (assignments ?? []).flatMap((assignment) => {
@@ -63,9 +61,34 @@ export async function getDashboardStaffAccess() {
     return permission?.permission_key ? [permission.permission_key] : [];
   });
 
+  // Store operators use the manager-opened business/branch boundary. Ask the
+  // database for the permissions effective in that scoped session instead of
+  // relying only on the employee's reusable role template.
+  const { data: storeScope } = await supabase.rpc("get_current_store_scope");
+  if (storeScope?.[0]?.store_scoped === true) {
+    const storePermissions = [
+      "dashboard.view",
+      "businesses.view",
+      "bookings.view",
+      "bookings.manage",
+      "orders.view",
+      "orders.manage",
+      "deliveries.manage",
+      "customers.view",
+      "communications.manage",
+    ];
+    const effective = await Promise.all(storePermissions.map(async (permission) => {
+      const { data } = await supabase.rpc("has_permission", { required_permission: permission });
+      return data === true ? permission : null;
+    }));
+    for (const permission of effective) {
+      if (permission && !permissionKeys.includes(permission)) permissionKeys.push(permission);
+    }
+  }
+
   return {
     permissionKeys,
-    isSuperAdministrator: role?.name === "Super Administrator",
+    isSuperAdministrator: profile.role_name === "Super Administrator",
     accessControlEnabled: true,
   };
 }

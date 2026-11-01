@@ -13,6 +13,7 @@ type ConsultationRequest = {
   id: string;
   customer_id: string | null;
   business_id: string | null;
+  branch_id: string | null;
   name: string;
   phone: string;
   email: string | null;
@@ -57,6 +58,7 @@ export default async function TechnologyConsultationsPage() {
           id,
           customer_id,
           business_id,
+          branch_id,
           name,
           phone,
           email,

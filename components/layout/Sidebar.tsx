@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { ChevronDown } from "lucide-react";
 
-import { navigation, type NavigationItem } from "@/lib/navigation";
+import { navigation, storeWorkspaceNavigation, type NavigationItem } from "@/lib/navigation";
 import { canSeeNavigationItem } from "@/lib/navigation/access";
 
 const subscribeToNothing = () => () => {};
@@ -20,16 +20,21 @@ function matchesPath(pathname: string, href?: string) {
   return Boolean(href && (pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`))));
 }
 
-function visibleChildren(item: NavigationItem, permissionKeys: string[], isSuperAdministrator: boolean, applyAccess: boolean) {
-  return (item.children ?? []).filter((child) => canSeeNavigationItem(child, permissionKeys, isSuperAdministrator, applyAccess));
+function visibleChildren(item: NavigationItem, permissionKeys: string[], isSuperAdministrator: boolean, applyAccess: boolean, storeScoped: boolean, storeBusinessSlug: string | null, isStoreManager: boolean) {
+  return (item.children ?? []).filter((child) =>
+    (!storeScoped || item.storeManagerOnly)
+    && (item.storeWorkspace !== "manager" || isStoreManager || isSuperAdministrator || permissionKeys.includes("access.manage_roles"))
+    && (!storeScoped || (child.href !== "/dashboard/enterprise/tech-solutions/consultations" || storeBusinessSlug === "tech-solutions"))
+    && canSeeNavigationItem(child, permissionKeys, isSuperAdministrator, applyAccess, storeScoped));
 }
 
-function activeDepartmentTitle(pathname: string, permissionKeys: string[], isSuperAdministrator: boolean, applyAccess: boolean) {
-  return navigation
+function activeDepartmentTitle(pathname: string, permissionKeys: string[], isSuperAdministrator: boolean, applyAccess: boolean, storeScoped: boolean, storeBusinessSlug: string | null, isStoreManager: boolean) {
+  const items = storeScoped ? storeWorkspaceNavigation : [...navigation, ...(isSuperAdministrator || permissionKeys.includes("access.manage_roles") ? storeWorkspaceNavigation : [])];
+  return items
     .filter((item) => item.children?.length)
     .map((item) => ({
       title: item.title,
-      matchLength: Math.max(0, ...visibleChildren(item, permissionKeys, isSuperAdministrator, applyAccess)
+      matchLength: Math.max(0, ...visibleChildren(item, permissionKeys, isSuperAdministrator, applyAccess, storeScoped, storeBusinessSlug, isStoreManager)
         .filter((child) => matchesPath(pathname, child.href))
         .map((child) => child.href?.length ?? 0)),
     }))
@@ -37,9 +42,10 @@ function activeDepartmentTitle(pathname: string, permissionKeys: string[], isSup
     .sort((a, b) => b.matchLength - a.matchLength)[0]?.title ?? null;
 }
 
-function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, applyAccess, expandedSection, setExpandedSection }: { item: NavigationItem; pathname: string; permissionKeys: string[]; isSuperAdministrator: boolean; applyAccess: boolean; expandedSection: string | null; setExpandedSection: (title: string | null) => void }) {
+function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, applyAccess, storeScoped, storeBusinessSlug, isStoreManager, expandedSection, setExpandedSection }: { item: NavigationItem; pathname: string; permissionKeys: string[]; isSuperAdministrator: boolean; applyAccess: boolean; storeScoped: boolean; storeBusinessSlug: string | null; isStoreManager: boolean; expandedSection: string | null; setExpandedSection: (title: string | null) => void }) {
   if (item.children?.length) {
-    const children = visibleChildren(item, permissionKeys, isSuperAdministrator, applyAccess);
+    if (item.storeWorkspace === "manager" && !isStoreManager && !isSuperAdministrator && !permissionKeys.includes("access.manage_roles")) return null;
+    const children = visibleChildren(item, permissionKeys, isSuperAdministrator, applyAccess, storeScoped, storeBusinessSlug, isStoreManager);
     if (children.length === 0) return null;
     const activeHref = children
       .filter((child) => matchesPath(pathname, child.href))
@@ -82,7 +88,7 @@ function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, app
     );
   }
 
-  if (!canSeeNavigationItem(item, permissionKeys, isSuperAdministrator, applyAccess)) return null;
+  if (storeScoped || !canSeeNavigationItem(item, permissionKeys, isSuperAdministrator, applyAccess, storeScoped)) return null;
   const active = isCurrentPath(pathname, item.href);
 
   return (
@@ -95,7 +101,7 @@ function SidebarItem({ item, pathname, permissionKeys, isSuperAdministrator, app
   );
 }
 
-export default function Sidebar({ permissionKeys, isSuperAdministrator, accessControlEnabled }: { permissionKeys: string[]; isSuperAdministrator: boolean; accessControlEnabled: boolean }) {
+export default function Sidebar({ permissionKeys, isSuperAdministrator, storeScoped, storeBusinessSlug, isStoreManager, accessControlEnabled }: { permissionKeys: string[]; isSuperAdministrator: boolean; storeScoped: boolean; storeBusinessSlug: string | null; isStoreManager: boolean; accessControlEnabled: boolean }) {
   const pathname = usePathname();
   const applyAccess = accessControlEnabled;
   // Role assignments and the effective operator session are resolved on the
@@ -103,7 +109,7 @@ export default function Sidebar({ permissionKeys, isSuperAdministrator, accessCo
   // never hydrate against a different set of permission-filtered links.
   const hydrated = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const [sectionOverride, setSectionOverride] = useState<{ pathname: string; title: string | null } | null>(null);
-  const activeSection = activeDepartmentTitle(pathname, permissionKeys, isSuperAdministrator, applyAccess);
+  const activeSection = activeDepartmentTitle(pathname, permissionKeys, isSuperAdministrator, applyAccess, storeScoped, storeBusinessSlug, isStoreManager);
   const expandedSection = sectionOverride?.pathname === pathname ? sectionOverride.title : activeSection;
 
   return (
@@ -111,7 +117,7 @@ export default function Sidebar({ permissionKeys, isSuperAdministrator, accessCo
       <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
         {hydrated ? (
           <div className="flex flex-col gap-2.5">
-            {navigation.map((item) => <SidebarItem key={item.title} item={item} pathname={pathname} permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} applyAccess={applyAccess} expandedSection={expandedSection} setExpandedSection={(title) => setSectionOverride({ pathname, title })} />)}
+            {(storeScoped ? storeWorkspaceNavigation : [...navigation, ...(isSuperAdministrator || permissionKeys.includes("access.manage_roles") ? storeWorkspaceNavigation : [])]).map((item) => <SidebarItem key={item.title} item={item} pathname={pathname} permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} applyAccess={applyAccess} storeScoped={storeScoped} storeBusinessSlug={storeBusinessSlug} isStoreManager={isStoreManager} expandedSection={expandedSection} setExpandedSection={(title) => setSectionOverride({ pathname, title })} />)}
           </div>
         ) : (
           <div aria-hidden="true" className="flex flex-col gap-2.5">

@@ -36,11 +36,13 @@ export async function PATCH(
     // ---------------------------------------------------------
     // 2. Verify the current staff permission
     // ---------------------------------------------------------
-    const { data: canManageContent, error: permissionError } = await supabase.rpc("has_permission", {
-      required_permission: "businesses.manage",
-    });
+    const [businessView, communicationManage] = await Promise.all([
+      supabase.rpc("has_permission", { required_permission: "businesses.view" }),
+      supabase.rpc("has_permission", { required_permission: "communications.manage" }),
+    ]);
 
-    if (permissionError || !canManageContent) {
+    if ((businessView.error && communicationManage.error)
+      || (businessView.data !== true && communicationManage.data !== true)) {
       return NextResponse.json(
         { error: "You do not have permission to update consultations." },
         { status: 403 }

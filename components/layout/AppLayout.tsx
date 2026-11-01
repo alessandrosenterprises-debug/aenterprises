@@ -10,6 +10,9 @@ interface AppLayoutProps {
   children: ReactNode;
   permissionKeys: string[];
   isSuperAdministrator: boolean;
+  storeScoped: boolean;
+  storeBusinessSlug: string | null;
+  isStoreManager: boolean;
   accessControlEnabled: boolean;
 }
 
@@ -17,6 +20,9 @@ export default function AppLayout({
   children,
   permissionKeys,
   isSuperAdministrator,
+  storeScoped,
+  storeBusinessSlug,
+  isStoreManager,
   accessControlEnabled,
 }: AppLayoutProps) {
   return (
@@ -34,7 +40,7 @@ export default function AppLayout({
       ===================================================== */}
 
       <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        <Sidebar permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} accessControlEnabled={accessControlEnabled} />
+        <Sidebar permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} storeScoped={storeScoped} storeBusinessSlug={storeBusinessSlug} isStoreManager={isStoreManager} accessControlEnabled={accessControlEnabled} />
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <main data-dashboard-scroll-container className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 p-6">

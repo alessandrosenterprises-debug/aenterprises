@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase/client";
 
 export interface CreateMessagePayload {
   business_id?: string | null;
+  branch_id?: string | null;
   customer_id?: string | null;
   assigned_to?: string | null;
   parent_message_id?: string | null;

@@ -49,6 +49,8 @@ export interface NavigationItem {
   permission?: string;
   children?: NavigationItem[];
   superAdminOnly?: boolean;
+  storeManagerOnly?: boolean;
+  storeWorkspace?: "staff" | "manager";
 }
 
 export const navigation: NavigationItem[] = [
@@ -62,8 +64,6 @@ export const navigation: NavigationItem[] = [
     icon: LayoutDashboard,
     children: [
       { title: "Super Admin Dashboard", href: "/dashboard", icon: LayoutDashboard, superAdminOnly: true },
-      { title: "Staff Workspace", href: "/dashboard/staff", icon: BriefcaseBusiness, superAdminOnly: true },
-      { title: "Manager Dashboard", href: "/dashboard/manager", icon: UsersRound, superAdminOnly: true },
       { title: "Administration Dashboard", href: "/dashboard/administration", icon: ShieldCheck, superAdminOnly: true },
     ],
   },
@@ -195,4 +195,31 @@ export const navigation: NavigationItem[] = [
       { title: "Settings", href: "/dashboard/settings", icon: Settings },
     ],
   },
+];
+
+export const storeWorkspaceNavigation: NavigationItem[] = [
+  { title: "Staff Workspace", icon: BriefcaseBusiness, storeManagerOnly: true, storeWorkspace: "staff", children: [
+    { title: "Dashboard", href: "/dashboard/staff", icon: LayoutDashboard, storeManagerOnly: true },
+    { title: "Orders", href: "/dashboard/store/staff/orders", icon: ShoppingBag, storeManagerOnly: true },
+    { title: "Bookings", href: "/dashboard/store/staff/bookings", icon: CalendarDays, storeManagerOnly: true },
+    { title: "Deliveries", href: "/dashboard/store/staff/deliveries", icon: Bike, storeManagerOnly: true },
+    { title: "Messages", href: "/dashboard/store/staff/messages", icon: MessageCircle, storeManagerOnly: true },
+    { title: "Consultations", href: "/dashboard/store/staff/consultations", icon: MessageCircle, storeManagerOnly: true },
+    { title: "Notifications", href: "/dashboard/store/staff/notifications", icon: BellRing, storeManagerOnly: true },
+    { title: "Customers", href: "/dashboard/store/staff/customers", icon: Users, storeManagerOnly: true },
+    { title: "Reminders", href: "/dashboard/store/staff/reminders", icon: CalendarCheck, storeManagerOnly: true },
+  ] },
+  { title: "Manager Dashboard", icon: UsersRound, storeManagerOnly: true, storeWorkspace: "manager", children: [
+    { title: "Dashboard", href: "/dashboard/manager", icon: LayoutDashboard, storeManagerOnly: true },
+    ...[
+      ["Orders", "orders", ShoppingBag], ["Bookings", "bookings", CalendarDays], ["Deliveries", "deliveries", Bike],
+      ["Messages", "messages", MessageCircle], ["Consultations", "consultations", MessageCircle], ["Customers", "customers", Users],
+      ["Reminders", "reminders", CalendarCheck], ["Reports", "reports", BarChart3], ["Attendance", "attendance", CalendarCheck],
+      ["Staff Management", "staff-management", UserCog], ["Cash-up", "cash-up", WalletCards], ["Stock Management", "stock", Boxes],
+      ["Report Submission", "report-submission", ClipboardList], ["Leave Requests", "leave-requests", CalendarCheck],
+      ["Advance and Shortages", "advances-shortages", HandCoins], ["Customer Review", "customer-reviews", MessageCircle],
+      ["Delivery and rider report", "delivery-report", Bike], ["Daily cash Reconciliation", "cash-reconciliation", Calculator],
+      ["Invoice and quotations", "invoices-quotations", ReceiptText],
+    ].map(([title, section, icon]) => ({ title: String(title), href: `/dashboard/store/manager/${section}`, icon: icon as LucideIcon, storeManagerOnly: true })),
+  ] },
 ];

@@ -18,12 +18,16 @@ interface Business {
   id: string;
   name: string;
 }
+interface Branch { id: string; name: string }
 
 export default function NewCustomerMessagePage() {
   const router = useRouter();
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [businessId, setBusinessId] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState("");
+  const [branchesLoading, setBranchesLoading] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
 
@@ -53,6 +57,21 @@ export default function NewCustomerMessagePage() {
 
     void loadBusinesses();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setBranchId("");
+    if (!businessId) { setBranches([]); return; }
+    setBranchesLoading(true);
+    void Promise.resolve(supabase.from("branches").select("id,name").eq("business_id", businessId).eq("active", true).order("name"))
+      .then(({ data }) => {
+        if (!active) return;
+        const rows = data ?? [];
+        setBranches(rows);
+        if (rows.length === 1) setBranchId(rows[0].id);
+      }).finally(() => { if (active) setBranchesLoading(false); });
+    return () => { active = false; };
+  }, [businessId]);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -133,6 +152,7 @@ export default function NewCustomerMessagePage() {
         .from("messages")
         .insert({
           business_id: businessId || null,
+          branch_id: branchId || null,
           customer_id: customer.id,
 
           sender_name:
@@ -267,6 +287,15 @@ export default function NewCustomerMessagePage() {
             </p>
           </div>
 
+          {businessId && <div className="mt-5">
+            <label htmlFor="businessBranch" className="mb-2 block text-sm font-semibold text-slate-700">Branch / store <span className="text-rose-600">*</span></label>
+            <select id="businessBranch" required value={branchId} disabled={branchesLoading || sending || branches.length === 0} onChange={(event) => setBranchId(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 disabled:bg-slate-50">
+              <option value="">{branchesLoading ? "Loading branches…" : branches.length ? "Choose a branch" : "No active branches available"}</option>
+              {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+            </select>
+            <p className="mt-1.5 text-[11px] text-slate-400">This routes your message to the team at that location.</p>
+          </div>}
+
           <div className="mt-5">
             <label
               htmlFor="subject"
@@ -340,6 +369,7 @@ export default function NewCustomerMessagePage() {
               type="submit"
               disabled={
                 sending ||
+                (businessId && (!branchId || branchesLoading)) ||
                 !subject.trim() ||
                 !body.trim()
               }

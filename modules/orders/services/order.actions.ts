@@ -44,7 +44,7 @@ export async function updateOrderAction(
     delivery_fee?: number;
   },
 ): Promise<{ success: boolean; error?: string }> {
-  const validStatuses = ["Pending", "Confirmed", "Processing", "Ready", "Completed", "Cancelled"];
+  const validStatuses = ["Pending", "Accepted", "Confirmed", "Processing", "Ready", "Completed", "Cancelled", "Rejected"];
   const validPaymentStatuses = ["Pending", "Partial", "Paid", "Refunded"];
   const validDeliveryStatuses = ["Not Started", "Preparing", "Rider Assigned", "Picked Up", "Out for Delivery", "Delivered", "Delivery Failed"];
   if (!orderId || !Object.keys(updates).length) return { success: false, error: "Select a valid order update." };
@@ -71,11 +71,45 @@ export async function updateOrderAction(
     .eq("id", orderId)
     .maybeSingle();
   if (orderError || !order) return { success: false, error: "Order not found." };
-  if (order.status === "Completed" || order.delivery_status === "Delivered") {
-    return { success: false, error: "Completed orders are read-only." };
+  if (["Completed", "Cancelled", "Rejected"].includes(order.status) || order.delivery_status === "Delivered") {
+    return { success: false, error: "This order is closed and read-only." };
+  }
+
+  // Store staff follow a clear workflow while enterprise order managers retain
+  // their existing operational controls. A delivery cannot be completed from
+  // the order form before its delivery has actually been marked delivered.
+  const { data: scopeRows } = await supabase.rpc("get_current_store_scope");
+  if (scopeRows?.[0]?.store_scoped === true && updates.status) {
+    const allowedNext: Record<string, string[]> = {
+      Pending: ["Accepted", "Confirmed", "Processing", "Cancelled", "Rejected"],
+      Accepted: ["Confirmed", "Processing", "Cancelled", "Rejected"],
+      Confirmed: ["Processing", "Ready", "Completed", "Cancelled"],
+      Processing: ["Ready", "Completed", "Cancelled"],
+      Ready: ["Completed", "Cancelled"],
+    };
+    if (!allowedNext[order.status]?.includes(updates.status)) {
+      return { success: false, error: `This order cannot move from ${order.status} to ${updates.status}.` };
+    }
+    if (updates.status === "Rejected" && !["Pending", "Accepted"].includes(order.status)) {
+      return { success: false, error: "Only a new or accepted order can be rejected." };
+    }
+    if (updates.status === "Completed"
+      && order.fulfillment_method?.toLowerCase() === "delivery"
+      && updates.delivery_status !== "Delivered") {
+      return { success: false, error: "Mark the delivery as delivered before completing this order." };
+    }
   }
 
   const isDelivery = order.fulfillment_method?.toLowerCase() === "delivery";
+  if (Object.hasOwn(updates, "payment_status")) {
+    const [{ data: canReconcile }, { data: canManageCash }] = await Promise.all([
+      supabase.rpc("has_permission", { required_permission: "cash.reconcile" }),
+      supabase.rpc("has_permission", { required_permission: "cash.manage" }),
+    ]);
+    if (canReconcile !== true && canManageCash !== true) {
+      return { success: false, error: "Cash-handling permission is required to change payment status." };
+    }
+  }
   if (Object.hasOwn(updates, "delivery_fee")) {
     if (!isDelivery) return { success: false, error: "A delivery fee can only be set on a delivery request." };
     const { error: feeError } = await supabase.rpc("set_delivery_request_fee", { p_order_id: orderId, p_fee: updates.delivery_fee ?? -1 });
@@ -146,8 +180,26 @@ export async function createAdminOrderAction(input: {
 }): Promise<{ success: boolean; error?: string; orderId?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !(await canManageOrders(supabase))) {
+  const canManageOrderRecords = user ? await canManageOrders(supabase) : false;
+  const { data: deliveryPermission } = user
+    ? await supabase.rpc("has_permission", { required_permission: "deliveries.manage" })
+    : { data: false };
+  const canCreateRequestedType = input.fulfillmentMethod === "Delivery"
+    ? canManageOrderRecords || deliveryPermission === true
+    : canManageOrderRecords;
+  if (!user || !canCreateRequestedType) {
     return { success: false, error: "You do not have permission to create orders." };
+  }
+  // Store workspaces submit a branch ID from the browser, so bind the write to
+  // the manager-opened store session instead of trusting that submitted ID.
+  const { data: scopeRows, error: scopeError } = await supabase.rpc("get_current_store_scope");
+  if (scopeError) return { success: false, error: "Could not verify the active store session." };
+  const storeScope = scopeRows?.[0];
+  if (storeScope?.store_scoped === true
+    && (!storeScope.business_id || !storeScope.branch_id
+      || input.businessId !== storeScope.business_id
+      || input.storeBranchId !== storeScope.branch_id)) {
+    return { success: false, error: "Orders can only be created for the store assigned to this session." };
   }
   if ((!input.customerId && !input.newCustomer) || !input.businessId || !["Pickup", "Delivery"].includes(input.fulfillmentMethod)) {
     return { success: false, error: "Choose or enter a customer, business, and fulfillment method." };

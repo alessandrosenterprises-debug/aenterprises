@@ -35,13 +35,14 @@ export default function RidersManager({
 
   return (
     <div className="space-y-6">
-      <section className="sticky top-[-24px] z-[90] -mx-6 -mt-6 flex flex-col justify-between gap-4 rounded-none bg-[#03162F] p-6 text-white sm:flex-row sm:items-center">
-        <div className="flex items-start gap-4">
-          <span className="rounded-xl bg-white/10 p-3 text-[#D4AF37]"><Bike className="h-6 w-6" /></span>
-          <div><h2 className="text-xl font-bold">Delivery riders</h2><p className="mt-1 max-w-2xl text-sm text-white/65">Manage the active staff who can be assigned to customer deliveries.</p></div>
+      <header className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center">
+        <div className="flex items-start gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-[#9a7910]"><Bike className="h-5 w-5" /></span>
+          <div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#9a7910]">Human Resources · Deliveries</p><h2 className="mt-0.5 text-2xl font-bold tracking-tight text-[#03162F]">Rider Management</h2><p className="mt-1 text-sm text-slate-500">Manage delivery riders and control who can be assigned to customer orders.</p></div>
         </div>
-        {departments.length > 0 && <EmployeeModal key="new-rider" businesses={businesses} departments={departments} branches={branches} storeManagers={storeManagers} accountOptions={accountOptions} buttonLabel="Add rider" initialPosition="Delivery Rider" />}
-      </section>
+        {departments.length > 0 && <EmployeeModal key="new-rider" businesses={businesses} departments={departments} branches={branches} storeManagers={storeManagers} accountOptions={accountOptions} buttonLabel="+ Add rider" initialPosition="Delivery Rider" />}
+      </header>
+      <p className="-mt-3 flex items-center gap-2 text-xs text-slate-500"><Bike className="h-4 w-4 text-[#9a7910]" />Active riders appear in the delivery assignment selector.</p>
 
       {departments.length === 0 && <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Create an HR department before adding a rider. Rider records use AEOS employee records so delivery assignments stay connected to staff management.</p>}
 

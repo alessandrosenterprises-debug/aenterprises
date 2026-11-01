@@ -3,7 +3,8 @@
 import { getCustomerErrorMessage } from "@/modules/customers/utils/customer-error";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 import {
   ArrowLeft,
   ArrowRight,
@@ -89,7 +90,10 @@ const initialForm = {
   preferredTime: "Any time",
   subject: "",
   message: "",
+  branchId: "",
 };
+
+type TechBranch = { id: string; name: string };
 
 export default function TechnologyConsultationPage({
   params,
@@ -98,6 +102,23 @@ export default function TechnologyConsultationPage({
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [branches, setBranches] = useState<TechBranch[]>([]);
+  const [branchesLoading, setBranchesLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const { data: business } = await supabase.from("businesses").select("id").eq("slug", "tech-solutions").eq("active", true).maybeSingle();
+      if (!business) { if (active) setBranchesLoading(false); return; }
+      const { data } = await supabase.from("branches").select("id,name").eq("business_id", business.id).eq("active", true).order("name");
+      if (!active) return;
+      const available = data ?? [];
+      setBranches(available);
+      if (available.length === 1) setFormData((current) => ({ ...current, branchId: available[0].id }));
+      setBranchesLoading(false);
+    })();
+    return () => { active = false; };
+  }, []);
 
   const selectedType =
     consultationTypes.find(
@@ -137,6 +158,7 @@ export default function TechnologyConsultationPage({
               formData.subject.trim() ||
               "Technology Consultation Request",
             message: formData.message.trim(),
+            branchId: formData.branchId,
           }),
         }
       );
@@ -350,6 +372,14 @@ export default function TechnologyConsultationPage({
                 description="We need a few details so our team knows who to contact."
               >
                 <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label htmlFor="consultationBranch" className="mb-2 block text-xs font-black text-slate-700">Preferred Alessandro Tech Solutions branch <span className="text-rose-600">*</span></label>
+                    <select id="consultationBranch" required value={formData.branchId} disabled={branchesLoading || branches.length === 0} onChange={(event) => setFormData((current) => ({ ...current, branchId: event.target.value }))} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#D4AF37] focus:bg-white focus:ring-4 focus:ring-[#D4AF37]/10">
+                      <option value="">{branchesLoading ? "Loading branches…" : branches.length ? "Choose a branch" : "No active branches available"}</option>
+                      {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500">Your request will be sent to the team at this location.</p>
+                  </div>
                   <Field
                     label="Full Name"
                     required
@@ -659,7 +689,7 @@ export default function TechnologyConsultationPage({
 
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || branchesLoading || branches.length === 0 || !formData.branchId}
                     className="group inline-flex h-13 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#f0cf63] px-6 py-3.5 text-sm font-black text-[#03162F] shadow-xl shadow-[#D4AF37]/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#D4AF37]/20 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting ? (

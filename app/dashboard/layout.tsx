@@ -53,6 +53,22 @@ export default async function DashboardLayout({
   const effectiveRole = effectiveProfile
     ? ("role_name" in effectiveProfile ? effectiveProfile.role_name : profileRole?.name)
     : null;
+  const { data: storeScopeRows, error: storeScopeError } = await effectiveSupabase.rpc("get_current_store_scope");
+  const storeScoped = storeScopeRows?.[0]?.store_scoped === true;
+  // If the store-scope migration is missing or unavailable, fail closed for
+  // store managers. Falling back to a normal enterprise menu could expose
+  // records from another branch under an older database policy.
+  if (storeScopeError && ["Business Manager", "Store Manager", "Branch Manager"].includes(effectiveRole ?? "")) {
+    redirect("/dashboard/access-denied?reason=store-scope");
+  }
+  const storeBusinessId = storeScoped ? storeScopeRows?.[0]?.business_id : null;
+  const storeBranchId = storeScoped ? storeScopeRows?.[0]?.branch_id : null;
+  if (storeScoped && (!storeBusinessId || !storeBranchId)) {
+    redirect("/dashboard/access-denied?reason=store-assignment");
+  }
+  const { data: storeBusiness } = storeBusinessId
+    ? await effectiveSupabase.from("businesses").select("slug").eq("id", storeBusinessId).maybeSingle()
+    : { data: null };
   const isSuperAdministrator = effectiveRole === "Super Administrator";
   const isEnterpriseAdministrator = effectiveRole === "Enterprise Manager";
   const { data: assignedPermissions } = effectiveProfile?.role_id
@@ -66,5 +82,6 @@ export default async function DashboardLayout({
     return permission?.permission_key ? [permission.permission_key] : [];
   });
 
-  return <AppLayout permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} accessControlEnabled={Boolean(profile?.role_id) || isSuperAdministrator}>{children}</AppLayout>;
+  const isStoreManager = ["Business Manager", "Store Manager", "Branch Manager"].includes(effectiveRole ?? "");
+  return <AppLayout permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} storeScoped={storeScoped} storeBusinessSlug={storeBusiness?.slug ?? null} isStoreManager={isStoreManager} accessControlEnabled={Boolean(profile?.role_id) || isSuperAdministrator}>{children}</AppLayout>;
 }

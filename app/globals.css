@@ -45,6 +45,12 @@ body {
   font-family: Inter, system-ui, sans-serif;
 }
 
+/* Department and store workspaces start directly beneath the fixed AEOS header. */
+[data-dashboard-scroll-container]:has([data-hr-layout]),
+[data-dashboard-scroll-container]:has([data-store-workspace]) {
+  padding-top: 0;
+}
+
 html.light {
   color-scheme: light;
 }

@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       preferredTime,
       subject,
       message,
+      branchId,
     } = body;
 
     if (!name?.trim()) {
@@ -58,6 +59,9 @@ export async function POST(request: Request) {
         { error: "Please describe what you need help with." },
         { status: 400 }
       );
+    }
+    if (!branchId?.trim()) {
+      return NextResponse.json({ error: "Please select the branch that should handle your request." }, { status: 400 });
     }
 
     // ---------------------------------------------------------
@@ -129,6 +133,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const { data: branch, error: branchError } = await supabase
+      .from("branches")
+      .select("id")
+      .eq("id", branchId)
+      .eq("business_id", business.id)
+      .eq("active", true)
+      .maybeSingle();
+    if (branchError || !branch) {
+      return NextResponse.json({ error: "Choose an active Alessandro Tech Solutions branch." }, { status: 400 });
+    }
+
     // ---------------------------------------------------------
     // 5. Prepare normalized customer information
     // ---------------------------------------------------------
@@ -175,6 +190,7 @@ export async function POST(request: Request) {
       .insert({
         customer_id: customer.id,
         business_id: business.id,
+        branch_id: branch.id,
 
         name: name.trim(),
 
@@ -195,7 +211,7 @@ export async function POST(request: Request) {
         status: "Pending",
       })
       .select(
-        "id, customer_id, business_id, consultation_type, status, created_at"
+        "id, customer_id, business_id, branch_id, consultation_type, status, created_at"
       )
       .single();
 
@@ -243,6 +259,7 @@ export async function POST(request: Request) {
       .from("messages")
       .insert({
         business_id: business.id,
+        branch_id: branch.id,
         customer_id: customer.id,
 
         sender_name: senderName,
