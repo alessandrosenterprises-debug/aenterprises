@@ -25,7 +25,14 @@ const iconFor: Record<string, typeof Package> = { orders: Package, bookings: Cal
 
 export default function StoreWorkspacePage({ workspace, section, previews, stats, storeName, canManage, canManageDeliveries = false, orderFormData, storeSummary }: {
   workspace: "staff" | "manager"; section: string; previews: DashboardQueuePreviews;
-  stats: { incomingOrders: number; pendingBookings: number; activeDeliveries: number; pendingConsultations: number };
+  stats: {
+    date: string;
+    bookingsToday: number;
+    incomingOrders: number;
+    pendingBookings: number;
+    activeDeliveries: number;
+    pendingConsultations: number;
+  };
   storeName: string; canManage: boolean; canManageDeliveries?: boolean;
   orderFormData?: { businessId: string; branchId: string; customers: Array<{ id: string; fullName: string; phone: string; email: string | null }>; catalog: Array<{ id: string; name: string; price: number }> };
   storeSummary?: StoreStaffDashboardSummary;
