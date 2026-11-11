@@ -262,14 +262,28 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
   const loanTerms =
     loanTermsResult.data ?? [];
 
+  const balanceEligibleStatuses = ["Pending", "Under Review", "Approved", "Active"];
   const loans = (loansResult.data ?? []).map((loan) => {
-    if (!["Approved", "Active"].includes(loan.status)) {
+    if (!balanceEligibleStatuses.includes(loan.status)) {
       return { ...loan, outstanding_balance: 0 };
     }
 
-    const storedBalance = loan.outstanding_balance == null
-      ? Number(loan.total_payable ?? 0) - Number(loan.amount_paid ?? 0)
+    const principal = Number(loan.approved_amount ?? loan.requested_amount ?? 0);
+    const calculatedTotalPayable = principal + principal * (Number(loan.interest_rate ?? 0) / 100);
+    const savedTotalPayable = Number(loan.total_payable);
+    const totalPayable = Number.isFinite(savedTotalPayable) && savedTotalPayable > 0
+      ? savedTotalPayable
+      : calculatedTotalPayable;
+    const amountPaid = Number(loan.amount_paid ?? 0);
+    const calculatedBalance = Math.max(0, totalPayable - amountPaid);
+    const savedBalance = loan.outstanding_balance == null
+      ? calculatedBalance
       : Number(loan.outstanding_balance);
+    // Older pending applications may have a zero balance saved even though
+    // their requested amount and configured interest are still unpaid.
+    const storedBalance = Number.isFinite(savedBalance) && savedBalance > 0
+      ? savedBalance
+      : calculatedBalance;
     return {
       ...loan,
       outstanding_balance: Number.isFinite(storedBalance)
@@ -333,7 +347,7 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
 
   const totalOutstanding =
     monthlyLoans
-      .filter((loan) => ["Approved", "Active"].includes(loan.status))
+      .filter((loan) => balanceEligibleStatuses.includes(loan.status))
       .reduce(
       (total, loan) => total + Number(loan.outstanding_balance || 0),
       0
@@ -480,6 +494,9 @@ export default async function LoansPage({ searchParams }: LoansPageProps) {
             {formatMoney(
               totalOutstanding
             )}
+          </p>
+          <p className="mt-1 text-xs text-purple-700">
+            Includes pending, under-review, approved and active loans.
           </p>
         </div>
       </section>
