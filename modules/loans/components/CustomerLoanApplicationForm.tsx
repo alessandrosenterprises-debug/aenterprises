@@ -289,6 +289,7 @@ export default function CustomerLoanApplicationForm({
     setValue,
     formState: {
       isSubmitting,
+      errors,
     },
   } = useForm<FormValues>({
     defaultValues: {
@@ -1606,9 +1607,7 @@ export default function CustomerLoanApplicationForm({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Select a configured loan term.
-            Interest and the final repayment
-            date are calculated automatically.
+            Select the product and repayment term here. Enter the amount borrowed in the Financial Summary below; interest and repayment figures update automatically.
           </p>
         </div>
 
@@ -1655,21 +1654,6 @@ export default function CustomerLoanApplicationForm({
               {
                 required:
                   "Please select the disbursement account.",
-              }
-            )}
-          />
-
-          <Input
-            type="number"
-            min="0"
-            step="0.01"
-            label="Principal (ZMW) *"
-            placeholder="Enter principal"
-            {...register(
-              "principal",
-              {
-                required:
-                  "Principal is required.",
               }
             )}
           />
@@ -1838,21 +1822,56 @@ export default function CustomerLoanApplicationForm({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            These values are calculated
-            automatically from the principal
-            and configured interest rate.
+            Enter the amount being borrowed. Interest and total repayment update from the selected loan term.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl bg-white p-4 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Principal
-            </p>
-
-            <p className="mt-2 text-xl font-bold text-[#03162F]">
-              {money(principal)}
-            </p>
+          <div className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
+            <Input
+              type="number"
+              min={selectedProduct?.min_amount ?? 0}
+              max={selectedProduct?.max_amount ?? undefined}
+              step="0.01"
+              inputMode="decimal"
+              autoComplete="off"
+              label="Amount Borrowed (ZMW) *"
+              placeholder="Enter amount borrowed"
+              error={errors.principal?.message}
+              {...register("principal", {
+                required: "Enter the amount the customer is borrowing.",
+                min: {
+                  value: selectedProduct?.min_amount ?? 0.01,
+                  message: selectedProduct?.min_amount
+                    ? `The minimum for ${selectedProduct.name} is ${money(selectedProduct.min_amount)}.`
+                    : "Amount borrowed must be greater than zero.",
+                },
+                max: selectedProduct?.max_amount != null
+                  ? {
+                      value: selectedProduct.max_amount,
+                      message: `The maximum for ${selectedProduct.name} is ${money(selectedProduct.max_amount)}.`,
+                    }
+                  : undefined,
+                validate: (value) => {
+                  const amount = Number(value);
+                  if (!Number.isFinite(amount) || amount <= 0) {
+                    return "Enter a valid amount greater than zero.";
+                  }
+                  if (selectedProduct?.min_amount != null && amount < Number(selectedProduct.min_amount)) {
+                    return `The minimum for ${selectedProduct.name} is ${money(Number(selectedProduct.min_amount))}.`;
+                  }
+                  if (selectedProduct?.max_amount != null && amount > Number(selectedProduct.max_amount)) {
+                    return `The maximum for ${selectedProduct.name} is ${money(Number(selectedProduct.max_amount))}.`;
+                  }
+                  return true;
+                },
+              })}
+            />
+            {selectedProduct && (selectedProduct.min_amount != null || selectedProduct.max_amount != null) && (
+              <p className="mt-2 text-xs text-slate-500">
+                Product limit: {selectedProduct.min_amount != null ? money(Number(selectedProduct.min_amount)) : "No minimum"} – {selectedProduct.max_amount != null ? money(Number(selectedProduct.max_amount)) : "No maximum"}
+              </p>
+            )}
           </div>
 
           <div className="rounded-xl bg-white p-4 shadow-sm">
