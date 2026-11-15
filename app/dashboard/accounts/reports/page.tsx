@@ -10,5 +10,5 @@ export default async function AccountsReportsPage() {
   const today = todayInLusaka();
   const start = `${today.slice(0, 4)}-01-01`;
   const data = await getAccountsFinancialReport(start, today);
-  return <AccountsFinancialReports initialData={data} today={today} />;
+  return <AccountsFinancialReports initialData={data} today={today} mode="reports" />;
 }

@@ -161,10 +161,10 @@ export const navigation: NavigationItem[] = [
       { title: "Payroll & Statutory Returns", href: "/dashboard/accounts/payroll", icon: Calculator, permission: "accounts.view" },
       { title: "Shortages & Salary Recovery", href: "/dashboard/accounts/shortages", icon: Scale, permission: "accounts.view" },
       { title: "General Ledger Journals", href: "/dashboard/accounts/journals", icon: BookOpenCheck, permission: "accounts.view" },
-      { title: "Financial Statements", href: "/dashboard/accounts/reports", icon: BarChart3, permission: "accounts.view" },
+      { title: "Financial Statements", href: "/dashboard/accounts/statements", icon: BarChart3, permission: "accounts.view" },
       { title: "Cash-up Review", href: "/dashboard/reports/cash-reconciliation/account-review", icon: WalletCards, permission: "cash.finalize" },
       { title: "Cash Balancing & Shortages", href: "/dashboard/reports/cash-reconciliation", icon: Scale, permission: "reports.view" },
-      { title: "Financial Reports", href: "/dashboard/reports", icon: BarChart3, permission: "reports.view" },
+      { title: "Financial Reports", href: "/dashboard/accounts/reports", icon: Calculator, permission: "accounts.view" },
     ],
   },
   {
