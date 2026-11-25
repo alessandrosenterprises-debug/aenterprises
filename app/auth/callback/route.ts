@@ -9,6 +9,9 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createCommunityClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) return NextResponse.redirect(new URL("/community?community_auth=google_error", request.url));
+  if (error) {
+    console.error("Community Google OAuth callback failed", { code: error.code, message: error.message });
+    return NextResponse.redirect(new URL("/community?community_auth=google_error", request.url));
+  }
   return NextResponse.redirect(new URL(safeNext, request.url));
 }

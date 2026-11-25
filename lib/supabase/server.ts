@@ -50,7 +50,15 @@ export async function createCommunityClient() {
       cookieOptions: { name: cookieName, path: "/", sameSite: "lax" },
       cookies: {
         getAll() {
-          return cookieStore.getAll().filter(({ name }) => name === cookieName || name.startsWith(`${cookieName}.`));
+          // Supabase stores PKCE verifiers in per-flow cookies named
+          // `<storage-key>-flow-<id>-code-verifier`. Keep those alongside
+          // the session cookie or exchangeCodeForSession cannot restore the
+          // Google sign-in session after the provider redirects back.
+          return cookieStore.getAll().filter(({ name }) =>
+            name === cookieName ||
+            name.startsWith(`${cookieName}.`) ||
+            name.startsWith(`${cookieName}-`)
+          );
         },
         setAll(cookiesToSet) {
           try {
