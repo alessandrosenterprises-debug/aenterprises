@@ -1,5 +1,6 @@
 export function getDashboardPermission(pathname: string): string {
   if (pathname === "/dashboard") return "dashboard.view";
+  if (pathname === "/dashboard/enterprise/soft-loans") return "loans.approve";
   if (pathname.startsWith("/dashboard/accounts/invoices")) return "billing.view";
   if (pathname.startsWith("/dashboard/accounts")) return "accounts.view";
   if (pathname.startsWith("/dashboard/stock")) return "stock.view";

@@ -131,7 +131,7 @@ flowchart TD
     SCOPE --> TEAM[Assigned departmental staff<br/>Employee records and permitted work queues]
     DH --> OPEN[Open operations<br/>Manager PIN required]
     OPEN --> PIN[Staff sign in with work email + 4-digit PIN]
-    PIN --> STAFF[Staff workspace<br/>Only assigned role permissions and scoped work]
+    PIN --> STAFF[Authorized AEOS pages<br/>Role, department, business and branch permissions]
     STAFF --> LOCK[Manager locks operations<br/>or staff signs out]
     LOCK --> OPEN
     SA -. may inspect or administer all departments .-> BIZ
@@ -219,7 +219,7 @@ flowchart TD
 ## Where these controls live in AEOS
 
 - **Staff Accounts / Roles & Permissions:** `/dashboard/administration/access`
-- **Manager, staff, and administration workspaces:** `/dashboard/manager`, `/dashboard/staff`, and `/dashboard/administration`
+- **Administration workspace:** `/dashboard/administration`
 - **Department work:** grouped in the AEOS sidebar and shown according to role permissions
 - **Operations session:** manager opens and locks operations; staff PIN sessions are subordinate to that manager session
 - **Cash reconciliation:** `/dashboard/reports/cash-reconciliation`, with final Accounts review under `/dashboard/reports/cash-reconciliation/account-review`

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const authorization = request.headers.get("authorization");
+    const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
     const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const admin = bearerToken ? createAdminClient() : null;
+    const { data: { user } } = bearerToken
+      ? await admin!.auth.getUser(bearerToken)
+      : await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json(
@@ -16,7 +18,7 @@ export async function GET() {
       );
     }
 
-    const { data: customer, error } = await supabase
+    const { data: customer, error } = await (admin ?? supabase)
       .from("customers")
       .select(`
         id,

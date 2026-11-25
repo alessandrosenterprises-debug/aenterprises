@@ -204,6 +204,7 @@ export default async function NewBookingPage() {
               You can view available services, but your customer profile must
               be connected before completing a booking.
             </p>
+            <Link href={`/customer/complete-account?next=${encodeURIComponent("/customer/bookings/new")}`} className="mt-3 inline-flex rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-900">Complete account to book</Link>
           </div>
         )}
 

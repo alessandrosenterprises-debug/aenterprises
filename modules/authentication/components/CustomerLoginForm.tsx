@@ -27,7 +27,7 @@ export default function CustomerLoginForm() {
   useEffect(() => {
     const accountStatus = new URLSearchParams(window.location.search).get("account");
     if (accountStatus === "staff-account") {
-      setError("This is an AEOS staff account. Staff sign in to AEOS; customers need a separate Customer Portal account.");
+      setError("We couldn’t sign you in. Check your details and try again.");
     }
 
     let mounted = true;
@@ -77,7 +77,7 @@ export default function CustomerLoginForm() {
 
     if (result.error) {
       if (/staff account/i.test(result.error.message)) {
-        setError("This is an AEOS staff account. Staff sign in to AEOS; customers need a separate Customer Portal account.");
+        setError("We couldn’t sign you in. Check your details and try again.");
         return;
       }
       setError(result.error.message);

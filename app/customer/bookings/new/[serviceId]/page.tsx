@@ -78,6 +78,11 @@ export default async function BookingServicePage({
   const promotion = query.promotion?.trim() && query.tag?.trim()
     ? { title: query.promotion.trim(), tag: query.tag.trim() }
     : undefined;
+  const bookingParams = new URLSearchParams();
+  if (query.promotion) bookingParams.set("promotion", query.promotion);
+  if (query.tag) bookingParams.set("tag", query.tag);
+  const nextBookingSearch = bookingParams.toString();
+  const nextBookingPath = `/customer/bookings/new/${serviceId}${nextBookingSearch ? `?${nextBookingSearch}` : ""}`;
 
   const supabase = await createClient();
 
@@ -395,11 +400,9 @@ export default async function BookingServicePage({
                 </p>
 
                 <p className="mt-1 text-sm leading-6 text-amber-700">
-                  Your account is not yet connected to a customer
-                  profile. You can continue viewing the booking
-                  information, but the booking cannot be submitted
-                  until your customer profile is connected.
+                  Complete your AEOS customer profile to book this service.
                 </p>
+                <Link href={`/customer/complete-account?next=${encodeURIComponent(nextBookingPath)}`} className="mt-3 inline-flex rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-900">Complete account to book</Link>
               </div>
             )}
 

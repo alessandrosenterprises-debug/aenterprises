@@ -82,6 +82,5 @@ export default async function DashboardLayout({
     return permission?.permission_key ? [permission.permission_key] : [];
   });
 
-  const isStoreManager = ["Business Manager", "Store Manager", "Branch Manager"].includes(effectiveRole ?? "");
-  return <AppLayout permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} storeScoped={storeScoped} storeBusinessSlug={storeBusiness?.slug ?? null} isStoreManager={isStoreManager} accessControlEnabled={Boolean(profile?.role_id) || isSuperAdministrator}>{children}</AppLayout>;
+  return <AppLayout permissionKeys={permissionKeys} isSuperAdministrator={isSuperAdministrator} storeScoped={storeScoped} storeBusinessSlug={storeBusiness?.slug ?? null} accessControlEnabled={Boolean(profile?.role_id) || isSuperAdministrator}>{children}</AppLayout>;
 }

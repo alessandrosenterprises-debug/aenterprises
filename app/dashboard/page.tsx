@@ -31,9 +31,7 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams;
   const profile = await getCurrentProfile();
-  if (["Enterprise Manager", "Operations Manager", "Business Manager"].includes(profile?.role ?? "")) redirect("/dashboard/manager");
-  if (profile?.role !== "Super Administrator") redirect("/dashboard/staff");
-
+  if (profile?.role !== "Super Administrator") redirect("/dashboard/access-denied");
   const [stats, staffAccess] = await Promise.all([
     getDashboardStats(params?.date),
     getDashboardStaffAccess(),

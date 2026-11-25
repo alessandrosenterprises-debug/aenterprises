@@ -278,6 +278,8 @@ export default function CustomerLoanApplicationForm({
     setSelfiePreview,
   ] = useState<string | null>(null);
 
+  const [currentStep, setCurrentStep] = useState(0);
+
   /* ==========================================================
      FORM
      ========================================================== */
@@ -287,6 +289,7 @@ export default function CustomerLoanApplicationForm({
     handleSubmit,
     watch,
     setValue,
+    trigger,
     formState: {
       isSubmitting,
       errors,
@@ -344,6 +347,12 @@ export default function CustomerLoanApplicationForm({
   const amountPaidValue = watch(
     "amount_paid"
   );
+  const residentialAddress = watch("residential_address");
+  const nextOfKinName = watch("next_of_kin_name");
+  const nextOfKinRelationship = watch("next_of_kin_relationship");
+  const nextOfKinPhone = watch("next_of_kin_phone");
+  const collateralWorth = watch("collateral_worth");
+  const notesValue = watch("notes");
 
   /* ==========================================================
      SELECTED CUSTOMER
@@ -640,12 +649,6 @@ export default function CustomerLoanApplicationForm({
   /* ==========================================================
      LOAN TERM OPTIONS
      ========================================================== */
-
-  const loanTermOptions =
-    activeLoanTerms.map((term) => ({
-      label: `${term.period_days} Days — ${term.interest_rate}% Interest`,
-      value: term.id,
-    }));
 
   const loanProductOptions = loanProducts.map((product) => ({
     label: product.name,
@@ -977,7 +980,7 @@ export default function CustomerLoanApplicationForm({
          ====================================================== */
 
       toast.loading(
-        "Saving customer loan...",
+        "Saving loan application...",
         {
           id: "customer-loan",
         }
@@ -1008,7 +1011,7 @@ export default function CustomerLoanApplicationForm({
           today,
 
         loan_type:
-          "Customer Loan",
+        loanProduct.name,
 
         requested_amount:
           principal,
@@ -1083,7 +1086,7 @@ export default function CustomerLoanApplicationForm({
          ====================================================== */
 
       toast.success(
-        "Customer loan recorded successfully.",
+        "Loan application recorded successfully.",
         {
           id: "customer-loan",
         }
@@ -1101,7 +1104,7 @@ export default function CustomerLoanApplicationForm({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to record customer loan.",
+          : "Failed to record loan application.",
         {
           id: "customer-loan",
         }
@@ -1118,8 +1121,28 @@ export default function CustomerLoanApplicationForm({
       onSubmit={handleSubmit(
         onSubmit
       )}
-      className="space-y-8"
+      className="space-y-6"
     >
+      {(() => {
+        const steps = ["Customer", "Loan details", "Amounts", "Review"];
+        return (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <ol className="grid grid-cols-4 gap-2" aria-label="Application progress">
+              {steps.map((step, index) => (
+                <li key={step}>
+                  <div className={`flex items-center gap-2 text-xs font-semibold sm:text-sm ${index === currentStep ? "text-[#03162F]" : index < currentStep ? "text-emerald-700" : "text-slate-400"}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${index === currentStep ? "border-[#D4AF37] bg-[#FFFBEB] text-[#805800]" : index < currentStep ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>{index + 1}</span>
+                    <span className="hidden sm:inline">{step}</span>
+                  </div>
+                  <div className={`mt-2 h-1 rounded-full ${index <= currentStep ? "bg-[#D4AF37]" : "bg-slate-100"}`} />
+                </li>
+              ))}
+            </ol>
+          </div>
+        );
+      })()}
+
+      <div hidden={currentStep !== 0} className="space-y-8">
       {/* ======================================================
           CUSTOMER INFORMATION
           ====================================================== */}
@@ -1280,6 +1303,7 @@ export default function CustomerLoanApplicationForm({
                 onChange={(
                   event
                 ) => {
+                  setValue("nrc_front", event.target.files ?? undefined, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
                   setNrcFrontPreview(
                     createPreview(
                       event.target.files ??
@@ -1358,6 +1382,7 @@ export default function CustomerLoanApplicationForm({
                 onChange={(
                   event
                 ) => {
+                  setValue("nrc_back", event.target.files ?? undefined, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
                   setNrcBackPreview(
                     createPreview(
                       event.target.files ??
@@ -1448,6 +1473,7 @@ export default function CustomerLoanApplicationForm({
               onChange={(
                 event
               ) => {
+                setValue("selfie", event.target.files ?? undefined, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
                 setSelfiePreview(
                   createPreview(
                     event.target.files ??
@@ -1596,9 +1622,13 @@ export default function CustomerLoanApplicationForm({
         </div>
       </section>
 
+      </div>
+
       {/* ======================================================
           LOAN INFORMATION
           ====================================================== */}
+
+      <div hidden={currentStep !== 1} className="space-y-8">
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
@@ -1658,49 +1688,56 @@ export default function CustomerLoanApplicationForm({
             )}
           />
 
-          <div>
-            <Select
-              label="Loan Term *"
-              placeholder={
-                activeLoanTerms.length >
-                0
-                  ? "Select Loan Term"
-                  : selectedProduct
-                    ? "No active terms for this product"
-                    : "Select a loan product first"
-              }
-              options={
-                loanTermOptions
-              }
-              disabled={
-                !selectedProduct || activeLoanTerms.length === 0
-              }
-              {...register(
-                "repayment_period",
-                {
-                  required:
-                    "Please select a loan term.",
-                }
-              )}
+          <div className="md:col-span-2">
+            <input
+              type="hidden"
+              {...register("repayment_period", {
+                required: "Please select a loan term.",
+              })}
             />
-
-            {selectedProduct && activeLoanTerms.length === 0 && (
-              <p className="mt-2 text-xs text-red-600">
-                No active repayment terms are configured for {selectedProduct.name}. Add an active term for this product in <Link href="/dashboard/configuration/loan-terms" className="font-semibold underline">Loan Terms settings</Link>.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Interest Rate
-            </label>
-
-            <div className="flex min-h-[46px] items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-[#03162F]">
-              {selectedTerm
-                ? `${interestRate}%`
-                : "Select a loan term"}
+            <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <label className="block text-sm font-semibold text-slate-800">Choose a repayment term <span className="text-rose-600">*</span></label>
+                <p className="mt-1 text-xs text-slate-500">Select an available duration and its configured interest rate.</p>
+              </div>
+              {selectedProduct && activeLoanTerms.length > 0 && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{activeLoanTerms.length} option{activeLoanTerms.length === 1 ? "" : "s"}</span>}
             </div>
+
+            {activeLoanTerms.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" role="radiogroup" aria-label="Repayment term">
+                {activeLoanTerms.map((term, index) => {
+                  const isSelected = selectedTermId === term.id;
+                  return (
+                    <button
+                      key={term.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setValue("repayment_period", term.id, { shouldDirty: true, shouldValidate: true })}
+                      className={`group relative min-h-[118px] rounded-2xl border p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50 ${isSelected ? "border-[#D4AF37] bg-[#FFFBEB] shadow-md shadow-amber-900/10 ring-1 ring-[#D4AF37]/40" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm"}`}
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.16em] ${isSelected ? "text-[#9A6B00]" : "text-slate-500"}`}>Term option {index + 1}</span>
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold ${isSelected ? "border-[#A67C00] bg-[#A67C00] text-white" : "border-slate-300 bg-white text-transparent"}`} aria-hidden="true">✓</span>
+                      </span>
+                      <span className="mt-3 flex items-baseline gap-1.5">
+                        <span className="text-2xl font-bold tracking-tight text-[#03162F]">{term.period_days}</span>
+                        <span className="text-sm font-semibold text-slate-600">days</span>
+                      </span>
+                      <span className="mt-2 inline-flex items-center rounded-lg bg-white/80 px-2.5 py-1 text-sm font-bold text-[#805800] ring-1 ring-inset ring-amber-200">
+                        {Number(term.interest_rate)}% <span className="ml-1 font-medium text-slate-600">interest</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                {!selectedProduct ? "Select a loan product to view its available terms." : <>No active repayment terms are configured for {selectedProduct.name}. Add an active term in <Link href="/dashboard/configuration/loan-terms" className="font-semibold text-[#03162F] underline underline-offset-2">Loan Terms settings</Link>.</>}
+              </div>
+            )}
+
+            {errors.repayment_period?.message && <p role="alert" className="mt-2 text-sm text-rose-700">{errors.repayment_period.message}</p>}
           </div>
 
           <div>
@@ -1717,14 +1754,14 @@ export default function CustomerLoanApplicationForm({
         </div>
 
         {selectedTerm && (
-          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Term
                 </p>
 
-                <p className="mt-1 text-lg font-bold text-blue-900">
+                <p className="mt-1 text-lg font-bold text-[#03162F]">
                   {
                     selectedTerm.period_days
                   }{" "}
@@ -1733,11 +1770,11 @@ export default function CustomerLoanApplicationForm({
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Interest Rate
                 </p>
 
-                <p className="mt-1 text-lg font-bold text-blue-900">
+                <p className="mt-1 text-lg font-bold text-[#03162F]">
                   {
                     selectedTerm.interest_rate
                   }
@@ -1746,11 +1783,11 @@ export default function CustomerLoanApplicationForm({
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Final Date
                 </p>
 
-                <p className="mt-1 text-lg font-bold text-blue-900">
+                <p className="mt-1 text-lg font-bold text-[#03162F]">
                   {displayDate(
                     calculatedDueDate
                   )}
@@ -1811,9 +1848,13 @@ export default function CustomerLoanApplicationForm({
         </div>
       </section>
 
+      </div>
+
       {/* ======================================================
           FINANCIAL SUMMARY
           ====================================================== */}
+
+      <div hidden={currentStep !== 2} className="space-y-8">
 
       <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
         <div className="mb-6">
@@ -1959,11 +2000,56 @@ export default function CustomerLoanApplicationForm({
         />
       </section>
 
+      </div>
+
+      {currentStep === 3 && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#9A6B00]">Final check</p>
+            <h2 className="mt-1 text-xl font-bold text-[#03162F]">Review loan application</h2>
+            <p className="mt-1 text-sm text-slate-600">Confirm the customer, loan terms, and documents before submitting.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl bg-slate-50 p-4">
+              <h3 className="mb-3 text-sm font-bold text-[#03162F]">Customer</h3>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Name</dt><dd className="text-right font-semibold text-slate-900">{selectedCustomer?.full_name || "Not selected"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Phone</dt><dd className="text-right font-semibold text-slate-900">{selectedCustomer?.phone || "—"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Address</dt><dd className="max-w-[65%] text-right font-semibold text-slate-900">{residentialAddress || "—"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Next of kin</dt><dd className="text-right font-semibold text-slate-900">{nextOfKinName || "—"}{nextOfKinRelationship ? ` · ${nextOfKinRelationship}` : ""}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Next of kin phone</dt><dd className="text-right font-semibold text-slate-900">{nextOfKinPhone || "—"}</dd></div>
+              </dl>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                {[ ["NRC front", nrcFrontPreview], ["NRC back", nrcBackPreview], ["Selfie", selfiePreview] ].map(([label, preview]) => (
+                  <span key={label as string} className={`rounded-full px-3 py-1 font-semibold ${preview ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{label}: {preview ? "Added" : "Missing"}</span>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <h3 className="mb-3 text-sm font-bold text-[#03162F]">Loan details</h3>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Product</dt><dd className="text-right font-semibold text-slate-900">{selectedProduct?.name || "Not selected"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Repayment term</dt><dd className="text-right font-semibold text-slate-900">{selectedTerm ? `${selectedTerm.period_days} days · ${selectedTerm.interest_rate}% interest` : "Not selected"}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Due date</dt><dd className="text-right font-semibold text-slate-900">{displayDate(calculatedDueDate)}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-slate-500">Collateral</dt><dd className="text-right font-semibold text-slate-900">{selectedCollateralId === "none" ? "None" : collateralOptions.find((option) => option.value === selectedCollateralId)?.label || "Not selected"}</dd></div>
+                {selectedCollateralId && selectedCollateralId !== "none" && <div className="flex justify-between gap-3"><dt className="text-slate-500">Collateral worth</dt><dd className="text-right font-semibold text-slate-900">{collateralWorth ? money(Number(collateralWorth)) : "Not provided"}</dd></div>}
+              </dl>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {[ ["Amount borrowed", money(principal)], ["Interest", money(interest)], ["Total repayment", money(debt)] ].map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-lg font-bold text-[#03162F]">{value}</p></div>
+            ))}
+          </div>
+          {notesValue && <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-medium text-slate-500">Notes</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{notesValue}</p></div>}
+        </section>
+      )}
+
       {/* ======================================================
           ACTIONS
           ====================================================== */}
 
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col-reverse justify-between gap-3 sm:flex-row">
         <button
           type="button"
           onClick={onSuccess}
@@ -1972,12 +2058,34 @@ export default function CustomerLoanApplicationForm({
         >
           Cancel
         </button>
-
-        <SubmitButton
-          loading={isSubmitting}
-        >
-          Save Loan
-        </SubmitButton>
+        <div className="flex justify-end gap-3">
+          {currentStep > 0 && (
+            <button type="button" onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={isSubmitting} className="rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50">Back</button>
+          )}
+          {currentStep < 3 ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const fields: (keyof FormValues)[][] = [
+                  ["customer_id", "nrc_front", "nrc_back", "selfie", "residential_address", "next_of_kin_name", "next_of_kin_relationship", "next_of_kin_phone"],
+                  ["loan_product_id", "application_date", "account_operator_id", "repayment_period", "collateral_id"],
+                  ["principal"],
+                  [],
+                ];
+                const valid = await trigger(fields[currentStep]);
+                if (valid) {
+                  setCurrentStep((step) => Math.min(3, step + 1));
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+              className="rounded-xl bg-[#03162F] px-7 py-3 font-semibold text-white transition hover:bg-[#0B2A52]"
+            >
+              {currentStep === 2 ? "Review application" : "Next"}
+            </button>
+          ) : (
+            <SubmitButton loading={isSubmitting}>Submit Loan Application</SubmitButton>
+          )}
+        </div>
       </div>
     </form>
   );

@@ -57,14 +57,15 @@ function validateImage(
  * Supabase session. A customer can therefore only
  * receive their own applications.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const authorization = request.headers.get("authorization");
+    const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
     const supabase = await createClient();
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const adminClient = bearerToken ? createAdminClient() : null;
+    const { data: { user }, error: authError } = bearerToken
+      ? await adminClient!.auth.getUser(bearerToken)
+      : await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -75,7 +76,7 @@ export async function GET() {
       );
     }
 
-    const admin = createAdminClient();
+    const admin = adminClient ?? createAdminClient();
 
     /**
      * Resolve the authenticated user to the

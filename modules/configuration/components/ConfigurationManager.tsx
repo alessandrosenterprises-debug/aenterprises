@@ -2,6 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -48,6 +49,7 @@ export default function ConfigurationManager({
     useState<ConfigurationValues | null>(null);
   const [viewingRow, setViewingRow] =
     useState<ConfigurationValues | null>(null);
+  const [loanProductNotice, setLoanProductNotice] = useState("");
 
   const isCompanySettings =
     schema.table === "company_settings";
@@ -144,6 +146,16 @@ export default function ConfigurationManager({
   async function handleSubmit(
     values: ConfigurationValues
   ) {
+    setLoanProductNotice("");
+    if (schema.table === "loan_products" && values.status === "Active") {
+      // A new product cannot have a term yet. Existing product rows can be
+      // stale when Loan Terms was edited in another tab, so let the server
+      // perform the authoritative active-term check for those rows.
+      if (!editingRow?.id) {
+        setLoanProductNotice("A new product cannot be activated before it has a repayment term. Save it as Inactive first, add and activate a repayment term under Loan Terms, then edit the product and activate it.");
+        return;
+      }
+    }
     try {
       /*
        * ======================================================
@@ -206,6 +218,10 @@ export default function ConfigurationManager({
         );
 
         if ("error" in result) {
+          if (schema.table === "loan_products") {
+            setLoanProductNotice(`${result.error} If you just added a term in another tab, try saving again so AEOS can check the latest term status.`);
+            return;
+          }
           toast.error(result.error);
           return;
         }
@@ -478,6 +494,17 @@ export default function ConfigurationManager({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+              {loanProductNotice && (
+                <div role="alert" className="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+                  <p className="font-semibold">Repayment terms are required before activation</p>
+                  <p className="mt-1 leading-6">{loanProductNotice}</p>
+                  {editingRow?.id && (
+                    <Link href="/dashboard/configuration/loan-terms" target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-lg bg-[#03162F] px-4 py-2 font-semibold text-white hover:bg-[#102b50]">
+                      Open Loan Terms in a new tab
+                    </Link>
+                  )}
+                </div>
+              )}
               <ConfigurationForm
                 schema={formSchema}
                 defaultValues={formDefaultValues}

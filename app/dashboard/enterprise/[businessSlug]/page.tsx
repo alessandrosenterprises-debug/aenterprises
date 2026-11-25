@@ -5,6 +5,7 @@ import { getEnterpriseBusinessWorkspace } from "@/modules/enterprise/services/bu
 
 interface EnterpriseBusinessPageProps {
   params: Promise<{ businessSlug: string }>;
+  searchParams?: Promise<{ month?: string }>;
 }
 
 const supportedBusinessSlugs = new Set([
@@ -14,12 +15,13 @@ const supportedBusinessSlugs = new Set([
   "soft-loans",
 ]);
 
-export default async function EnterpriseBusinessPage({ params }: EnterpriseBusinessPageProps) {
+export default async function EnterpriseBusinessPage({ params, searchParams }: EnterpriseBusinessPageProps) {
   const { businessSlug } = await params;
   if (!supportedBusinessSlugs.has(businessSlug)) notFound();
 
   const data = await getEnterpriseBusinessWorkspace(businessSlug);
   if (!data) notFound();
 
-  return <BusinessWorkspace data={data} />;
+  const month = (await searchParams)?.month;
+  return <BusinessWorkspace data={data} month={month} />;
 }

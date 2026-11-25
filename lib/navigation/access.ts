@@ -25,9 +25,7 @@ export function itemPermissions(item: NavigationItem) {
   return permission ? [permission] : [];
 }
 
-export function canSeeNavigationItem(item: NavigationItem, permissionKeys: string[], isSuperAdministrator: boolean, accessControlEnabled: boolean, storeScoped = false) {
-  const isAdministrator = isSuperAdministrator || permissionKeys.includes("access.manage_roles");
-  if (item.storeManagerOnly && !storeScoped && !isAdministrator) return false;
+export function canSeeNavigationItem(item: NavigationItem, permissionKeys: string[], isSuperAdministrator: boolean, accessControlEnabled: boolean) {
   if (item.superAdminOnly && !isSuperAdministrator) return false;
   const required = itemPermissions(item);
   return !accessControlEnabled || isSuperAdministrator || required.length === 0 || required.some((permission) => permissionKeys.includes(permission));

@@ -18,7 +18,7 @@ export default async function MyDeliveriesPage() {
     getDashboardStaffAccess(),
   ]);
   const isRider = /rider|driver|delivery/i.test(rider?.position ?? "");
-  if (!isRider && !staffAccess.isSuperAdministrator && !staffAccess.permissionKeys.includes("deliveries.manage")) redirect("/dashboard/staff");
+  if (!isRider && !staffAccess.isSuperAdministrator && !staffAccess.permissionKeys.includes("deliveries.manage")) redirect("/dashboard/access-denied");
   return <div className="w-full min-w-0 space-y-6">
     <header className="sticky top-[-24px] z-[90] -mx-6 -mt-6 rounded-none bg-[#03162F] p-5 text-white shadow-sm sm:p-7">
       <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#D4AF37]"><Bike className="h-4 w-4" />AEOS rider workspace</p>

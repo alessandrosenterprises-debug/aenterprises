@@ -7,6 +7,8 @@ import { ArrowRight, ArrowUpRight, Building2, CircleHelp, Mail, MapPin, MessageC
 import type { PublicWebsiteData } from "@/modules/website/services/public-website.service";
 import ProductExplorer from "@/modules/website/components/ProductExplorer";
 import OfferExplorer from "@/modules/website/components/OfferExplorer";
+import PublicGalleryGrid from "@/modules/website/components/PublicGalleryGrid";
+import PublicCommunityFeed from "@/modules/website/components/PublicCommunityFeed";
 import ImagePreview from "@/components/ui/image-preview/ImagePreview";
 import PublicSiteHeader from "@/modules/website/components/PublicSiteHeader";
 
@@ -21,7 +23,16 @@ export default function PublicWebsiteHome({ data }: { data: PublicWebsiteData })
   const name = data.website.title?.trim() || data.company.company_name;
   const logo = data.website.logo_url || data.company.logo_url || "/brand/alessandro-enterprises-logo.png";
   const facebookPageUrl = getFacebookPageUrl(data.website.facebook_page_url);
-  const facebookFeedUrl = facebookPageUrl ? `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(facebookPageUrl)}&tabs=timeline&width=500&height=520&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true` : null;
+  const facebookFeedCards = data.facebookPosts.length
+    ? data.facebookPosts
+    : data.updates.filter((update) => !update.is_demo).slice(0, 4).map((update) => ({
+      id: update.id,
+      message: `${update.title}${update.content ? `\n\n${update.content}` : ""}`,
+      created_at: update.published_at,
+      created_label: update.published_label ?? null,
+      permalink_url: null,
+      image_url: update.image_url,
+    }));
   const contactHref = isHome ? "#contact" : "/contact#contact";
   const exploreHref = data.website.show_businesses ? (isHome ? "#businesses" : "/businesses") : data.website.show_products ? (isHome ? "#products" : "/products") : "/customer";
 
@@ -29,6 +40,7 @@ export default function PublicWebsiteHome({ data }: { data: PublicWebsiteData })
     businesses: "Our Businesses",
     products: "Products & Services",
     offers: "Current Offers",
+    community: "Community",
     about: "About Alessandro Enterprises",
     contact: "Contact Us",
   };
@@ -36,7 +48,7 @@ export default function PublicWebsiteHome({ data }: { data: PublicWebsiteData })
   return <main className="aeos-public-site">
     <PublicSiteHeader data={data} />
 
-    {!isHome && <section className="page-hero"><div className="container"><span className="section-tag">ALESSANDRO ENTERPRISE OPERATING SYSTEM</span><h1>{pageTitles[page] || name}</h1><p>{page === "products" ? "Discover products, services and practical solutions from across our businesses." : page === "offers" ? "Explore current offers and featured services published by our teams." : page === "businesses" ? "Meet the businesses bringing the Alessandro Enterprises vision to life." : page === "contact" ? "Talk to our team or continue through the secure AEOS customer portal." : data.company.description || "One trusted enterprise connecting customers to practical services, products and support."}</p></div></section>}
+    {!isHome && <section className="page-hero"><div className="container"><span className="section-tag">ALESSANDRO ENTERPRISE OPERATING SYSTEM</span><h1>{pageTitles[page] || name}</h1><p>{page === "products" ? "Discover products, services and practical solutions from across our businesses." : page === "offers" ? "Explore current offers and featured services published by our teams." : page === "community" ? "See the latest news, photos and promotions from our businesses. Share a like or leave a comment." : page === "businesses" ? "Meet the businesses bringing the Alessandro Enterprises vision to life." : page === "contact" ? "Talk to our team or continue through the secure AEOS customer portal." : data.company.description || "One trusted enterprise connecting customers to practical services, products and support."}</p></div></section>}
 
     <div className="site-content">
       {isHome && <section className="hero" id="home">
@@ -83,11 +95,13 @@ export default function PublicWebsiteHome({ data }: { data: PublicWebsiteData })
 
       {data.website.show_promotions && (isHome || page === "offers") && <div id="offers"><OfferExplorer offers={data.offers} businesses={data.businesses} featuredOnly={isHome} /></div>}
       {page === "offers" && (!data.website.show_promotions || data.offers.length === 0) && <EmptyState message="There are no active offers at the moment. Please check back soon." />}
+      {page === "community" && <section className="public-community-section"><div className="container"><PublicCommunityFeed updates={data.updates} offers={data.offers} businesses={data.businesses} /></div></section>}
       {data.website.show_products && (isHome || page === "products") && <div id="products"><ProductExplorer products={data.products} businesses={data.businesses} featuredOnly={isHome} /></div>}
+      {isHome && data.gallery.length > 0 && <PublicGalleryGrid images={data.gallery} businesses={data.businesses} />}
       {page === "products" && (!data.website.show_products || data.products.length === 0) && <EmptyState message="Our product and service listings will be available here soon." />}
       {page === "businesses" && (!data.website.show_businesses || data.businesses.length === 0) && <EmptyState message="Business information will be available here soon." />}
 
-      {isHome && data.website.show_facebook_feed && facebookFeedUrl && <section className="section-padding facebook-feed-section" aria-labelledby="facebook-feed-title"><div className="container"><div className="facebook-feed-layout"><div className="facebook-feed-copy"><span className="section-tag">FOLLOW ALESSANDRO ENTERPRISES</span><h2 id="facebook-feed-title">Stay connected<br /><span>with our community.</span></h2><p>See public posts, business announcements and updates from the Alessandro Enterprises Facebook Page.</p><a href={facebookPageUrl!} target="_blank" rel="noopener noreferrer" className="facebook-follow-button"><span aria-hidden="true">f</span>Follow our Facebook Page<ArrowUpRight aria-hidden="true" /></a><small className="facebook-feed-note">You’ll leave this website to view or follow our Page on Facebook.</small></div><div className="facebook-feed-panel"><div className="facebook-feed-panel-head"><span className="facebook-feed-mark" aria-hidden="true">f</span><span className="facebook-feed-page-name"><strong>{name}</strong><small>Official Facebook Page</small></span><span className="facebook-feed-live"><i />Public updates</span></div><div className="facebook-feed-frame"><iframe title="Alessandro Enterprises Facebook Page feed" src={facebookFeedUrl} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" className="facebook-feed-iframe" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" /></div></div></div></div></section>}
+      {isHome && data.website.show_facebook_feed && facebookPageUrl && <section className="section-padding facebook-feed-section" aria-labelledby="facebook-feed-title"><div className="container"><div className="facebook-feed-layout"><div className="facebook-feed-copy"><span className="section-tag">FOLLOW ALESSANDRO ENTERPRISES</span><h2 id="facebook-feed-title">Stay connected<br /><span>with our community.</span></h2><p>Read the latest updates from the Alessandro Enterprises Facebook Page without leaving this website.</p><a href={facebookPageUrl} target="_blank" rel="noopener noreferrer" className="facebook-follow-button"><span aria-hidden="true">f</span>Follow our Facebook Page<ArrowUpRight aria-hidden="true" /></a><small className="facebook-feed-note">Facebook posts refresh automatically when you visit.</small></div><div className="facebook-feed-panel"><div className="facebook-feed-panel-head"><span className="facebook-feed-mark" aria-hidden="true">f</span><span className="facebook-feed-page-name"><strong>{name}</strong><small>Official Facebook Page</small></span><span className="facebook-feed-live"><i />{data.facebookPosts.length ? "Latest Page posts" : "Latest updates"}</span></div>{facebookFeedCards.length ? <div className="facebook-feed-posts">{facebookFeedCards.map((post) => <article className="facebook-feed-post" key={post.id}>{post.image_url && <ImagePreview src={post.image_url} alt="" width={720} height={420} imageClassName="facebook-feed-post-image" />}{post.created_label && <time className="facebook-feed-post-date" dateTime={post.created_at ?? undefined}>{post.created_label}</time>}<p>{post.message}</p><a href={post.permalink_url || facebookPageUrl} target="_blank" rel="noopener noreferrer" className="facebook-feed-post-link">{post.permalink_url ? "View post on Facebook" : "Visit our Facebook Page"}<ArrowUpRight aria-hidden="true" /></a></article>)}</div> : <div className="facebook-feed-empty"><span className="facebook-feed-mark" aria-hidden="true">f</span><strong>Follow our latest news on Facebook</strong><p>There are no recent Page posts to display yet. Visit our official Page for updates and announcements.</p><a href={facebookPageUrl} target="_blank" rel="noopener noreferrer" className="facebook-feed-post-link">Open Facebook Page<ArrowUpRight aria-hidden="true" /></a></div>}</div></div></div></section>}
 
       {data.updates.length > 0 && (isHome || page === "about") && <section className="news-section section-padding" id="news"><div className="container"><div className="section-heading"><span className="section-tag">FROM OUR TEAMS</span><h2>Enterprise <span>Updates.</span></h2><p>News and updates published by the people behind our businesses.</p></div><div className="news-grid">{data.updates.map((update) => <article className="news-card" key={update.id}>{update.image_url && <div className="news-image"><ImagePreview src={update.image_url} alt={update.title} fill sizes="(max-width: 768px) 100vw, 400px" imageClassName="object-cover" /></div>}<div className="news-card-body"><span>{businessById.get(update.business_id)?.name || name}{update.is_demo ? " · SAMPLE" : ""}</span><h3>{update.title}</h3><p>{update.content}</p></div></article>)}</div></div></section>}
 
@@ -104,7 +118,7 @@ export default function PublicWebsiteHome({ data }: { data: PublicWebsiteData })
       </div></div></section>}
     </div>
 
-    <footer className="site-footer"><div className="container footer-main"><Link className="brand footer-brand" href="/" aria-label={`${name} home`}><span className="brand-mark brand-logo"><ImagePreview src={logo} alt={`${name} logo`} width={100} height={100} imageClassName="object-contain" /></span><span className="brand-name"><strong>{name}</strong><small>ONE VISION. MANY POSSIBILITIES.</small></span></Link><p>{data.company.tagline || "One enterprise. Many solutions."}</p><div className="footer-links"><Link href="/">Home</Link>{data.website.show_businesses && <Link href="/businesses">Businesses</Link>}{data.website.show_products && <Link href="/products">Products &amp; Services</Link>}{data.website.show_promotions && <Link href="/offers">Offers</Link>}<Link href="/about">About</Link>{showContacts && <Link href="/contact">Contact</Link>}<Link href="/customer">Customer Portal</Link><Link href="/privacy">Privacy Policy</Link></div></div><div className="footer-bottom"><div className="container footer-bottom-content"><p>© {new Date().getFullYear()} {name}. All rights reserved.</p><p className="footer-motto">YOUR VISION. OUR MISSION.</p></div></div></footer>
+    <footer className="site-footer"><div className="container footer-main"><Link className="brand footer-brand" href="/" aria-label={`${name} home`}><span className="brand-mark brand-logo"><ImagePreview src={logo} alt={`${name} logo`} width={100} height={100} imageClassName="object-contain" /></span><span className="brand-name"><strong>{name}</strong><small>ONE VISION. MANY POSSIBILITIES.</small></span></Link><p>{data.company.tagline || "One enterprise. Many solutions."}</p><div className="footer-links"><Link href="/">Home</Link>{data.website.show_businesses && <Link href="/businesses">Businesses</Link>}{data.website.show_products && <Link href="/products">Products &amp; Services</Link>}{data.website.show_promotions && <Link href="/offers">Offers</Link>}<Link href="/community">Community</Link><Link href="/about">About</Link>{showContacts && <Link href="/contact">Contact</Link>}<Link href="/customer">Customer Portal</Link><Link href="/privacy">Privacy Policy</Link></div></div><div className="footer-bottom"><div className="container footer-bottom-content"><p>© {new Date().getFullYear()} {name}. All rights reserved.</p><p className="footer-motto">YOUR VISION. OUR MISSION.</p></div></div></footer>
   </main>;
 }
 

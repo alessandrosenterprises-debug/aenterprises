@@ -28,6 +28,7 @@ export default function PublicSiteHeader({ data }: { data: PublicWebsiteData }) 
           {data.website.show_businesses && <PublicNavLink href="/businesses" active={page === "businesses"}>Our Businesses</PublicNavLink>}
           {data.website.show_products && <PublicNavLink href="/products" active={page === "products"}>Products &amp; Services</PublicNavLink>}
           {data.website.show_promotions && <PublicNavLink href="/offers" active={page === "offers"}>Offers</PublicNavLink>}
+          <PublicNavLink href="/community" active={page === "community"}>Community</PublicNavLink>
           <PublicNavLink href="/about" active={page === "about"}>About Us</PublicNavLink>
           {data.website.show_contact_information && <PublicNavLink href="/contact" active={page === "contact"}>Contact</PublicNavLink>}
         </nav>
@@ -39,6 +40,7 @@ export default function PublicSiteHeader({ data }: { data: PublicWebsiteData }) 
         {data.website.show_businesses && <PublicMobileLink href="/businesses" onClick={() => setMobileMenuOpen(false)}>Our Businesses</PublicMobileLink>}
         {data.website.show_products && <PublicMobileLink href="/products" onClick={() => setMobileMenuOpen(false)}>Products &amp; Services</PublicMobileLink>}
         {data.website.show_promotions && <PublicMobileLink href="/offers" onClick={() => setMobileMenuOpen(false)}>Offers</PublicMobileLink>}
+        <PublicMobileLink href="/community" onClick={() => setMobileMenuOpen(false)}>Community</PublicMobileLink>
         <PublicMobileLink href="/about" onClick={() => setMobileMenuOpen(false)}>About Us</PublicMobileLink>
         {data.website.show_contact_information && <PublicMobileLink href="/contact" onClick={() => setMobileMenuOpen(false)}>Contact</PublicMobileLink>}
         {facebookPageUrl && <a href={facebookPageUrl} target="_blank" rel="noopener noreferrer" className="facebook-mobile-link"><span aria-hidden="true">f</span> Follow us on Facebook</a>}

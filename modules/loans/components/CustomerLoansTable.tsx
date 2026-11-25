@@ -612,7 +612,7 @@ export default function CustomerLoansTable({
                   >
                     {search
                       ? "No matching loan applications found."
-                      : "No customer loan applications yet."}
+                      : "No Alessandro Soft Loans applications yet."}
                   </td>
 
                 </tr>
@@ -882,7 +882,7 @@ export default function CustomerLoansTable({
                 <div>
 
                   <h2 className="text-xl font-bold text-[#03162F]">
-                    Approve Customer Loan
+                    Approve Loan Application
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
@@ -1159,7 +1159,7 @@ export default function CustomerLoansTable({
 
         <p className="text-sm text-slate-500">
           Deleting this application will permanently
-          remove it from the customer loans list.
+          remove it from the Alessandro Soft Loans portfolio.
         </p>
 
       </div>

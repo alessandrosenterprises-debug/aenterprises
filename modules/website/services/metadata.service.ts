@@ -6,6 +6,7 @@ const pageDetails: Record<string, { title: string; description: string }> = {
   businesses: { title: "Our businesses", description: "Explore the active businesses and customer services offered by Alessandro Enterprises." },
   products: { title: "Products and services", description: "Browse current products and services from Alessandro Enterprises businesses." },
   offers: { title: "Current offers", description: "See active promotions and announcements published by Alessandro Enterprises businesses." },
+  community: { title: "Community", description: "Read business updates and offers, and join the conversation with Alessandro Enterprises." },
   contact: { title: "Contact", description: "Contact Alessandro Enterprises for service information, support and business enquiries." },
 };
 

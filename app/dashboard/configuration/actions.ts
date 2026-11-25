@@ -385,6 +385,12 @@ export async function createConfigurationAction(
   if (table === "branches") {
     revalidatePath("/dashboard/configuration/branches");
   }
+  if (table === "loan_products" || table === "loan_product_terms") {
+    revalidatePath("/dashboard/configuration/loan-products");
+    revalidatePath("/dashboard/configuration/loan-terms");
+    revalidatePath("/dashboard/enterprise/soft-loans");
+    revalidatePath("/dashboard/loans");
+  }
 
   await logConfigurationActivity(supabase, "create", table, String(data.id ?? ""));
 
@@ -498,6 +504,7 @@ export async function addStarterLoanProductsAction() {
   console.info("Starter loan templates added", { userId: user.id, roleName, productsAdded, termsAdded });
   revalidatePath("/dashboard/configuration/loan-products");
   revalidatePath("/dashboard/configuration/loan-terms");
+  revalidatePath("/dashboard/enterprise/soft-loans");
   revalidatePath("/dashboard/loans");
   return { productsAdded, termsAdded, issues };
 }
@@ -605,6 +612,13 @@ export async function updateConfigurationAction(
   }
 
   await logConfigurationActivity(supabase, "update", table, String(updatedIds[0].id));
+
+  if (table === "loan_products" || table === "loan_product_terms") {
+    revalidatePath("/dashboard/configuration/loan-products");
+    revalidatePath("/dashboard/configuration/loan-terms");
+    revalidatePath("/dashboard/enterprise/soft-loans");
+    revalidatePath("/dashboard/loans");
+  }
 
   return { id: updatedIds[0].id };
 }

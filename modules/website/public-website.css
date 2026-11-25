@@ -615,14 +615,239 @@
 .aeos-public-site .facebook-feed-page-name small { color: #68768a; font-size: 12px; }
 .aeos-public-site .facebook-feed-live { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; padding: 7px 10px; border: 1px solid #d7e5f5; border-radius: 999px; background: #f3f8ff; color: #31577e; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .aeos-public-site .facebook-feed-live i { width: 7px; height: 7px; border-radius: 50%; background: #1877f2; }
-.aeos-public-site .facebook-feed-frame { min-height: 400px; padding: 12px; background: #f1f5f9; }
-.aeos-public-site .facebook-feed-iframe { display: block; width: 100%; height: 520px; margin-inline: auto; border: 0; border-radius: 10px; background: #fff; }
+.aeos-public-site .facebook-feed-posts { display: grid; max-height: 540px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; overflow-y: auto; padding: 14px; background: #f1f5f9; }
+.aeos-public-site .facebook-feed-post { min-width: 0; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; box-shadow: 0 3px 12px rgba(3,22,47,.05); }
+.aeos-public-site .facebook-feed-post-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.aeos-public-site .facebook-feed-post-date { display: block; padding: 12px 14px 0; color: #68768a; font-size: 11px; font-weight: 700; }
+.aeos-public-site .facebook-feed-post > p { display: -webkit-box; overflow: hidden; margin: 0; padding: 10px 14px 4px; color: #25364b; font-size: 13px; line-height: 1.6; white-space: pre-line; -webkit-box-orient: vertical; -webkit-line-clamp: 5; }
+.aeos-public-site .facebook-feed-post-link { display: inline-flex; align-items: center; gap: 6px; margin: 8px 14px 14px; color: #1264b1; font-size: 12px; font-weight: 800; }
+.aeos-public-site .facebook-feed-post-link svg { width: 14px; height: 14px; }
+.aeos-public-site .facebook-feed-empty { display: grid; min-height: 260px; justify-items: center; align-content: center; gap: 10px; padding: 28px; background: #f8fafc; text-align: center; }
+.aeos-public-site .facebook-feed-empty .facebook-feed-mark { width: 48px; height: 48px; border-radius: 15px; }
+.aeos-public-site .facebook-feed-empty strong { color: var(--aeos-navy); font-size: 17px; }
+.aeos-public-site .facebook-feed-empty p { max-width: 430px; margin: 0; color: #52647a; font-size: 14px; line-height: 1.6; }
+.aeos-public-site .offer-slide-group { animation: aeos-offer-slide-in .36s ease both; }
+@keyframes aeos-offer-slide-in { from { opacity: .35; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .aeos-public-site .offer-slide-group { animation: none; } }
 @media (max-width: 760px) {
   .aeos-public-site .facebook-feed-layout { grid-template-columns: 1fr; gap: 22px; }
   .aeos-public-site .facebook-feed-copy h2 { font-size: 32px; }
   .aeos-public-site .facebook-feed-panel { border-radius: 14px; }
   .aeos-public-site .facebook-feed-panel-head { min-height: 68px; gap: 10px; padding: 12px; }
   .aeos-public-site .facebook-feed-live { padding: 6px 8px; font-size: 10px; }
-  .aeos-public-site .facebook-feed-frame { min-height: 360px; padding: 8px; }
-  .aeos-public-site .facebook-feed-iframe { height: 460px; }
+  .aeos-public-site .facebook-feed-posts { max-height: 520px; grid-template-columns: 1fr; padding: 10px; }
+}
+
+/* Business directory: clear hierarchy and a predictable responsive grid. */
+.aeos-public-site #businesses {
+  scroll-margin-top: 90px;
+  padding-block: clamp(42px, 5vw, 68px);
+}
+.aeos-public-site .businesses .section-heading {
+  max-width: 900px;
+  margin: 0 0 26px;
+}
+.aeos-public-site .businesses .section-heading h2 {
+  margin: 8px 0 10px;
+  font-size: clamp(32px, 3.3vw, 44px);
+  line-height: 1.18;
+}
+.aeos-public-site .businesses .section-heading p {
+  max-width: 620px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.aeos-public-site .business-tools {
+  min-height: 48px;
+  margin-bottom: 18px;
+}
+.aeos-public-site .business-search {
+  width: min(100%, 360px);
+  height: 46px;
+  border-color: #d6dee8;
+  box-shadow: 0 2px 8px rgba(3, 22, 47, .04);
+}
+.aeos-public-site .business-search:focus-within {
+  border-color: #b89019;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, .16);
+}
+.aeos-public-site .business-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+}
+.aeos-public-site .business-card {
+  min-width: 0;
+  min-height: 300px;
+  padding: 22px;
+  border-color: #e1e7ee;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(23, 43, 66, .08);
+  color: #182b43;
+}
+.aeos-public-site .business-card::before {
+  inset: 0 0 auto;
+  height: 132px;
+  background: linear-gradient(180deg, rgba(3, 22, 47, .34), rgba(3, 22, 47, .08));
+}
+.aeos-public-site .business-card::after {
+  inset: 0 0 auto;
+  height: 132px;
+  border-bottom: 1px solid #e8edf2;
+  opacity: .9;
+}
+.aeos-public-site .business-card:hover {
+  border-color: #d4af37;
+  box-shadow: 0 12px 26px rgba(23, 43, 66, .12);
+}
+.aeos-public-site .business-card .card-top { position: relative; z-index: 1; }
+.aeos-public-site .business-card .card-number {
+  padding: 5px 9px;
+  border: 1px solid rgba(212, 175, 55, .4);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .94);
+  color: #72550a;
+}
+.aeos-public-site .business-card .business-icon {
+  background: rgba(255, 255, 255, .96);
+  color: #80620e;
+}
+.aeos-public-site .card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 76px;
+}
+.aeos-public-site .business-card .card-category { color: #89680c; }
+.aeos-public-site .card-content h3 {
+  color: #10243d;
+  font-size: clamp(20px, 1.45vw, 24px);
+  line-height: 1.28;
+}
+.aeos-public-site .card-content p {
+  min-height: 0;
+  flex: 1;
+  margin-bottom: 18px;
+  color: #536276;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.aeos-public-site .card-link {
+  min-height: 24px;
+  margin-top: auto;
+  color: #10243d;
+}
+.aeos-public-site .card-link svg {
+  color: #a27b10;
+}
+.aeos-public-site .portfolio-footer {
+  margin-top: 22px;
+  padding-top: 18px;
+}
+
+@media (max-width: 1260px) {
+  .aeos-public-site .business-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .aeos-public-site .business-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aeos-public-site .business-card { min-height: 285px; }
+  .aeos-public-site .card-content { margin-top: 64px; }
+}
+@media (max-width: 560px) {
+  .aeos-public-site #businesses { scroll-margin-top: 72px; }
+  .aeos-public-site .business-tools { align-items: stretch; flex-direction: column; gap: 10px; }
+  .aeos-public-site .business-search { width: 100%; }
+  .aeos-public-site .business-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .aeos-public-site .business-card { min-height: 270px; padding: 20px; }
+  .aeos-public-site .card-content { margin-top: 64px; }
+  .aeos-public-site .portfolio-footer { align-items: flex-start; flex-direction: column; }
+}
+
+/* Homepage business gallery */
+.aeos-public-site .public-gallery-section { padding: clamp(42px, 6vw, 76px) 0; background: #f6f8fb; }
+.aeos-public-site .public-gallery-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+.aeos-public-site .public-gallery-heading h2 { margin: 8px 0 0; color: #0b132b; font-size: clamp(28px, 3.2vw, 40px); font-weight: 850; line-height: 1.15; }
+.aeos-public-site .public-gallery-heading h2 span { color: #a27b10; }
+.aeos-public-site .public-gallery-heading p { margin: 8px 0 0; color: #596a7f; font-size: 15px; }
+.aeos-public-site .public-gallery-count { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid #dce3ec; border-radius: 12px; background: #fff; color: #24364b; font-size: 13px; font-weight: 700; }
+.aeos-public-site .public-gallery-count svg { width: 16px; height: 16px; color: #a27b10; }
+.aeos-public-site .public-gallery-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.aeos-public-site .public-gallery-card { min-width: 0; overflow: hidden; border: 1px solid #e0e6ee; border-radius: 16px; background: #fff; box-shadow: 0 5px 16px rgba(11,19,43,.06); }
+.aeos-public-site .public-gallery-image { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #e9eef4; }
+.aeos-public-site .public-gallery-caption { padding: 14px 16px 16px; }
+.aeos-public-site .public-gallery-caption .section-tag { color: #94700f; font-size: 9px; }
+.aeos-public-site .public-gallery-caption h3 { margin: 7px 0 0; color: #0b132b; font-size: 16px; font-weight: 800; line-height: 1.3; }
+.aeos-public-site .public-gallery-caption p { margin: 6px 0 0; color: #596a7f; font-size: 13px; line-height: 1.55; }
+.aeos-public-site .public-gallery-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; color: #596a7f; font-size: 12px; }
+.aeos-public-site .public-gallery-footer a { display: inline-flex; align-items: center; gap: 6px; color: #80600b; font-weight: 750; }
+.aeos-public-site .public-gallery-footer svg { width: 15px; height: 15px; }
+@media (max-width: 760px) {
+  .aeos-public-site .public-gallery-heading { align-items: flex-start; }
+  .aeos-public-site .public-gallery-count { padding: 8px 10px; font-size: 11px; }
+  .aeos-public-site .public-gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .aeos-public-site .public-gallery-caption { padding: 10px; }
+  .aeos-public-site .public-gallery-caption h3 { font-size: 14px; }
+  .aeos-public-site .public-gallery-caption p { font-size: 12px; }
+}
+@media (max-width: 420px) { .aeos-public-site .public-gallery-grid { grid-template-columns: 1fr; } }
+
+/* Public community feed */
+.aeos-public-site .public-community-section { padding: 30px 0 64px; background: #f6f8fb; }
+.aeos-public-site .public-community-feed { display: grid; max-width: 820px; gap: 20px; margin: 0 auto; }
+.aeos-public-site .public-community-card { overflow: hidden; border: 1px solid #e1e7ef; border-radius: 18px; background: #fff; box-shadow: 0 6px 20px rgba(11,19,43,.06); }
+.aeos-public-site .public-community-card > header { display: flex; align-items: center; gap: 11px; padding: 16px 18px; }
+.aeos-public-site .public-community-avatar { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #edf3fa; color: #10243d; font-size: 17px; font-weight: 800; }
+.aeos-public-site .public-community-card > header > div { display: grid; min-width: 0; gap: 3px; }
+.aeos-public-site .public-community-card > header strong { overflow: hidden; color: #10243d; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.aeos-public-site .public-community-card > header > div span { color: #728096; font-size: 11px; }
+.aeos-public-site .public-community-kind { margin-left: auto; padding: 6px 9px; border-radius: 999px; background: #f1f5f9; color: #4d5e73; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.aeos-public-site .public-community-kind.offer { background: #fff7df; color: #866300; }
+.aeos-public-site .public-community-copy { padding: 2px 18px 15px; }
+.aeos-public-site .public-community-copy h2 { margin: 0; color: #0b132b; font-size: 20px; font-weight: 800; line-height: 1.3; }
+.aeos-public-site .public-community-copy p { margin: 8px 0 0; color: #4e5e72; font-size: 14px; line-height: 1.65; white-space: pre-line; }
+.aeos-public-site .public-community-image { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #edf1f5; }
+.aeos-public-site .public-community-totals { display: flex; justify-content: space-between; padding: 11px 18px; color: #728096; font-size: 12px; }
+.aeos-public-site .public-community-totals button { color: inherit; }
+.aeos-public-site .public-community-actions { display: flex; min-height: 48px; margin: 0 18px; border-top: 1px solid #e9edf2; border-bottom: 1px solid #e9edf2; }
+.aeos-public-site .public-community-actions button,
+.aeos-public-site .public-community-actions a { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 7px; color: #536276; font-size: 13px; font-weight: 700; }
+.aeos-public-site .public-community-actions button:disabled { opacity: .55; }
+.aeos-public-site .public-community-actions svg { width: 16px; height: 16px; }
+.aeos-public-site .public-community-actions svg.liked { fill: #e34c66; color: #e34c66; }
+.aeos-public-site .public-community-actions button:hover,
+.aeos-public-site .public-community-actions a:hover { color: #9a7412; }
+.aeos-public-site .public-community-comments { display: grid; gap: 10px; padding: 14px 18px 18px; }
+.aeos-public-site .public-community-comment { padding: 10px 12px; border-radius: 12px; background: #f5f7fa; }
+.aeos-public-site .public-community-comment strong { color: #20334c; font-size: 12px; }
+.aeos-public-site .public-community-comment p { margin: 4px 0 0; color: #4e5e72; font-size: 13px; line-height: 1.5; white-space: pre-line; }
+.aeos-public-site .public-community-account-note { margin: 0 0 2px; color: #637286; font-size: 12px; }
+.aeos-public-site .public-community-google-prompt { display: grid; gap: 10px; }
+.aeos-public-site .public-community-google-prompt > p:first-child { margin: 0; color: #637286; font-size: 13px; line-height: 1.5; }
+.aeos-public-site .public-community-google-prompt > button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 10px; justify-self: start; padding: 0 16px; border: 1px solid #d7dfe8; border-radius: 10px; background: #fff; color: #20334c; font-size: 13px; font-weight: 750; box-shadow: 0 2px 5px rgba(11,19,43,.05); }
+.aeos-public-site .public-community-google-prompt > button:hover { background: #f8fafc; border-color: #aab7c7; }
+.aeos-public-site .public-community-google-prompt > button span { font-family: Arial, sans-serif; font-size: 17px; font-weight: 800; color: #4285f4; }
+.aeos-public-site .public-community-comments form { display: grid; gap: 10px; margin-top: 4px; }
+.aeos-public-site .public-community-comments label { display: grid; gap: 5px; color: #536276; font-size: 11px; font-weight: 700; }
+.aeos-public-site .public-community-comments input,
+.aeos-public-site .public-community-comments textarea { width: 100%; border: 1px solid #d8e0e9; border-radius: 10px; background: #fff; padding: 10px 12px; color: #0b132b; font: inherit; font-size: 13px; outline: none; }
+.aeos-public-site .public-community-comments input:focus,
+.aeos-public-site .public-community-comments textarea:focus { border-color: #c5a32c; box-shadow: 0 0 0 3px rgba(212,175,55,.14); }
+.aeos-public-site .public-community-comments textarea { resize: vertical; }
+.aeos-public-site .public-community-comments form > button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 8px; justify-self: end; padding: 0 15px; border: 0; border-radius: 10px; background: #10243d; color: #fff; font-size: 12px; font-weight: 750; }
+.aeos-public-site .public-community-comments form > button:disabled { opacity: .55; }
+.aeos-public-site .public-community-comments form > button svg { width: 15px; height: 15px; }
+.aeos-public-site .public-community-notice { margin: 0; color: #b42318; font-size: 12px; }
+.aeos-public-site .public-community-empty { max-width: 720px; margin: 0 auto; padding: 56px 24px; border: 1px dashed #d7dfe9; border-radius: 18px; background: #fff; text-align: center; }
+.aeos-public-site .public-community-empty > svg { width: 30px; height: 30px; margin: 0 auto 12px; color: #9a7412; }
+.aeos-public-site .public-community-empty h2 { margin: 0; color: #10243d; font-size: 20px; }
+.aeos-public-site .public-community-empty p { margin: 8px 0 0; color: #68768a; font-size: 14px; }
+@media (max-width: 560px) {
+  .aeos-public-site .public-community-card > header { padding: 13px; }
+  .aeos-public-site .public-community-copy { padding: 2px 13px 13px; }
+  .aeos-public-site .public-community-totals { padding-inline: 13px; }
+  .aeos-public-site .public-community-actions { margin-inline: 13px; }
+  .aeos-public-site .public-community-comments { padding-inline: 13px; }
 }

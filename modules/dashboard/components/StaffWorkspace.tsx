@@ -39,7 +39,7 @@ export default function StaffWorkspace({
 }) {
   const actions: WorkspaceAction[] = [
     { title: "Customer orders", description: "Accept · prepare · fulfil", href: "/dashboard/orders", permission: "orders.view", count: stats.incomingOrders, icon: ShoppingBag, urgent: true },
-    { title: "Loan applications", description: "Review · decide · follow up", href: "/dashboard/loans", permission: "loans.approve", count: stats.openLoans, icon: HandCoins, urgent: true },
+    { title: "Alessandro Soft Loans", description: "Review · decide · follow up", href: "/dashboard/enterprise/soft-loans#loan-applications", permission: "loans.approve", count: stats.openLoans, icon: HandCoins, urgent: true },
     { title: "Bookings", description: "Confirm · schedule · complete", href: "/dashboard/bookings", permission: "bookings.view", count: stats.pendingBookings, icon: CalendarDays, urgent: true },
     { title: "My deliveries", description: "Update assigned delivery progress", href: "/dashboard/orders/my-deliveries", permission: "deliveries.manage", count: stats.activeDeliveries, icon: Bike },
     { title: "Consultations", description: "Respond to service requests", href: "/dashboard/enterprise/tech-solutions/consultations", permission: "businesses.view", count: stats.pendingConsultations, icon: MessageSquare, urgent: true },

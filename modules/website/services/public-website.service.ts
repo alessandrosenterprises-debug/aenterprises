@@ -3,12 +3,13 @@ import "server-only";
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { defaultWebsiteSettings, type CompanySettings, type WebsiteSettings } from "@/modules/configuration/services/configuration.service";
-import { demoBusinesses, demoOffers, demoProducts, demoUpdates } from "@/modules/website/data/demo-content";
+import { demoBusinesses, demoProducts, demoUpdates } from "@/modules/website/data/demo-content";
 
 export type PublicBusiness = { id: string; name: string; slug: string; description: string | null; logo_url: string | null; is_demo: boolean };
 export type PublicCatalogItem = { id: string; business_id: string; name: string; description: string | null; category: string | null; item_type: string; base_price: number | null; image_url: string | null; is_demo: boolean; min_amount?: number | null; max_amount?: number | null; interest_rate?: number | null; repayment_period?: number | null; requires_collateral?: boolean };
-export type PublicOffer = { id: string; business_id: string; title: string; description: string | null; discount_text: string | null; image_url: string | null; end_date: string | null; is_demo: boolean };
-export type PublicUpdate = { id: string; business_id: string; title: string; content: string | null; image_url: string | null; published_at: string | null; is_demo: boolean };
+export type PublicOffer = { id: string; business_id: string; title: string; description: string | null; discount_text: string | null; image_url: string | null; start_date?: string | null; end_date: string | null; created_at?: string | null; is_demo: boolean };
+export type PublicUpdate = { id: string; business_id: string; title: string; content: string | null; image_url: string | null; published_at: string | null; published_label?: string | null; is_demo: boolean };
+export type PublicFacebookPost = { id: string; message: string; created_at: string | null; created_label: string | null; permalink_url: string | null; image_url: string | null };
 export type PublicGalleryImage = { id: string; business_id: string; image_url: string; title: string | null; caption: string | null; is_featured: boolean; is_demo: false };
 
 export type PublicWebsiteData = {
@@ -18,6 +19,7 @@ export type PublicWebsiteData = {
   products: PublicCatalogItem[];
   offers: PublicOffer[];
   updates: PublicUpdate[];
+  facebookPosts: PublicFacebookPost[];
   gallery: PublicGalleryImage[];
   connectionIssues: string[];
 };
@@ -56,19 +58,20 @@ export const getPublicWebsiteData = cache(async function getPublicWebsiteData():
   const businessIds = liveBusinesses.map((business) => business.id);
   const website: WebsiteSettings = { ...defaultWebsiteSettings, ...((platform?.website as Partial<WebsiteSettings> | null) ?? {}) };
   const now = new Date().toISOString();
+  const facebookPostsPromise = getPublicFacebookPosts();
 
-  const [catalogResult, offersResult, updatesResult, galleryResult, loanProductsResult, mobileMoneyServicesResult] = await Promise.all([
+  const [catalogResult, offersResult, updatesResult, galleryResult, loanProductsResult, mobileMoneyServicesResult, facebookPosts] = await Promise.all([
     website.show_products && businessIds.length
       ? supabase.from("enterprise_catalog").select("id,business_id,name,description,category,item_type,base_price,image_url,status").in("business_id", businessIds).ilike("status", "active").in("item_type", ["product", "Product", "service", "Service"]).order("created_at", { ascending: false }).limit(48)
       : Promise.resolve({ data: [], error: null }),
     website.show_promotions && businessIds.length
-      ? supabase.from("business_promotions").select("id,business_id,title,description,discount_text,image_url,end_date,active,published,start_date").in("business_id", businessIds).eq("active", true).eq("published", true).or(`start_date.is.null,start_date.lte.${now}`).or(`end_date.is.null,end_date.gte.${now}`).order("created_at", { ascending: false }).limit(24)
+      ? supabase.from("business_promotions").select("id,business_id,title,description,discount_text,image_url,end_date,active,published,start_date,created_at").in("business_id", businessIds).eq("active", true).eq("published", true).or(`start_date.is.null,start_date.lte.${now}`).or(`end_date.is.null,end_date.gte.${now}`).order("created_at", { ascending: false }).limit(24)
       : Promise.resolve({ data: [], error: null }),
     businessIds.length
       ? supabase.from("business_posts").select("id,business_id,title,content,image_url,published_at,published").in("business_id", businessIds).eq("published", true).or(`published_at.is.null,published_at.lte.${now}`).order("published_at", { ascending: false }).limit(24)
       : Promise.resolve({ data: [], error: null }),
     businessIds.length
-      ? supabase.from("business_gallery").select("id,business_id,image_url,title,caption,is_featured,active,display_order").in("business_id", businessIds).eq("active", true).order("display_order").order("created_at", { ascending: false }).limit(96)
+      ? supabase.from("business_gallery").select("id,business_id,image_url,title,caption,is_featured,active,display_order").in("business_id", businessIds).eq("active", true).order("display_order").order("created_at", { ascending: false }).limit(1000)
       : Promise.resolve({ data: [], error: null }),
     website.show_products && liveBusinesses.some((business) => business.slug === "soft-loans")
       ? supabase.from("loan_products").select("id,name,description,min_amount,max_amount,interest_rate,repayment_period,requires_collateral,status").ilike("status", "active").order("created_at", { ascending: false }).limit(48)
@@ -76,6 +79,7 @@ export const getPublicWebsiteData = cache(async function getPublicWebsiteData():
     website.show_products && liveBusinesses.some((business) => business.slug === "mobile-money")
       ? supabase.from("mobile_money_services").select("id,name,description,service_type,status").ilike("status", "active").order("name").limit(48)
       : Promise.resolve({ data: [], error: null }),
+    website.show_facebook_feed ? facebookPostsPromise : Promise.resolve([]),
   ]);
   if (catalogResult.error) connectionIssues.push(`Published catalogue: ${catalogResult.error.message}`);
   if (offersResult.error) connectionIssues.push(`Published offers: ${offersResult.error.message}`);
@@ -92,8 +96,24 @@ export const getPublicWebsiteData = cache(async function getPublicWebsiteData():
   })));
   const moneyBusiness = liveBusinesses.find((business) => business.slug === "mobile-money");
   if (moneyBusiness) liveProducts.push(...(mobileMoneyServicesResult.data ?? []).map((item) => ({ id: item.id, business_id: moneyBusiness.id, name: item.name, description: item.description, category: item.service_type, item_type: "service", base_price: null, image_url: null, is_demo: false })));
-  const liveOffers = (offersResult.data ?? []).map((offer) => ({ ...offer, is_demo: false }));
-  const liveUpdates = (updatesResult.data ?? []).map((update) => ({ ...update, is_demo: false }));
+  // Apply the expiry window again in application code as a safety net for
+  // stale caches or a backend filter that is temporarily out of sync.
+  const nowMs = Date.now();
+  const liveOffers = (offersResult.data ?? [])
+    .filter((offer) => {
+      const startsAt = offer.start_date ? new Date(offer.start_date).getTime() : null;
+      const endsAt = offer.end_date ? new Date(offer.end_date).getTime() : null;
+      return (startsAt === null || (Number.isFinite(startsAt) && startsAt <= nowMs))
+        && (endsAt === null || (Number.isFinite(endsAt) && endsAt >= nowMs));
+    })
+    .map((offer) => ({ ...offer, is_demo: false }));
+  const liveUpdates = (updatesResult.data ?? []).map((update) => ({
+    ...update,
+    published_label: update.published_at
+      ? new Date(update.published_at).toLocaleDateString("en-ZM", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lusaka" })
+      : null,
+    is_demo: false,
+  }));
   const liveGallery: PublicGalleryImage[] = (galleryResult.data ?? []).map((image) => ({ ...image, is_demo: false }));
   const businessIdForDemo = new Map(demoBusinesses.map((business) => [business.id, businesses.find((item) => item.slug === business.slug)?.id ?? business.id]));
   const demoItemBusinessId = (id: string) => businessIdForDemo.get(id) ?? id;
@@ -101,7 +121,6 @@ export const getPublicWebsiteData = cache(async function getPublicWebsiteData():
   const liveBusinessIdsWithoutContent = (rows: { business_id: string }[]) => new Set(liveBusinesses.map((business) => business.id).filter((id) => !rows.some((row) => row.business_id === id)));
   const displayBusinessIds = new Set(businesses.map((business) => business.id));
   const demoProductsForEmptyBusinesses = withDemoBusiness(demoProducts).filter((row) => liveBusinessIdsWithoutContent(liveProducts).has(row.business_id));
-  const demoOffersForEmptyBusinesses = withDemoBusiness(demoOffers).filter((row) => liveBusinessIdsWithoutContent(liveOffers).has(row.business_id));
   const demoUpdatesForEmptyBusinesses = withDemoBusiness(demoUpdates).filter((row) => liveBusinessIdsWithoutContent(liveUpdates).has(row.business_id));
 
   return {
@@ -109,9 +128,50 @@ export const getPublicWebsiteData = cache(async function getPublicWebsiteData():
     company,
     businesses: website.show_businesses ? businesses : [],
     products: website.show_products ? [...liveProducts, ...demoProductsForEmptyBusinesses].filter((row) => displayBusinessIds.has(row.business_id)) : [],
-    offers: website.show_promotions ? [...liveOffers, ...demoOffersForEmptyBusinesses].filter((row) => displayBusinessIds.has(row.business_id)) : [],
+    // Offers are time-sensitive and public-facing, so never substitute sample
+    // content when no current promotion exists.
+    offers: website.show_promotions ? liveOffers.filter((row) => displayBusinessIds.has(row.business_id)) : [],
     updates: [...liveUpdates, ...demoUpdatesForEmptyBusinesses].filter((row) => displayBusinessIds.has(row.business_id)),
+    facebookPosts,
     gallery: liveGallery.filter((image) => displayBusinessIds.has(image.business_id)),
     connectionIssues,
   };
 });
+
+async function getPublicFacebookPosts(): Promise<PublicFacebookPost[]> {
+  const pageId = process.env.FACEBOOK_PAGE_ID?.trim();
+  const accessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN?.trim();
+  if (!pageId || !accessToken) return [];
+
+  const graphVersion = process.env.FACEBOOK_GRAPH_API_VERSION?.trim() || "v26.0";
+  const fields = "id,message,created_time,permalink_url,full_picture";
+  const url = new URL(`https://graph.facebook.com/${graphVersion}/${encodeURIComponent(pageId)}/posts`);
+  url.searchParams.set("fields", fields);
+  url.searchParams.set("limit", "6");
+
+  try {
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${accessToken}` },
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return [];
+    const payload = await response.json() as { data?: Array<{ id?: string; message?: string; created_time?: string; permalink_url?: string; full_picture?: string }> };
+    return (payload.data ?? []).filter((post) => post.id && (post.message || post.full_picture)).map((post) => {
+      const createdAt = post.created_time ?? null;
+      const createdLabel = createdAt
+        ? new Date(createdAt).toLocaleDateString("en-ZM", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lusaka" })
+        : null;
+      return {
+        id: post.id!,
+        message: post.message?.trim() || "See the latest update from Alessandro Enterprises.",
+        created_at: createdAt,
+        created_label: createdLabel,
+        permalink_url: post.permalink_url ?? null,
+        image_url: post.full_picture ?? null,
+      };
+    });
+  } catch {
+    return [];
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import LoanReceipt from "@/modules/loans/components/LoanReceipt";
 
 import type {
   CustomerLoanApplication,
@@ -416,6 +417,7 @@ export default function CustomerLoanDetails({
   loan,
   onClose,
 }: Props) {
+  const [receiptKind, setReceiptKind] = useState<"disbursement" | "clearance" | null>(null);
   /**
    * ==========================================================
    * DOCUMENT STATE
@@ -999,12 +1001,32 @@ export default function CustomerLoanDetails({
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Complete customer loan application
+                Complete Alessandro Soft Loans application information.
                 information.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+
+              {["Active", "Completed"].includes(loan.status) && (
+                <button
+                  type="button"
+                  onClick={() => setReceiptKind("disbursement")}
+                  className="print-button rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-semibold text-[#03162F] transition hover:bg-slate-50"
+                >
+                  Disbursement receipt
+                </button>
+              )}
+
+              {loan.status === "Completed" && (
+                <button
+                  type="button"
+                  onClick={() => setReceiptKind("clearance")}
+                  className="print-button rounded-xl border border-emerald-300 px-3 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                >
+                  Clearance receipt
+                </button>
+              )}
 
               <button
                 type="button"
@@ -1602,6 +1624,7 @@ export default function CustomerLoanDetails({
 
         </div>
       </div>
+      {receiptKind && <LoanReceipt loan={loan} kind={receiptKind} onClose={() => setReceiptKind(null)} />}
     </>
   );
 }

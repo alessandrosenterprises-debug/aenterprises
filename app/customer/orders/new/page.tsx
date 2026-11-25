@@ -1,6 +1,5 @@
 
 import { createClient } from "@/lib/supabase/server";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import OrderCreationInterface from "./OrderCreationInterface";
@@ -25,6 +24,10 @@ export default async function NewOrderPage({
   searchParams: Promise<{ itemId?: string; search?: string; promotion?: string; tag?: string }>;
 }) {
   const query = await searchParams;
+  const nextOrderParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) if (value) nextOrderParams.set(key, value);
+  const nextOrderSearch = nextOrderParams.toString();
+  const nextOrderPath = `/customer/orders/new${nextOrderSearch ? `?${nextOrderSearch}` : ""}`;
   const supabase = await createClient();
 
   const {
@@ -57,16 +60,14 @@ export default async function NewOrderPage({
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-white/60">
-              We could not find your customer profile. Please contact
-              Alessandro Enterprises for assistance.
+              Complete your AEOS customer profile to continue with this order.
             </p>
 
             <Link
-              href="/customer"
+              href={`/customer/complete-account?next=${encodeURIComponent(nextOrderPath)}`}
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold transition hover:bg-blue-500"
             >
-              <ArrowLeft size={18} />
-              Back to Customer Portal
+              Complete account &amp; continue
             </Link>
           </div>
         </main>

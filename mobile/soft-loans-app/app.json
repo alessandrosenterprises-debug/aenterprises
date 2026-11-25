@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Alessandro Soft Loans",
+    "slug": "alessandro-soft-loans",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/app-icon.png",
+    "android": {
+      "package": "com.alessandroenterprises.softloans",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "versionCode": 1
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-logo.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#03162F"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Alessandro Soft Loans to photograph your NRC and take a verification selfie.",
+          "photosPermission": "Allow Alessandro Soft Loans to choose supporting identity images.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5631698c-5422-45ce-96b5-473ad0c79d1f"
+      }
+    },
+    "owner": "alessandro-enterprises"
+  }
+}

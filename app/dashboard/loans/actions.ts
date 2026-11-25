@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import {
   createCustomerLoanApplication,
   updateCustomerLoanApplication,
@@ -18,7 +20,9 @@ export async function createCustomerLoanAction(
   input: CustomerLoanApplicationInput
 ): Promise<CustomerLoanApplication> {
   try {
-    return await createCustomerLoanApplication(input);
+    const application = await createCustomerLoanApplication(input);
+    revalidatePath("/dashboard/enterprise/soft-loans");
+    return application;
   } catch (error) {
     console.error(
       "Customer loan action error:",
@@ -28,7 +32,7 @@ export async function createCustomerLoanAction(
     throw new Error(
       error instanceof Error
         ? error.message
-        : "Failed to create customer loan."
+        : "Failed to create loan application."
     );
   }
 }
@@ -38,13 +42,15 @@ export async function updateCustomerLoanAction(
   input: Partial<CustomerLoanApplicationInput>
 ): Promise<CustomerLoanApplication> {
   try {
-    return await updateCustomerLoanApplication(id, input);
+    const application = await updateCustomerLoanApplication(id, input);
+    revalidatePath("/dashboard/enterprise/soft-loans");
+    return application;
   } catch (error) {
     console.error("Customer loan update action error:", error);
     throw new Error(
       error instanceof Error
         ? error.message
-        : "Failed to update customer loan."
+        : "Failed to update loan application."
     );
   }
 }

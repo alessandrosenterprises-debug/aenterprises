@@ -11,6 +11,10 @@
 /mobile/customer-app/.expo/
 /mobile/customer-app/dist/
 /mobile/customer-app/.env*
+/mobile/soft-loans-app/node_modules/
+/mobile/soft-loans-app/.expo/
+/mobile/soft-loans-app/dist/
+/mobile/soft-loans-app/.env*
 /artifacts/
 /.pnp
 .pnp.*

@@ -39,7 +39,7 @@ export default function WorkQueueMonitor({ stats, permissionKeys, isSuperAdminis
   const items = useMemo<QueueItem[]>(() => [
     { label: "Customer orders", description: "New and unassigned", href: "/dashboard/orders", count: stats.incomingOrders, permissions: ["orders.view", "orders.manage"], icon: Package, table: "orders", incomingLabel: "A new customer order arrived" },
     { label: "Bookings", description: "Waiting for confirmation", href: "/dashboard/bookings", count: stats.pendingBookings, permissions: ["bookings.view", "bookings.manage"], icon: CalendarDays, table: "bookings", incomingLabel: "A new booking needs attention" },
-    { label: "Loan applications", description: "Awaiting review", href: "/dashboard/loans", count: stats.openLoans, permissions: ["loans.approve"], icon: HandCoins, table: "customer_loan_applications", incomingLabel: "A new loan application arrived" },
+    { label: "Alessandro Soft Loans", description: "Applications awaiting review", href: "/dashboard/enterprise/soft-loans#loan-applications", count: stats.openLoans, permissions: ["loans.approve"], icon: HandCoins, table: "customer_loan_applications", incomingLabel: "A new loan application arrived" },
     { label: "Consultations", description: "Customer requests to answer", href: "/dashboard/enterprise/tech-solutions/consultations", count: stats.pendingConsultations, permissions: ["businesses.view"], icon: MessageSquare, table: "technology_consultation_requests", incomingLabel: "A new consultation request arrived" },
   ].filter((item) => isSuperAdministrator || item.permissions.some((permission) => permissionKeys.includes(permission))), [isSuperAdministrator, permissionKeys, stats]);
 
