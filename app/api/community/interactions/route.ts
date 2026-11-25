@@ -14,11 +14,6 @@ async function getGoogleCommunityUser() {
   const providers = user?.app_metadata?.providers;
   const isGoogle = user?.app_metadata?.provider === "google" || (Array.isArray(providers) && providers.includes("google"));
   if (!isGoogle || !user) return null;
-  const admin = createAdminClient();
-  const { data: profile, error } = await admin.from("profiles").select("role_id,roles(name)").eq("auth_user_id", user.id).maybeSingle();
-  if (error) return null;
-  const role = Array.isArray(profile?.roles) ? profile.roles[0] : profile?.roles;
-  if (profile?.role_id && role?.name && !["Customer", "Customer Portal User"].includes(role.name)) return null;
   return user;
 }
 
